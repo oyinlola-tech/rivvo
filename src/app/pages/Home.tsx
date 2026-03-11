@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Search, Plus } from "lucide-react";
 import { api } from "../lib/api";
+import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Conversation {
   id: string;
@@ -25,10 +27,43 @@ export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
 
   useEffect(() => {
     loadConversations();
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    const socket = getSocket(token);
+
+    const handleIncoming = (payload: {
+      conversationId: string;
+      message: { text: string; timestamp: string; senderId?: string };
+    }) => {
+      if (payload.message.senderId && payload.message.senderId === user?.id) {
+        return;
+      }
+      setConversations((prev) =>
+        prev.map((conv) => {
+          if (conv.id !== payload.conversationId) return conv;
+          return {
+            ...conv,
+            lastMessage: {
+              text: payload.message.text,
+              timestamp: payload.message.timestamp,
+              unreadCount: conv.lastMessage.unreadCount + 1,
+            },
+          };
+        })
+      );
+    };
+
+    socket.on("new_message", handleIncoming);
+    return () => {
+      socket.off("new_message", handleIncoming);
+    };
+  }, [user?.id]);
 
   const loadConversations = async () => {
     const response = await api.getConversations();

@@ -12,6 +12,7 @@ export interface ApiResponse<T = any> {
 class ApiClient {
   private baseUrl: string;
   private token: string | null;
+  private authErrorHandler: ((status: number) => void) | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -25,6 +26,10 @@ class ApiClient {
     } else {
       localStorage.removeItem("authToken");
     }
+  }
+
+  setAuthErrorHandler(handler: ((status: number) => void) | null) {
+    this.authErrorHandler = handler;
   }
 
   private async request<T>(
@@ -45,6 +50,10 @@ class ApiClient {
         ...options,
         headers,
       });
+
+      if (response.status === 401 || response.status === 403) {
+        this.authErrorHandler?.(response.status);
+      }
 
       const data = await response.json();
 

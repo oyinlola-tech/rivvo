@@ -2,18 +2,22 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera } from "lucide-react";
 import { api } from "../lib/api";
+import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Message {
   id: string;
   text: string;
   timestamp: string;
   sender: "me" | "them";
+  senderId?: string;
 }
 
 export default function Messages() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,6 +34,29 @@ export default function Messages() {
     if (id) {
       loadMessages();
     }
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const token = localStorage.getItem("authToken");
+    const socket = getSocket(token);
+
+    const handleIncoming = (payload: { conversationId: string; message: Message }) => {
+      if (payload.message.senderId && payload.message.senderId === user?.id) {
+        return;
+      }
+      if (payload.conversationId === id) {
+        setMessages((prev) => [...prev, payload.message]);
+      }
+    };
+
+    socket.emit("join_conversation", { conversationId: id });
+    socket.on("new_message", handleIncoming);
+
+    return () => {
+      socket.emit("leave_conversation", { conversationId: id });
+      socket.off("new_message", handleIncoming);
+    };
   }, [id]);
 
   useEffect(() => {

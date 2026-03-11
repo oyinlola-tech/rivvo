@@ -26,6 +26,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    api.setAuthErrorHandler(() => {
+      api.setToken(null);
+      setUser(null);
+      localStorage.removeItem("authToken");
+    });
+    return () => api.setAuthErrorHandler(null);
+  }, []);
+
+  useEffect(() => {
     // Check if user is already logged in
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
