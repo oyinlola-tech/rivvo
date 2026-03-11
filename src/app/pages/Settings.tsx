@@ -23,9 +23,13 @@ export default function Settings() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
-  const apiBase = process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+  const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const avatarSrc = avatarUrl ? `${mediaBase}${avatarUrl}` : "";
+
+  useEffect(() => {
+    setAvatarUrl(user?.avatar || "");
+  }, [user?.avatar]);
 
   const handleLogout = () => {
     logout();
@@ -189,6 +193,3 @@ export default function Settings() {
     </div>
   );
 }
-  useEffect(() => {
-    setAvatarUrl(user?.avatar || "");
-  }, [user?.avatar]);

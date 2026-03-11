@@ -125,8 +125,13 @@ export const getOrCreateStorageKey = async () => {
   return key;
 };
 
-const toBase64 = (buffer: ArrayBuffer) =>
-  btoa(String.fromCharCode(...new Uint8Array(buffer)));
+const toBase64 = (buffer: ArrayBuffer | ArrayBufferView) => {
+  const bytes =
+    buffer instanceof ArrayBuffer
+      ? new Uint8Array(buffer)
+      : new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  return btoa(String.fromCharCode(...bytes));
+};
 
 const fromBase64 = (value: string) =>
   Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
@@ -148,10 +153,14 @@ export const encryptMessage = async (plainText: string, key: CryptoKey) => {
 export const decryptMessage = async (ciphertext: string, iv: string, key: CryptoKey) => {
   const ivBytes = fromBase64(iv);
   const cipherBytes = fromBase64(ciphertext);
+  const cipherBuffer = cipherBytes.buffer.slice(
+    cipherBytes.byteOffset,
+    cipherBytes.byteOffset + cipherBytes.byteLength
+  );
   const plainBuffer = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: ivBytes },
     key,
-    cipherBytes
+    cipherBuffer
   );
   return decoder.decode(plainBuffer);
 };

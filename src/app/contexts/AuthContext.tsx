@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.login(email, password);
     if (response.success && response.data) {
       api.setToken(response.data.token);
-      api.setRefreshToken(response.data.refreshToken);
+      api.setRefreshToken(response.data.refreshToken ?? null);
       setUser(response.data.user);
       const keyPair = await getOrCreateKeyPair();
       await api.setPublicKey(JSON.stringify(keyPair.publicKey));
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.verifyOTP(email, otp);
     if (response.success && response.data) {
       api.setToken(response.data.token);
-      api.setRefreshToken(response.data.refreshToken);
+      api.setRefreshToken(response.data.refreshToken ?? null);
       setUser(response.data.user);
       const keyPair = await getOrCreateKeyPair();
       await api.setPublicKey(JSON.stringify(keyPair.publicKey));

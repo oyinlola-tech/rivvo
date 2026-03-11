@@ -23,7 +23,7 @@ interface StatusGroup {
 }
 
 export default function Status() {
-  const apiBase = process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const { user } = useAuth();
   const [statuses, setStatuses] = useState<StatusGroup[]>([]);

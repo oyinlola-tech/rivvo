@@ -1,6 +1,6 @@
 // API configuration and utilities
 // Replace with your actual backend API URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -170,13 +170,12 @@ class ApiClient {
     options: RequestInit = {},
     allowRefresh: boolean = true
   ): Promise<ApiResponse<T>> {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
-
+    const headers = new Headers(options.headers);
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
     if (this.token) {
-      headers["Authorization"] = `Bearer ${this.token}`;
+      headers.set("Authorization", `Bearer ${this.token}`);
     }
 
     try {
@@ -216,9 +215,9 @@ class ApiClient {
 
   private async requestForm<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
     try {
-      const headers: HeadersInit = {};
+      const headers = new Headers();
       if (this.token) {
-        headers["Authorization"] = `Bearer ${this.token}`;
+        headers.set("Authorization", `Bearer ${this.token}`);
       }
 
       const response = await fetch(`${this.baseUrl}${endpoint}`, {

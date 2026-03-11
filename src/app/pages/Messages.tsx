@@ -61,6 +61,7 @@ export default function Messages() {
   const contact = peer || {
     id: "",
     name: "John Abraham",
+    avatar: null,
     online: true,
     verified: true,
     isModerator: false,
@@ -230,7 +231,7 @@ export default function Messages() {
 
       setMessages(merged);
       await saveMessages(user.id, id, incoming);
-      if (response.data.serverTime) {
+      if (response.data?.serverTime) {
         await setConversationSync(user.id, id, response.data.serverTime);
       }
     } else if (!response.success) {

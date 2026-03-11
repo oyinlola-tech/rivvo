@@ -11,7 +11,7 @@ interface Conversation {
   user: {
     id: string;
     name: string;
-    avatar?: string;
+    avatar?: string | null;
     online: boolean;
     verified: boolean;
     isModerator: boolean;
