@@ -10,7 +10,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: env.clientUrl,
+    origin: env.clientUrls,
     credentials: true
   }
 });
@@ -20,6 +20,7 @@ app.set('io', io);
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   if (!token) {
+    socket.user = null;
     return next();
   }
 
@@ -27,7 +28,7 @@ io.use((socket, next) => {
     const payload = jwt.verify(token, env.jwt.secret);
     socket.user = payload;
   } catch (error) {
-    socket.user = null;
+    return next(new Error('Unauthorized'));
   }
 
   return next();

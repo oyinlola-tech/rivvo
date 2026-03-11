@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { sendError, isNonEmptyString } from '../utils/validation.js';
 
 const buildUserPayload = (user) => ({
   id: user.id,
@@ -17,7 +18,7 @@ export const getProfile = async (req, res) => {
   });
   const user = rows[0];
   if (!user) {
-    return res.status(404).json({ error: 'Not Found', message: 'User not found' });
+    return sendError(res, 404, 'User not found');
   }
   return res.json(buildUserPayload(user));
 };
@@ -26,8 +27,8 @@ export const updateProfile = async (req, res) => {
   const userId = req.user?.id;
   const { name, avatar } = req.body || {};
 
-  if (!name && avatar === undefined) {
-    return res.status(400).json({ error: 'Bad Request', message: 'Nothing to update' });
+  if (!isNonEmptyString(name) && avatar === undefined) {
+    return sendError(res, 400, 'Nothing to update');
   }
 
   await pool.execute(
@@ -43,4 +44,35 @@ export const updateProfile = async (req, res) => {
   );
 
   return res.json({ message: 'Profile updated successfully' });
+};
+
+export const upsertPublicKey = async (req, res) => {
+  const userId = req.user?.id;
+  const { publicKey } = req.body || {};
+
+  if (!publicKey) {
+    return res.status(400).json({ error: 'Bad Request', message: 'publicKey is required' });
+  }
+
+  await pool.execute(
+    `INSERT INTO user_keys (user_id, public_key)
+     VALUES (:user_id, :public_key)
+     ON DUPLICATE KEY UPDATE public_key = VALUES(public_key)`,
+    { user_id: userId, public_key: publicKey }
+  );
+
+  return res.json({ message: 'Public key saved' });
+};
+
+export const getPublicKey = async (req, res) => {
+  const { userId } = req.params;
+  const [rows] = await pool.execute('SELECT public_key FROM user_keys WHERE user_id = :user_id', {
+    user_id: userId
+  });
+
+  if (!rows.length) {
+    return res.status(404).json({ error: 'Not Found', message: 'Public key not found' });
+  }
+
+  return res.json({ userId, publicKey: rows[0].public_key });
 };

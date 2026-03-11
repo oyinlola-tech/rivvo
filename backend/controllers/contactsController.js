@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { isUserOnline } from '../services/presenceService.js';
+import { sendError, requireFields } from '../utils/validation.js';
 
 export const getContacts = async (req, res) => {
   const userId = req.user?.id;
@@ -29,13 +30,14 @@ export const addContact = async (req, res) => {
   const userId = req.user?.id;
   const { userId: contactId } = req.body || {};
 
-  if (!contactId) {
-    return res.status(400).json({ error: 'Bad Request', message: 'userId is required' });
+  const missing = requireFields(req.body, ['userId']);
+  if (missing.length) {
+    return sendError(res, 400, 'userId is required');
   }
 
   const [userRows] = await pool.execute('SELECT id FROM users WHERE id = :id', { id: contactId });
   if (!userRows.length) {
-    return res.status(404).json({ error: 'Not Found', message: 'User not found' });
+    return sendError(res, 404, 'User not found');
   }
 
   await pool.execute(

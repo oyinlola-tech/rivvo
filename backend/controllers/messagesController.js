@@ -1,6 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
 import { isUserOnline } from '../services/presenceService.js';
+import { sendError, isNonEmptyString } from '../utils/validation.js';
 
 const ensureParticipant = async (userId, conversationId) => {
   const [rows] = await pool.execute(
@@ -14,6 +15,9 @@ const ensureParticipant = async (userId, conversationId) => {
 
 export const getConversations = async (req, res) => {
   const userId = req.user?.id;
+  if (!userId) {
+    return sendError(res, 401, 'Unauthorized');
+  }
   const [rows] = await pool.execute(
     `SELECT
         c.id AS conversation_id,
@@ -24,6 +28,7 @@ export const getConversations = async (req, res) => {
         u.is_moderator,
         lm.body AS last_text,
         lm.created_at AS last_timestamp,
+        lm.is_encrypted AS last_encrypted,
         cp1.last_read_at AS last_read_at,
         (
           SELECT COUNT(*)
@@ -39,7 +44,7 @@ export const getConversations = async (req, res) => {
        ON cp2.conversation_id = c.id AND cp2.user_id <> :user_id
      JOIN users u ON u.id = cp2.user_id
      LEFT JOIN (
-       SELECT m1.conversation_id, m1.body, m1.created_at
+       SELECT m1.conversation_id, m1.body, m1.created_at, m1.is_encrypted
        FROM messages m1
        JOIN (
          SELECT conversation_id, MAX(created_at) AS max_created
@@ -63,8 +68,8 @@ export const getConversations = async (req, res) => {
       isModerator: Boolean(row.is_moderator)
     },
     lastMessage: {
-      text: row.last_text || '',
-      timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : new Date().toISOString(),
+      text: row.last_encrypted ? 'Encrypted message' : row.last_text || '',
+      timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : null,
       unreadCount: Number(row.unread_count || 0)
     }
   }));
@@ -75,14 +80,17 @@ export const getConversations = async (req, res) => {
 export const getMessages = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
+  if (!conversationId) {
+    return sendError(res, 400, 'Conversation id is required');
+  }
 
   const isParticipant = await ensureParticipant(userId, conversationId);
   if (!isParticipant) {
-    return res.status(404).json({ error: 'Not Found', message: 'Conversation not found' });
+    return sendError(res, 404, 'Conversation not found');
   }
 
   const [rows] = await pool.execute(
-    `SELECT id, body, created_at, sender_id
+    `SELECT id, body, created_at, sender_id, read_at, is_encrypted, iv
      FROM messages
      WHERE conversation_id = :conversation_id
      ORDER BY created_at ASC`,
@@ -96,11 +104,24 @@ export const getMessages = async (req, res) => {
     { conversation_id: conversationId, user_id: userId }
   );
 
+  await pool.execute(
+    `UPDATE messages
+     SET read_at = NOW()
+     WHERE conversation_id = :conversation_id
+       AND sender_id <> :user_id
+       AND read_at IS NULL`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+
   const messages = rows.map((row) => ({
     id: row.id,
     text: row.body,
     timestamp: new Date(row.created_at).toISOString(),
-    sender: row.sender_id === userId ? 'me' : 'them'
+    sender: row.sender_id === userId ? 'me' : 'them',
+    senderId: row.sender_id,
+    readAt: row.read_at ? new Date(row.read_at).toISOString() : null,
+    encrypted: Boolean(row.is_encrypted),
+    iv: row.iv || null
   }));
 
   return res.json(messages);
@@ -109,26 +130,32 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
-  const { message } = req.body || {};
+  const { message, ciphertext, iv, encrypted } = req.body || {};
 
-  if (!message || !message.trim()) {
-    return res.status(400).json({ error: 'Bad Request', message: 'Message is required' });
+  const finalMessage = ciphertext || message;
+  if (!conversationId) {
+    return sendError(res, 400, 'Conversation id is required');
+  }
+  if (!isNonEmptyString(finalMessage)) {
+    return sendError(res, 400, 'Message is required');
   }
 
   const isParticipant = await ensureParticipant(userId, conversationId);
   if (!isParticipant) {
-    return res.status(404).json({ error: 'Not Found', message: 'Conversation not found' });
+    return sendError(res, 404, 'Conversation not found');
   }
 
   const messageId = uuid();
   await pool.execute(
-    `INSERT INTO messages (id, conversation_id, sender_id, body)
-     VALUES (:id, :conversation_id, :sender_id, :body)`,
+    `INSERT INTO messages (id, conversation_id, sender_id, body, iv, is_encrypted)
+     VALUES (:id, :conversation_id, :sender_id, :body, :iv, :is_encrypted)`,
     {
       id: messageId,
       conversation_id: conversationId,
       sender_id: userId,
-      body: message.trim()
+      body: finalMessage.trim(),
+      iv: iv || null,
+      is_encrypted: encrypted ? 1 : 0
     }
   );
 
@@ -148,10 +175,13 @@ export const sendMessage = async (req, res) => {
   const otherUserId = participantRows[0]?.user_id;
   const payload = {
     id: messageId,
-    text: message.trim(),
+    text: finalMessage.trim(),
     timestamp: new Date().toISOString(),
     sender: 'me',
-    senderId: userId
+    senderId: userId,
+    readAt: null,
+    encrypted: Boolean(encrypted),
+    iv: iv || null
   };
 
   const io = req.app.get('io');
@@ -167,4 +197,82 @@ export const sendMessage = async (req, res) => {
   }
 
   return res.status(201).json(payload);
+};
+
+export const markConversationRead = async (req, res) => {
+  const userId = req.user?.id;
+  const conversationId = req.params.id;
+
+  const isParticipant = await ensureParticipant(userId, conversationId);
+  if (!isParticipant) {
+    return sendError(res, 404, 'Conversation not found');
+  }
+
+  await pool.execute(
+    `UPDATE conversation_participants
+     SET last_read_at = NOW()
+     WHERE conversation_id = :conversation_id AND user_id = :user_id`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+
+  await pool.execute(
+    `UPDATE messages
+     SET read_at = NOW()
+     WHERE conversation_id = :conversation_id
+       AND sender_id <> :user_id
+       AND read_at IS NULL`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+
+  const [participantRows] = await pool.execute(
+    `SELECT user_id FROM conversation_participants
+     WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+
+  const otherUserId = participantRows[0]?.user_id;
+  const io = req.app.get('io');
+  if (io && otherUserId) {
+    io.to(`user:${otherUserId}`).emit('read_receipt', {
+      conversationId,
+      readerId: userId,
+      readAt: new Date().toISOString()
+    });
+  }
+
+  return res.json({ message: 'Conversation marked as read' });
+};
+
+export const getConversationPeer = async (req, res) => {
+  const userId = req.user?.id;
+  const conversationId = req.params.id;
+
+  const isParticipant = await ensureParticipant(userId, conversationId);
+  if (!isParticipant) {
+    return sendError(res, 404, 'Conversation not found');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT u.id, u.name, u.avatar, u.verified, u.is_moderator, uk.public_key
+     FROM conversation_participants cp
+     JOIN users u ON u.id = cp.user_id
+     LEFT JOIN user_keys uk ON uk.user_id = u.id
+     WHERE cp.conversation_id = :conversation_id AND cp.user_id <> :user_id
+     LIMIT 1`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+
+  if (!rows.length) {
+    return sendError(res, 404, 'Peer not found');
+  }
+
+  const peer = rows[0];
+  return res.json({
+    id: peer.id,
+    name: peer.name,
+    avatar: peer.avatar || null,
+    verified: Boolean(peer.verified),
+    isModerator: Boolean(peer.is_moderator),
+    publicKey: peer.public_key || null
+  });
 };

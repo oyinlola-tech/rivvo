@@ -133,6 +133,26 @@ class ApiClient {
     });
   }
 
+  async sendEncryptedMessage(
+    conversationId: string,
+    payload: { ciphertext: string; iv: string }
+  ) {
+    return this.request(`/messages/conversations/${conversationId}`, {
+      method: "POST",
+      body: JSON.stringify({ ciphertext: payload.ciphertext, iv: payload.iv, encrypted: true }),
+    });
+  }
+
+  async markConversationRead(conversationId: string) {
+    return this.request(`/messages/conversations/${conversationId}/read`, {
+      method: "POST",
+    });
+  }
+
+  async getConversationPeer(conversationId: string) {
+    return this.request(`/messages/conversations/${conversationId}/peer`);
+  }
+
   // Calls endpoints
   async getCallHistory() {
     return this.request("/calls/history");
@@ -197,6 +217,13 @@ class ApiClient {
     return this.request(`/admin/users/${userId}/verification`, {
       method: "PUT",
       body: JSON.stringify({ verified }),
+    });
+  }
+
+  async setPublicKey(publicKey: string) {
+    return this.request("/users/keys", {
+      method: "PUT",
+      body: JSON.stringify({ publicKey }),
     });
   }
 }

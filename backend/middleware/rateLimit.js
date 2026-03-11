@@ -1,11 +1,16 @@
 import rateLimit from 'express-rate-limit';
 import env from '../config/env.js';
 
-const authRateLimiter = rateLimit({
+export const authRateLimiter = rateLimit({
   windowMs: env.rateLimit.windowMinutes * 60 * 1000,
-  max: env.rateLimit.max,
+  max: env.rateLimit.authMax,
   standardHeaders: true,
   legacyHeaders: false
 });
 
-export default authRateLimiter;
+export const apiRateLimiter = rateLimit({
+  windowMs: env.rateLimit.windowMinutes * 60 * 1000,
+  max: env.rateLimit.apiMax,
+  standardHeaders: true,
+  legacyHeaders: false
+});

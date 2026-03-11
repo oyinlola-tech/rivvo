@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { api } from "../lib/api";
+import { getOrCreateKeyPair } from "../lib/crypto";
 
 interface User {
   id: string;
@@ -57,6 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (response.success && response.data) {
       api.setToken(response.data.token);
       setUser(response.data.user);
+      const keyPair = await getOrCreateKeyPair();
+      await api.setPublicKey(JSON.stringify(keyPair.publicKey));
       return { success: true };
     }
     return { success: false, message: response.error || "Login failed" };
@@ -75,6 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (response.success && response.data) {
       api.setToken(response.data.token);
       setUser(response.data.user);
+      const keyPair = await getOrCreateKeyPair();
+      await api.setPublicKey(JSON.stringify(keyPair.publicKey));
       return { success: true };
     }
     return { success: false, message: response.error || "OTP verification failed" };

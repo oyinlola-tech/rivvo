@@ -5,6 +5,14 @@ import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  getOrCreateKeyPair,
+  importPrivateKey,
+  importPublicKey,
+  deriveSharedKey,
+  encryptMessage,
+  decryptMessage,
+} from "../lib/crypto";
 
 interface Message {
   id: string;
@@ -12,6 +20,9 @@ interface Message {
   timestamp: string;
   sender: "me" | "them";
   senderId?: string;
+  readAt?: string | null;
+  encrypted?: boolean;
+  iv?: string | null;
 }
 
 export default function Messages() {
@@ -21,6 +32,7 @@ export default function Messages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sharedKey, setSharedKey] = useState<CryptoKey | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const contact = {
@@ -41,23 +53,45 @@ export default function Messages() {
     const token = localStorage.getItem("authToken");
     const socket = getSocket(token);
 
-    const handleIncoming = (payload: { conversationId: string; message: Message }) => {
+    const handleIncoming = async (payload: { conversationId: string; message: Message }) => {
       if (payload.message.senderId && payload.message.senderId === user?.id) {
         return;
       }
       if (payload.conversationId === id) {
-        setMessages((prev) => [...prev, payload.message]);
+        let nextMessage = payload.message;
+        if (payload.message.encrypted && payload.message.iv && sharedKey) {
+          try {
+            const text = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
+            nextMessage = { ...payload.message, text };
+          } catch {
+            nextMessage = { ...payload.message, text: "Encrypted message" };
+          }
+        } else if (payload.message.encrypted) {
+          nextMessage = { ...payload.message, text: "Encrypted message" };
+        }
+        setMessages((prev) => [...prev, nextMessage]);
       }
+    };
+
+    const handleRead = (payload: { conversationId: string; readAt: string }) => {
+      if (payload.conversationId !== id) return;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.sender === "me" ? { ...msg, readAt: payload.readAt } : msg
+        )
+      );
     };
 
     socket.emit("join_conversation", { conversationId: id });
     socket.on("new_message", handleIncoming);
+    socket.on("read_receipt", handleRead);
 
     return () => {
       socket.emit("leave_conversation", { conversationId: id });
       socket.off("new_message", handleIncoming);
+      socket.off("read_receipt", handleRead);
     };
-  }, [id]);
+  }, [id, sharedKey, user?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -65,10 +99,42 @@ export default function Messages() {
 
   const loadMessages = async () => {
     if (!id) return;
+    let derivedKey: CryptoKey | null = null;
+    const peerResponse = await api.getConversationPeer(id);
+    if (peerResponse.success && peerResponse.data?.publicKey) {
+      const keyPair = await getOrCreateKeyPair();
+      const privateKey = await importPrivateKey(keyPair.privateKey);
+      const peerPublic = await importPublicKey(JSON.parse(peerResponse.data.publicKey));
+      derivedKey = await deriveSharedKey(privateKey, peerPublic);
+      setSharedKey(derivedKey);
+    }
+
     const response = await api.getMessages(id);
     if (response.success && response.data) {
-      setMessages(response.data);
+      if (derivedKey) {
+        const decrypted = await Promise.all(
+          response.data.map(async (msg: Message) => {
+            if (msg.encrypted && msg.iv) {
+              try {
+                const text = await decryptMessage(msg.text, msg.iv, derivedKey as CryptoKey);
+                return { ...msg, text };
+              } catch {
+                return { ...msg, text: "Encrypted message" };
+              }
+            }
+            return msg;
+          })
+        );
+        setMessages(decrypted);
+      } else {
+        setMessages(
+          response.data.map((msg: Message) =>
+            msg.encrypted ? { ...msg, text: "Encrypted message" } : msg
+          )
+        );
+      }
     }
+    await api.markConversationRead(id);
     setLoading(false);
   };
 
@@ -84,12 +150,18 @@ export default function Messages() {
       text: newMessage,
       timestamp: new Date().toISOString(),
       sender: "me",
+      readAt: null,
     };
 
     setMessages([...messages, tempMessage]);
     setNewMessage("");
 
-    await api.sendMessage(id, newMessage);
+    if (sharedKey) {
+      const encrypted = await encryptMessage(newMessage, sharedKey);
+      await api.sendEncryptedMessage(id, encrypted);
+    } else {
+      await api.sendMessage(id, newMessage);
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -161,6 +233,7 @@ export default function Messages() {
                     }`}
                   >
                     {formatTime(message.timestamp)}
+                    {message.sender === "me" && message.readAt ? " • Seen" : ""}
                   </p>
                 </div>
               </div>

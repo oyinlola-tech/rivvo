@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
 import env from '../config/env.js';
 import { isUserOnline } from '../services/presenceService.js';
+import { sendError, requireFields, isOneOf } from '../utils/validation.js';
 
 export const getCallHistory = async (req, res) => {
   const userId = req.user?.id;
@@ -51,13 +52,17 @@ export const initiateCall = async (req, res) => {
   const callerId = req.user?.id;
   const { userId, type } = req.body || {};
 
-  if (!userId || !type) {
-    return res.status(400).json({ error: 'Bad Request', message: 'userId and type required' });
+  const missing = requireFields(req.body, ['userId', 'type']);
+  if (missing.length) {
+    return sendError(res, 400, 'userId and type required');
+  }
+  if (!isOneOf(type, ['audio', 'video'])) {
+    return sendError(res, 400, 'Invalid call type');
   }
 
   const [calleeRows] = await pool.execute('SELECT id FROM users WHERE id = :id', { id: userId });
   if (!calleeRows.length) {
-    return res.status(404).json({ error: 'Not Found', message: 'User not found' });
+    return sendError(res, 404, 'User not found');
   }
 
   const callId = uuid();
@@ -84,4 +89,38 @@ export const initiateCall = async (req, res) => {
   }
 
   return res.status(201).json({ callId, roomUrl });
+};
+
+export const endCall = async (req, res) => {
+  const userId = req.user?.id;
+  const callId = req.params.id;
+  if (!callId) {
+    return sendError(res, 400, 'Call id is required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, created_at, status, caller_id, callee_id
+     FROM calls
+     WHERE id = :id
+     LIMIT 1`,
+    { id: callId }
+  );
+  const call = rows[0];
+  if (!call || (call.caller_id !== userId && call.callee_id !== userId)) {
+    return sendError(res, 404, 'Call not found');
+  }
+
+  if (call.status !== 'ongoing') {
+    return sendError(res, 400, 'Call already ended');
+  }
+
+  await pool.execute(
+    `UPDATE calls
+     SET status = 'completed',
+         duration = TIMESTAMPDIFF(SECOND, created_at, NOW())
+     WHERE id = :id`,
+    { id: callId }
+  );
+
+  return res.json({ message: 'Call ended' });
 };
