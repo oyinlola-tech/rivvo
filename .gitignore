@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+backend/node_modules
+backend/dist
+backend/build
+.env
+backend/.env

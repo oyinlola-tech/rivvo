@@ -1,0 +1,57 @@
+import { createBrowserRouter } from "react-router";
+import AuthLayout from "./layouts/AuthLayout";
+import MainLayout from "./layouts/MainLayout";
+import AdminLayout from "./layouts/AdminLayout";
+import Login from "./pages/auth/Login";
+import Signup from "./pages/auth/Signup";
+import OTPVerification from "./pages/auth/OTPVerification";
+import Home from "./pages/Home";
+import Messages from "./pages/Messages";
+import Calls from "./pages/Calls";
+import Contacts from "./pages/Contacts";
+import Settings from "./pages/Settings";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminUsers from "./pages/admin/Users";
+import AdminReports from "./pages/admin/Reports";
+import AdminAnalytics from "./pages/admin/Analytics";
+import AdminModerators from "./pages/admin/Moderators";
+import NotFound from "./pages/NotFound";
+
+export const router = createBrowserRouter([
+  {
+    path: "/auth",
+    Component: AuthLayout,
+    children: [
+      { path: "login", Component: Login },
+      { path: "signup", Component: Signup },
+      { path: "verify-otp", Component: OTPVerification },
+    ],
+  },
+  {
+    path: "/",
+    Component: MainLayout,
+    children: [
+      { index: true, Component: Home },
+      { path: "messages", Component: Messages },
+      { path: "messages/:id", Component: Messages },
+      { path: "calls", Component: Calls },
+      { path: "contacts", Component: Contacts },
+      { path: "settings", Component: Settings },
+    ],
+  },
+  {
+    path: "/admin",
+    Component: AdminLayout,
+    children: [
+      { index: true, Component: AdminDashboard },
+      { path: "users", Component: AdminUsers },
+      { path: "reports", Component: AdminReports },
+      { path: "analytics", Component: AdminAnalytics },
+      { path: "moderators", Component: AdminModerators },
+    ],
+  },
+  {
+    path: "*",
+    Component: NotFound,
+  },
+]);
