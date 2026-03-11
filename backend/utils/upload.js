@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import { fileURLToPath } from 'url';
 
-const rootDir = new URL('..', import.meta.url).pathname;
+const rootDir = path.dirname(fileURLToPath(new URL('..', import.meta.url)));
 const uploadsRoot = path.join(rootDir, 'uploads');
 
 const ensureDir = (dir) => {

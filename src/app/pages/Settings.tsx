@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router";
 import { useTheme } from "next-themes";
@@ -23,6 +23,9 @@ export default function Settings() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
+  const apiBase = process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+  const mediaBase = apiBase.replace(/\/api\/?$/, "");
+  const avatarSrc = avatarUrl ? `${mediaBase}${avatarUrl}` : "";
 
   const handleLogout = () => {
     logout();
@@ -109,7 +112,7 @@ export default function Settings() {
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
               {avatarUrl ? (
-                <img src={avatarUrl} alt={user?.name} className="w-full h-full object-cover" />
+                <img src={avatarSrc} alt={user?.name} className="w-full h-full object-cover" />
               ) : (
                 user?.name[0].toUpperCase()
               )}
@@ -186,3 +189,6 @@ export default function Settings() {
     </div>
   );
 }
+  useEffect(() => {
+    setAvatarUrl(user?.avatar || "");
+  }, [user?.avatar]);

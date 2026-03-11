@@ -327,7 +327,9 @@ export default function Messages() {
 
     setMessages((prev) =>
       prev.map((msg) =>
-        msg.id === message.id ? { ...msg, text: revealText } : msg
+        msg.id === message.id
+          ? { ...msg, text: revealText, viewOnceViewedAt: new Date().toISOString() }
+          : msg
       )
     );
 
@@ -434,15 +436,17 @@ export default function Messages() {
                   }`}
                 >
                   {message.viewOnce ? (
-                    message.sender === "them" ? (
+                    message.sender === "them" && !message.viewOnceViewedAt ? (
                       <button
                         onClick={() => handleViewOnce(message)}
                         className="text-sm font-medium underline"
                       >
                         View once message
                       </button>
-                    ) : (
+                    ) : message.sender === "me" ? (
                       <p className="text-sm">View once message</p>
+                    ) : (
+                      <p className="text-sm">{message.text}</p>
                     )
                   ) : (
                     <p className="text-sm">{message.text}</p>

@@ -18,7 +18,7 @@ interface Conversation {
   };
   lastMessage: {
     text: string;
-    timestamp: string;
+    timestamp: string | null;
     unreadCount: number;
   };
 }

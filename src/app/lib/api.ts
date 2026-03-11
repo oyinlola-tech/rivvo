@@ -9,6 +9,93 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+export interface ApiUser {
+  id: string;
+  email: string;
+  name: string;
+  verified: boolean;
+  isModerator: boolean;
+  isAdmin: boolean;
+  avatar?: string | null;
+}
+
+export interface AuthResponse {
+  token: string;
+  refreshToken?: string;
+  user: ApiUser;
+}
+
+export interface ConversationDto {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+    online: boolean;
+    verified: boolean;
+    isModerator: boolean;
+  };
+  lastMessage: {
+    text: string;
+    timestamp: string | null;
+    unreadCount: number;
+  };
+}
+
+export interface MessageDto {
+  id: string;
+  text: string;
+  timestamp: string;
+  sender: "me" | "them";
+  senderId?: string;
+  readAt?: string | null;
+  encrypted?: boolean;
+  iv?: string | null;
+  viewOnce?: boolean;
+  viewOnceViewedAt?: string | null;
+}
+
+export interface MessagesResponse {
+  messages: MessageDto[];
+  serverTime: string;
+}
+
+export interface PeerDto {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  verified: boolean;
+  isModerator: boolean;
+  publicKey?: string | null;
+}
+
+export interface DeviceDto {
+  deviceId: string;
+  deviceName?: string | null;
+  verifiedAt?: string | null;
+  createdAt?: string;
+}
+
+export interface StatusDto {
+  id: string;
+  text?: string | null;
+  mediaUrl?: string | null;
+  mediaType?: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface StatusGroupDto {
+  user: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+    verified?: boolean;
+    isModerator?: boolean;
+  };
+  statuses: StatusDto[];
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null;
@@ -162,35 +249,35 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
     return this.request("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
   }
 
-  async signup(email: string, password: string, name: string) {
+  async signup(email: string, password: string, name: string): Promise<ApiResponse<{ message: string }>> {
     return this.request("/auth/signup", {
       method: "POST",
       body: JSON.stringify({ email, password, name }),
     });
   }
 
-  async verifyOTP(email: string, otp: string) {
+  async verifyOTP(email: string, otp: string): Promise<ApiResponse<AuthResponse>> {
     return this.request("/auth/verify-otp", {
       method: "POST",
       body: JSON.stringify({ email, otp }),
     });
   }
 
-  async resendOTP(email: string) {
+  async resendOTP(email: string): Promise<ApiResponse<{ message: string }>> {
     return this.request("/auth/resend-otp", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
   }
 
-  async logout(refreshToken: string) {
+  async logout(refreshToken: string): Promise<ApiResponse<{ message: string }>> {
     return this.request("/auth/logout", {
       method: "POST",
       body: JSON.stringify({ refreshToken }),
@@ -214,32 +301,32 @@ class ApiClient {
   }
 
   // User endpoints
-  async getProfile() {
+  async getProfile(): Promise<ApiResponse<ApiUser>> {
     return this.request("/users/profile");
   }
 
-  async updateProfile(data: any) {
+  async updateProfile(data: any): Promise<ApiResponse<{ message: string }>> {
     return this.request("/users/profile", {
       method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
-  async uploadAvatar(file: File) {
+  async uploadAvatar(file: File): Promise<ApiResponse<{ message: string; avatar: string }>> {
     const form = new FormData();
     form.append("avatar", file);
     return this.requestForm("/users/avatar", form);
   }
 
   // Messages endpoints
-  async getConversations() {
+  async getConversations(): Promise<ApiResponse<ConversationDto[]>> {
     return this.request("/messages/conversations");
   }
 
   async getMessages(
     conversationId: string,
     options?: { since?: string; markRead?: boolean }
-  ) {
+  ): Promise<ApiResponse<MessagesResponse>> {
     const params = new URLSearchParams();
     if (options?.since) params.set("since", options.since);
     if (options?.markRead === false) params.set("markRead", "false");
@@ -248,7 +335,11 @@ class ApiClient {
     return this.request(`/messages/conversations/${conversationId}${suffix}`);
   }
 
-  async sendMessage(conversationId: string, message: string, viewOnce: boolean = false) {
+  async sendMessage(
+    conversationId: string,
+    message: string,
+    viewOnce: boolean = false
+  ): Promise<ApiResponse<MessageDto>> {
     return this.request(`/messages/conversations/${conversationId}`, {
       method: "POST",
       body: JSON.stringify({ message, viewOnce }),
@@ -258,7 +349,7 @@ class ApiClient {
   async sendEncryptedMessage(
     conversationId: string,
     payload: { ciphertext: string; iv: string; viewOnce?: boolean }
-  ) {
+  ): Promise<ApiResponse<MessageDto>> {
     return this.request(`/messages/conversations/${conversationId}`, {
       method: "POST",
       body: JSON.stringify({
@@ -270,28 +361,31 @@ class ApiClient {
     });
   }
 
-  async markConversationRead(conversationId: string) {
+  async markConversationRead(conversationId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/messages/conversations/${conversationId}/read`, {
       method: "POST",
     });
   }
 
-  async viewOnceMessage(conversationId: string, messageId: string) {
+  async viewOnceMessage(
+    conversationId: string,
+    messageId: string
+  ): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/messages/conversations/${conversationId}/view-once/${messageId}`, {
       method: "POST",
     });
   }
 
-  async getConversationPeer(conversationId: string) {
+  async getConversationPeer(conversationId: string): Promise<ApiResponse<PeerDto>> {
     return this.request(`/messages/conversations/${conversationId}/peer`);
   }
 
   // Calls endpoints
-  async getCallHistory() {
+  async getCallHistory(): Promise<ApiResponse<any[]>> {
     return this.request("/calls/history");
   }
 
-  async initiateCall(userId: string, type: "audio" | "video") {
+  async initiateCall(userId: string, type: "audio" | "video"): Promise<ApiResponse<any>> {
     return this.request("/calls/initiate", {
       method: "POST",
       body: JSON.stringify({ userId, type }),
@@ -305,11 +399,11 @@ class ApiClient {
   }
 
   // Contacts endpoints
-  async getContacts() {
+  async getContacts(): Promise<ApiResponse<any[]>> {
     return this.request("/contacts");
   }
 
-  async addContact(userId: string) {
+  async addContact(userId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request("/contacts", {
       method: "POST",
       body: JSON.stringify({ userId }),
@@ -317,78 +411,82 @@ class ApiClient {
   }
 
   // Admin endpoints
-  async getUsers(page: number = 1, limit: number = 20) {
+  async getUsers(page: number = 1, limit: number = 20): Promise<ApiResponse<any>> {
     return this.request(`/admin/users?page=${page}&limit=${limit}`);
   }
 
-  async deleteUser(userId: string) {
+  async deleteUser(userId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/admin/users/${userId}`, {
       method: "DELETE",
     });
   }
 
-  async getReports() {
+  async getReports(): Promise<ApiResponse<any[]>> {
     return this.request("/admin/reports");
   }
 
-  async resolveReport(reportId: string) {
+  async resolveReport(reportId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/admin/reports/${reportId}/resolve`, {
       method: "POST",
     });
   }
 
-  async getAnalytics() {
+  async getAnalytics(): Promise<ApiResponse<any>> {
     return this.request("/admin/analytics");
   }
 
-  async getModerators() {
+  async getModerators(): Promise<ApiResponse<any[]>> {
     return this.request("/admin/moderators");
   }
 
-  async createModerator(data: { email: string; password: string; name: string }) {
+  async createModerator(
+    data: { email: string; password: string; name: string }
+  ): Promise<ApiResponse<any>> {
     return this.request("/admin/moderators", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async updateVerification(userId: string, verified: boolean) {
+  async updateVerification(userId: string, verified: boolean): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/admin/users/${userId}/verification`, {
       method: "PUT",
       body: JSON.stringify({ verified }),
     });
   }
 
-  async setPublicKey(publicKey: string) {
+  async setPublicKey(publicKey: string): Promise<ApiResponse<{ message: string }>> {
     return this.request("/users/keys", {
       method: "PUT",
       body: JSON.stringify({ publicKey }),
     });
   }
 
-  async registerDeviceKey(payload: { deviceId: string; publicKey: string; deviceName?: string }) {
+  async registerDeviceKey(
+    payload: { deviceId: string; publicKey: string; deviceName?: string }
+  ): Promise<ApiResponse<{ message: string }>> {
     return this.request("/users/devices/register", {
       method: "PUT",
       body: JSON.stringify(payload),
     });
   }
 
-  async listDevices() {
+  async listDevices(): Promise<ApiResponse<DeviceDto[]>> {
     return this.request("/users/devices");
   }
 
-  async verifyDevice(deviceId: string) {
+  async verifyDevice(deviceId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/users/devices/${deviceId}/verify`, { method: "POST" });
   }
 
-  async createStatus(payload: { text?: string; media?: File }) {
+  async createStatus(payload: { text?: string; media?: File }): Promise<ApiResponse<StatusDto>> {
     const form = new FormData();
     if (payload.text) form.append("text", payload.text);
     if (payload.media) form.append("media", payload.media);
     return this.requestForm("/status", form);
   }
 
-  async getStatuses() {
+  async getStatuses(): Promise<ApiResponse<StatusGroupDto[]>> {
     return this.request("/status");
   }
 }

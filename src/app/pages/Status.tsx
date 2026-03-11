@@ -23,6 +23,8 @@ interface StatusGroup {
 }
 
 export default function Status() {
+  const apiBase = process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+  const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const { user } = useAuth();
   const [statuses, setStatuses] = useState<StatusGroup[]>([]);
   const [text, setText] = useState("");
@@ -71,7 +73,7 @@ export default function Status() {
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold">
               {user?.avatar ? (
                 <img
-                  src={user.avatar}
+                  src={`${mediaBase}${user.avatar}`}
                   alt={user.name}
                   className="w-full h-full rounded-full object-cover"
                 />
@@ -120,7 +122,7 @@ export default function Status() {
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white text-sm font-bold">
                       {group.user.avatar ? (
                         <img
-                          src={group.user.avatar}
+                          src={`${mediaBase}${group.user.avatar}`}
                           alt={group.user.name}
                           className="w-full h-full rounded-full object-cover"
                         />
@@ -141,14 +143,14 @@ export default function Status() {
                         {status.text && <p className="text-sm mb-2">{status.text}</p>}
                         {status.mediaUrl && status.mediaType?.startsWith("image/") && (
                           <img
-                            src={status.mediaUrl}
+                            src={`${mediaBase}${status.mediaUrl}`}
                             alt="status"
                             className="w-full rounded-lg object-cover"
                           />
                         )}
                         {status.mediaUrl && status.mediaType?.startsWith("video/") && (
                           <video controls className="w-full rounded-lg">
-                            <source src={status.mediaUrl} />
+                            <source src={`${mediaBase}${status.mediaUrl}`} />
                           </video>
                         )}
                         <p className="text-xs text-[#797c7b] mt-2">
