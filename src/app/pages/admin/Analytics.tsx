@@ -11,15 +11,19 @@ interface AnalyticsData {
 export default function AdminAnalytics() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadAnalytics();
   }, []);
 
   const loadAnalytics = async () => {
+    setError("");
     const response = await api.getAnalytics();
     if (response.success && response.data) {
       setAnalytics(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load analytics");
     }
     setLoading(false);
   };
@@ -31,6 +35,10 @@ export default function AdminAnalytics() {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-600">{error}</p>
         </div>
       ) : (
         <>

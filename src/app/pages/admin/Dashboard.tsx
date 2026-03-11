@@ -17,15 +17,19 @@ export default function AdminDashboard() {
     totalCalls: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadStats();
   }, []);
 
   const loadStats = async () => {
+    setError("");
     const response = await api.getAnalytics();
     if (response.success && response.data) {
       setStats(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load dashboard stats");
     }
     setLoading(false);
   };
@@ -64,6 +68,10 @@ export default function AdminDashboard() {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-600">{error}</p>
         </div>
       ) : (
         <>

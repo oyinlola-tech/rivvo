@@ -63,6 +63,8 @@ export const initDb = async () => {
       iv VARCHAR(64) NULL,
       is_encrypted TINYINT(1) DEFAULT 0,
       read_at DATETIME NULL,
+      view_once TINYINT(1) DEFAULT 0,
+      view_once_viewed_at DATETIME NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_messages_conv (conversation_id),
       INDEX idx_messages_created (created_at)
@@ -91,6 +93,24 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE messages
       ADD COLUMN read_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE messages
+      ADD COLUMN view_once TINYINT(1) DEFAULT 0
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE messages
+      ADD COLUMN view_once_viewed_at DATETIME NULL
     `);
   } catch (error) {
     // Column likely exists already.
@@ -127,6 +147,20 @@ export const initDb = async () => {
       description TEXT NULL,
       status ENUM('pending', 'resolved') DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS statuses (
+      id CHAR(36) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      text TEXT NULL,
+      media_url VARCHAR(512) NULL,
+      media_type VARCHAR(64) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME NOT NULL,
+      INDEX idx_status_user (user_id),
+      INDEX idx_status_expires (expires_at)
     )
   `);
 
@@ -336,6 +370,17 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE user_keys
       ADD CONSTRAINT fk_user_keys_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE statuses
+      ADD CONSTRAINT fk_statuses_user
       FOREIGN KEY (user_id) REFERENCES users(id)
       ON DELETE CASCADE
     `);

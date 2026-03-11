@@ -46,6 +46,23 @@ export const updateProfile = async (req, res) => {
   return res.json({ message: 'Profile updated successfully' });
 };
 
+export const uploadAvatar = async (req, res) => {
+  const userId = req.user?.id;
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ error: 'Bad Request', message: 'Avatar file is required' });
+  }
+
+  const avatarUrl = `/uploads/avatars/${file.filename}`;
+  await pool.execute('UPDATE users SET avatar = :avatar WHERE id = :id', {
+    id: userId,
+    avatar: avatarUrl
+  });
+
+  return res.json({ message: 'Avatar updated', avatar: avatarUrl });
+};
+
 export const upsertPublicKey = async (req, res) => {
   const userId = req.user?.id;
   const { publicKey } = req.body || {};

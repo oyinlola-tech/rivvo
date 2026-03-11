@@ -42,9 +42,9 @@ export default function Settings() {
         },
         {
           icon: Lock,
-          label: "Privacy",
-          description: "Block contacts, disappearing messages",
-          onClick: () => {},
+          label: "Device verification",
+          description: "Verify keys and devices",
+          onClick: () => navigate("/settings/device-keys"),
         },
       ],
     },

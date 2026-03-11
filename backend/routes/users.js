@@ -8,13 +8,19 @@ import {
   getPublicKey,
   registerDeviceKey,
   listDevices,
-  verifyDevice
+  verifyDevice,
+  uploadAvatar
 } from '../controllers/usersController.js';
+import { upload } from '../utils/upload.js';
 
 const router = Router();
 
 router.get('/profile', auth, asyncHandler(getProfile));
 router.put('/profile', auth, asyncHandler(updateProfile));
+router.post('/avatar', auth, (req, res, next) => {
+  req.uploadFolder = 'uploads/avatars';
+  next();
+}, upload.single('avatar'), asyncHandler(uploadAvatar));
 router.put('/keys', auth, asyncHandler(upsertPublicKey));
 router.get('/keys/:userId', auth, asyncHandler(getPublicKey));
 router.put('/devices/register', auth, asyncHandler(registerDeviceKey));

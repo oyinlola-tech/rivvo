@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { api } from "../lib/api";
-import { getOrCreateKeyPair } from "../lib/crypto";
+import { getDeviceId, getOrCreateDeviceKeyPair, getOrCreateKeyPair } from "../lib/crypto";
 
 interface User {
   id: string;
@@ -46,6 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await api.getProfile();
         if (response.success && response.data) {
           setUser(response.data);
+          const keyPair = await getOrCreateKeyPair();
+          await api.setPublicKey(JSON.stringify(keyPair.publicKey));
+          const deviceKeyPair = await getOrCreateDeviceKeyPair();
+          await api.registerDeviceKey({
+            deviceId: getDeviceId(),
+            publicKey: JSON.stringify(deviceKeyPair.publicKey),
+            deviceName: navigator.userAgent,
+          });
         } else {
           localStorage.removeItem("authToken");
           localStorage.removeItem("refreshToken");
@@ -65,6 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.data.user);
       const keyPair = await getOrCreateKeyPair();
       await api.setPublicKey(JSON.stringify(keyPair.publicKey));
+      const deviceKeyPair = await getOrCreateDeviceKeyPair();
+      await api.registerDeviceKey({
+        deviceId: getDeviceId(),
+        publicKey: JSON.stringify(deviceKeyPair.publicKey),
+        deviceName: navigator.userAgent,
+      });
       return { success: true };
     }
     return { success: false, message: response.error || "Login failed" };
@@ -86,6 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.data.user);
       const keyPair = await getOrCreateKeyPair();
       await api.setPublicKey(JSON.stringify(keyPair.publicKey));
+      const deviceKeyPair = await getOrCreateDeviceKeyPair();
+      await api.registerDeviceKey({
+        deviceId: getDeviceId(),
+        publicKey: JSON.stringify(deviceKeyPair.publicKey),
+        deviceName: navigator.userAgent,
+      });
       return { success: true };
     }
     return { success: false, message: response.error || "OTP verification failed" };

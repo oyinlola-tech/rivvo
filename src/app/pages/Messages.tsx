@@ -87,11 +87,15 @@ export default function Messages() {
 
     const handleRead = (payload: { conversationId: string; readAt: string }) => {
       if (payload.conversationId !== id) return;
-      setMessages((prev) =>
-        prev.map((msg) =>
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
           msg.sender === "me" ? { ...msg, readAt: payload.readAt } : msg
-        )
-      );
+        );
+        if (user?.id) {
+          saveMessages(user.id, id, updated);
+        }
+        return updated;
+      });
     };
 
     const handleTyping = (payload: { conversationId: string; userId?: string }) => {
@@ -123,6 +127,7 @@ export default function Messages() {
 
   const loadMessages = async () => {
     if (!id || !user?.id) return;
+    setError("");
     const cached = await loadCachedMessages(user.id, id);
     if (cached.length) {
       setMessages(cached);
@@ -144,9 +149,12 @@ export default function Messages() {
       since: lastSync || undefined,
       markRead: true,
     });
-    if (response.success && response.data?.messages) {
+    const incomingRaw = Array.isArray(response.data)
+      ? response.data
+      : response.data?.messages;
+    if (response.success && incomingRaw) {
       const incoming = await Promise.all(
-        response.data.messages.map(async (msg: Message) => {
+        incomingRaw.map(async (msg: Message) => {
           if (msg.encrypted && msg.iv && derivedKey) {
             try {
               const text = await decryptMessage(msg.text, msg.iv, derivedKey);
@@ -173,6 +181,8 @@ export default function Messages() {
       if (response.data.serverTime) {
         await setConversationSync(user.id, id, response.data.serverTime);
       }
+    } else if (!response.success) {
+      setError(response.error || "Failed to load messages");
     }
     await api.markConversationRead(id);
     setLoading(false);
@@ -185,8 +195,9 @@ export default function Messages() {
   const handleSend = async () => {
     if (!newMessage.trim() || !id) return;
 
+    const tempId = Date.now().toString();
     const tempMessage: Message = {
-      id: Date.now().toString(),
+      id: tempId,
       text: newMessage,
       timestamp: new Date().toISOString(),
       sender: "me",
@@ -195,16 +206,31 @@ export default function Messages() {
 
     setMessages([...messages, tempMessage]);
     setNewMessage("");
-    if (user?.id) {
-      saveMessages(user.id, id, [tempMessage]);
-    }
+    setError("");
 
+    let response;
     if (sharedKey) {
       const encrypted = await encryptMessage(newMessage, sharedKey);
-      await api.sendEncryptedMessage(id, encrypted);
+      response = await api.sendEncryptedMessage(id, encrypted);
     } else {
-      await api.sendMessage(id, newMessage);
+      response = await api.sendMessage(id, newMessage);
     }
+
+    if (!response.success) {
+      setError(response.error || "Failed to send message");
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      return;
+    }
+
+    await loadMessages();
+  };
+
+  const handleTypingInput = (value: string) => {
+    setNewMessage(value);
+    if (!id) return;
+    const token = localStorage.getItem("authToken");
+    const socket = getSocket(token);
+    socket.emit("typing", { conversationId: id, userId: user?.id });
   };
 
   const formatTime = (timestamp: string) => {
@@ -257,6 +283,11 @@ export default function Messages() {
           </div>
         ) : (
           <>
+            {error && (
+              <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -281,6 +312,7 @@ export default function Messages() {
                 </div>
               </div>
             ))}
+            {isTyping && <div className="text-xs text-gray-500">Typing...</div>}
             <div ref={messagesEndRef} />
           </>
         )}
@@ -298,7 +330,7 @@ export default function Messages() {
           <input
             type="text"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => handleTypingInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
             placeholder="Write your message"
             className="flex-1 px-4 py-2 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"

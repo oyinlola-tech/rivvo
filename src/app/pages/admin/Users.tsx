@@ -16,6 +16,7 @@ interface User {
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -23,9 +24,12 @@ export default function AdminUsers() {
   }, []);
 
   const loadUsers = async () => {
+    setError("");
     const response = await api.getUsers();
     if (response.success && response.data) {
       setUsers(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load users");
     }
     setLoading(false);
   };
@@ -38,6 +42,8 @@ export default function AdminUsers() {
           user.id === userId ? { ...user, verified: !currentStatus } : user
         )
       );
+    } else if (!response.success) {
+      setError(response.error || "Failed to update verification");
     }
   };
 
@@ -47,6 +53,8 @@ export default function AdminUsers() {
     const response = await api.deleteUser(userId);
     if (response.success) {
       setUsers(users.filter((user) => user.id !== userId));
+    } else if (!response.success) {
+      setError(response.error || "Failed to delete user");
     }
   };
 
@@ -79,6 +87,10 @@ export default function AdminUsers() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

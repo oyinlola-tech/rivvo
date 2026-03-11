@@ -16,6 +16,7 @@ interface Contact {
 export default function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -23,9 +24,12 @@ export default function Contacts() {
   }, []);
 
   const loadContacts = async () => {
+    setError("");
     const response = await api.getContacts();
     if (response.success && response.data) {
       setContacts(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load contacts");
     }
     setLoading(false);
   };
@@ -65,6 +69,10 @@ export default function Contacts() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
           </div>
         ) : filteredContacts.length === 0 ? (
           <div className="text-center py-12">

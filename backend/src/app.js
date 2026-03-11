@@ -6,8 +6,13 @@ import env from '../config/env.js';
 import routes from '../routes/index.js';
 import errorHandler from '../middleware/error.js';
 import { apiRateLimiter } from '../middleware/rateLimit.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsPath = path.join(__dirname, '..', 'uploads');
 
 app.use(helmet());
 app.use(
@@ -30,6 +35,8 @@ app.use(morgan('dev'));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/uploads', express.static(uploadsPath));
 
 app.use('/api', apiRateLimiter, routes);
 

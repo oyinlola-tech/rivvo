@@ -18,6 +18,16 @@ export default function Signup() {
     e.preventDefault();
     setError("");
 
+    if (!name.trim()) {
+      setError("Full name is required");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;

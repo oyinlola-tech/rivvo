@@ -26,6 +26,7 @@ interface Conversation {
 export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuth();
 
@@ -66,9 +67,12 @@ export default function Home() {
   }, [user?.id]);
 
   const loadConversations = async () => {
+    setError("");
     const response = await api.getConversations();
     if (response.success && response.data) {
       setConversations(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load conversations");
     }
     setLoading(false);
   };
@@ -77,7 +81,8 @@ export default function Home() {
     conv.user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp?: string | null) => {
+    if (!timestamp) return "";
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -123,6 +128,10 @@ export default function Home() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
           </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
+          </div>
         ) : filteredConversations.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">No conversations found</p>
@@ -165,13 +174,17 @@ export default function Home() {
                           <VerificationBadge type={conversation.user.isModerator ? "mod" : "user"} size="sm" />
                         )}
                       </div>
-                      <span className="text-xs text-[#797c7b]">
-                        {formatTime(conversation.lastMessage.timestamp)}
-                      </span>
+                      {conversation.lastMessage.timestamp && (
+                        <span className="text-xs text-[#797c7b]">
+                          {formatTime(conversation.lastMessage.timestamp)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-[#797c7b] truncate">
-                        {conversation.lastMessage.text}
+                        {conversation.lastMessage.timestamp
+                          ? conversation.lastMessage.text
+                          : "No messages yet"}
                       </p>
                       {conversation.lastMessage.unreadCount > 0 && (
                         <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#F04A4C] flex items-center justify-center">

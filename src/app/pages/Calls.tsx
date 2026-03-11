@@ -20,15 +20,19 @@ interface CallLog {
 export default function Calls() {
   const [calls, setCalls] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadCalls();
   }, []);
 
   const loadCalls = async () => {
+    setError("");
     const response = await api.getCallHistory();
     if (response.success && response.data) {
       setCalls(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load call history");
     }
     setLoading(false);
   };
@@ -74,6 +78,10 @@ export default function Calls() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
           </div>
         ) : calls.length === 0 ? (
           <div className="text-center py-12">

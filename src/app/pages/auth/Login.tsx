@@ -17,6 +17,18 @@ export default function Login() {
     setError("");
     setLoading(true);
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email address");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      setLoading(false);
+      return;
+    }
+
     const result = await login(email, password);
     
     if (result.success) {

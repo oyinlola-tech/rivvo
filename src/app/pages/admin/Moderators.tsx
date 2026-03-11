@@ -13,6 +13,7 @@ interface Moderator {
 export default function AdminModerators() {
   const [moderators, setModerators] = useState<Moderator[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -26,9 +27,12 @@ export default function AdminModerators() {
   }, []);
 
   const loadModerators = async () => {
+    setError("");
     const response = await api.getModerators();
     if (response.success && response.data) {
       setModerators(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load moderators");
     }
     setLoading(false);
   };
@@ -36,6 +40,7 @@ export default function AdminModerators() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateLoading(true);
+    setError("");
 
     const response = await api.createModerator(formData);
     
@@ -43,6 +48,8 @@ export default function AdminModerators() {
       setShowCreateForm(false);
       setFormData({ name: "", email: "", password: "" });
       loadModerators();
+    } else if (!response.success) {
+      setError(response.error || "Failed to create moderator");
     }
     
     setCreateLoading(false);
@@ -122,6 +129,10 @@ export default function AdminModerators() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
           </div>
         ) : moderators.length === 0 ? (
           <div className="text-center py-12">

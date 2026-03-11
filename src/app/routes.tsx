@@ -10,6 +10,7 @@ import Messages from "./pages/Messages";
 import Calls from "./pages/Calls";
 import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
+import DeviceKeys from "./pages/DeviceKeys";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminReports from "./pages/admin/Reports";
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
       { path: "calls", Component: Calls },
       { path: "contacts", Component: Contacts },
       { path: "settings", Component: Settings },
+      { path: "settings/device-keys", Component: DeviceKeys },
     ],
   },
   {

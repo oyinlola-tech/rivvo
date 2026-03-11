@@ -21,6 +21,7 @@ interface Report {
 export default function AdminReports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "resolved">("all");
 
   useEffect(() => {
@@ -28,9 +29,12 @@ export default function AdminReports() {
   }, []);
 
   const loadReports = async () => {
+    setError("");
     const response = await api.getReports();
     if (response.success && response.data) {
       setReports(response.data);
+    } else if (!response.success) {
+      setError(response.error || "Failed to load reports");
     }
     setLoading(false);
   };
@@ -43,6 +47,8 @@ export default function AdminReports() {
           report.id === reportId ? { ...report, status: "resolved" } : report
         )
       );
+    } else if (!response.success) {
+      setError(response.error || "Failed to resolve report");
     }
   };
 
@@ -76,6 +82,10 @@ export default function AdminReports() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
           </div>
         ) : filteredReports.length === 0 ? (
           <div className="text-center py-12">
