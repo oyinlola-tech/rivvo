@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router";
 import { useTheme } from "next-themes";
+import { api } from "../lib/api";
 import {
   User,
   Bell,
@@ -19,10 +20,25 @@ export default function Settings() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarError, setAvatarError] = useState("");
 
   const handleLogout = () => {
     logout();
     navigate("/auth/login");
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) return;
+    const response = await api.uploadAvatar(avatarFile);
+    if (response.success && response.data?.avatar) {
+      setAvatarUrl(response.data.avatar);
+      setAvatarFile(null);
+      setAvatarError("");
+    } else {
+      setAvatarError(response.error || "Failed to upload avatar");
+    }
   };
 
   const settingsGroups = [
@@ -91,14 +107,32 @@ export default function Settings() {
         {/* Profile Section */}
         <div className="px-6 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold">
-              {user?.name[0].toUpperCase()}
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={user?.name} className="w-full h-full object-cover" />
+              ) : (
+                user?.name[0].toUpperCase()
+              )}
             </div>
             <div>
               <h2 className="text-xl font-bold">{user?.name}</h2>
               <p className="text-sm text-gray-600">{user?.email}</p>
             </div>
           </div>
+          <div className="mt-4 flex items-center gap-3">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+            />
+            <button
+              onClick={handleAvatarUpload}
+              className="px-4 py-2 rounded-lg bg-[#20A090] text-white"
+            >
+              Upload Photo
+            </button>
+          </div>
+          {avatarError && <p className="text-sm text-red-600 mt-2">{avatarError}</p>}
         </div>
 
         {/* Settings Groups */}

@@ -9,6 +9,7 @@ interface User {
   verified: boolean;
   isModerator: boolean;
   isAdmin: boolean;
+  avatar?: string | null;
 }
 
 interface AuthContextType {

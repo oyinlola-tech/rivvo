@@ -34,6 +34,14 @@ interface Message {
   viewOnceViewedAt?: string | null;
 }
 
+interface PeerInfo {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  verified: boolean;
+  isModerator: boolean;
+}
+
 export default function Messages() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,11 +53,13 @@ export default function Messages() {
   const [isTyping, setIsTyping] = useState(false);
   const [viewOnceMode, setViewOnceMode] = useState(false);
   const [sharedKey, setSharedKey] = useState<CryptoKey | null>(null);
+  const [peer, setPeer] = useState<PeerInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const viewOnceTimeoutRef = useRef<number | null>(null);
 
-  const contact = {
+  const contact = peer || {
+    id: "",
     name: "John Abraham",
     online: true,
     verified: true,
@@ -74,7 +84,7 @@ export default function Messages() {
       if (payload.conversationId === id) {
         let nextMessage = payload.message;
         if (payload.message.viewOnce) {
-          nextMessage = { ...payload.message, text: "View once message" };
+          nextMessage = payload.message;
         } else if (payload.message.encrypted && payload.message.iv && sharedKey) {
           try {
             const text = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
@@ -159,11 +169,28 @@ export default function Messages() {
     let derivedKey: CryptoKey | null = null;
     const peerResponse = await api.getConversationPeer(id);
     if (peerResponse.success && peerResponse.data?.publicKey) {
+      setPeer({
+        id: peerResponse.data.id,
+        name: peerResponse.data.name,
+        avatar: peerResponse.data.avatar,
+        verified: peerResponse.data.verified,
+        isModerator: peerResponse.data.isModerator
+      });
       const keyPair = await getOrCreateKeyPair();
       const privateKey = await importPrivateKey(keyPair.privateKey);
       const peerPublic = await importPublicKey(JSON.parse(peerResponse.data.publicKey));
       derivedKey = await deriveSharedKey(privateKey, peerPublic);
       setSharedKey(derivedKey);
+    } else if (peerResponse.success && peerResponse.data) {
+      setPeer({
+        id: peerResponse.data.id,
+        name: peerResponse.data.name,
+        avatar: peerResponse.data.avatar,
+        verified: peerResponse.data.verified,
+        isModerator: peerResponse.data.isModerator
+      });
+    } else if (!peerResponse.success) {
+      setError(peerResponse.error || "Failed to load conversation details");
     }
 
     const lastSync = await getConversationSync(user.id, id);
@@ -178,7 +205,7 @@ export default function Messages() {
       const incoming = await Promise.all(
         incomingRaw.map(async (msg: Message) => {
           if (msg.viewOnce) {
-            return { ...msg, text: "View once message" };
+            return msg;
           }
           if (msg.encrypted && msg.iv && derivedKey) {
             try {
@@ -252,12 +279,44 @@ export default function Messages() {
     await loadMessages();
   };
 
+  const handleStartCall = async (type: "audio" | "video") => {
+    if (!peer?.id) {
+      setError("Unable to start call: missing participant.");
+      return;
+    }
+
+    setError("");
+    const response = await api.initiateCall(peer.id, type);
+    if (!response.success || !response.data?.callId || !response.data?.roomUrl) {
+      setError(response.error || "Failed to start call");
+      return;
+    }
+
+    const callWindow = window.open(response.data.roomUrl, "_blank", "noopener,noreferrer");
+    if (!callWindow) {
+      setError("Popup blocked. Please allow popups to start a call.");
+      return;
+    }
+
+    const callId = response.data.callId;
+    const watcher = window.setInterval(async () => {
+      if (callWindow.closed) {
+        window.clearInterval(watcher);
+        await api.endCall(callId);
+      }
+    }, 1000);
+  };
+
   const handleViewOnce = async (message: Message) => {
     if (!id || !user?.id) return;
     if (message.sender !== "them") return;
 
     let revealText = message.text;
-    if (message.encrypted && message.iv && sharedKey) {
+    if (message.encrypted) {
+      if (!message.iv || !sharedKey) {
+        setError("Unable to decrypt this message");
+        return;
+      }
       try {
         revealText = await decryptMessage(message.text, message.iv, sharedKey);
       } catch {
@@ -312,7 +371,15 @@ export default function Messages() {
           <ArrowLeft size={24} />
         </button>
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
-          {contact.name[0]}
+          {contact.avatar ? (
+            <img
+              src={contact.avatar}
+              alt={contact.name}
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            contact.name[0]
+          )}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -321,13 +388,21 @@ export default function Messages() {
               <VerificationBadge type={contact.isModerator ? "mod" : "user"} size="sm" />
             )}
           </div>
-          <p className="text-xs text-gray-500">{contact.online ? "Active now" : "Offline"}</p>
+          <p className="text-xs text-gray-500">
+            {"online" in contact && contact.online ? "Active now" : "Offline"}
+          </p>
         </div>
         <div className="flex gap-2">
-          <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+          <button
+            onClick={() => handleStartCall("audio")}
+            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+          >
             <Phone size={20} />
           </button>
-          <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+          <button
+            onClick={() => handleStartCall("video")}
+            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+          >
             <Video size={20} />
           </button>
         </div>
@@ -358,13 +433,17 @@ export default function Messages() {
                       : "bg-white text-gray-900"
                   }`}
                 >
-                  {message.viewOnce && message.sender === "them" ? (
-                    <button
-                      onClick={() => handleViewOnce(message)}
-                      className="text-sm font-medium underline"
-                    >
-                      View once message
-                    </button>
+                  {message.viewOnce ? (
+                    message.sender === "them" ? (
+                      <button
+                        onClick={() => handleViewOnce(message)}
+                        className="text-sm font-medium underline"
+                      >
+                        View once message
+                      </button>
+                    ) : (
+                      <p className="text-sm">View once message</p>
+                    )
                   ) : (
                     <p className="text-sm">{message.text}</p>
                   )}
@@ -393,6 +472,15 @@ export default function Messages() {
           </button>
           <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
             <Camera size={20} className="text-gray-600" />
+          </button>
+          <button
+            onClick={() => setViewOnceMode((prev) => !prev)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              viewOnceMode ? "bg-[#20A090] text-white" : "hover:bg-gray-100 text-gray-600"
+            }`}
+            title="Send view-once message"
+          >
+            <span className="text-xs font-semibold">1x</span>
           </button>
           <input
             type="text"

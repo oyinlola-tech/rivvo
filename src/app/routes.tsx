@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Messages from "./pages/Messages";
 import Calls from "./pages/Calls";
 import Contacts from "./pages/Contacts";
+import Status from "./pages/Status";
 import Settings from "./pages/Settings";
 import DeviceKeys from "./pages/DeviceKeys";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: "messages", Component: Messages },
       { path: "messages/:id", Component: Messages },
       { path: "calls", Component: Calls },
+      { path: "status", Component: Status },
       { path: "contacts", Component: Contacts },
       { path: "settings", Component: Settings },
       { path: "settings/device-keys", Component: DeviceKeys },

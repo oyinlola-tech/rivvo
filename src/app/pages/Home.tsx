@@ -40,7 +40,7 @@ export default function Home() {
 
     const handleIncoming = (payload: {
       conversationId: string;
-      message: { text: string; timestamp: string; senderId?: string; encrypted?: boolean };
+      message: { text: string; timestamp: string; senderId?: string; encrypted?: boolean; viewOnce?: boolean };
     }) => {
       if (payload.message.senderId && payload.message.senderId === user?.id) {
         return;
@@ -51,7 +51,11 @@ export default function Home() {
           return {
             ...conv,
             lastMessage: {
-              text: payload.message.encrypted ? "Encrypted message" : payload.message.text,
+              text: payload.message.viewOnce
+                ? "View once message"
+                : payload.message.encrypted
+                  ? "Encrypted message"
+                  : payload.message.text,
               timestamp: payload.message.timestamp,
               unreadCount: conv.lastMessage.unreadCount + 1,
             },

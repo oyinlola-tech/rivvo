@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router";
-import { MessageCircle, Phone, Users, Settings } from "lucide-react";
+import { MessageCircle, Phone, Users, Settings, CircleDot } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MainLayout() {
@@ -23,6 +23,7 @@ export default function MainLayout() {
 
   const navItems = [
     { path: "/", icon: MessageCircle, label: "Message" },
+    { path: "/status", icon: CircleDot, label: "Status" },
     { path: "/calls", icon: Phone, label: "Calls" },
     { path: "/contacts", icon: Users, label: "Contacts" },
     { path: "/settings", icon: Settings, label: "Settings" },
