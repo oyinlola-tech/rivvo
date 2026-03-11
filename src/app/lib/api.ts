@@ -127,6 +127,40 @@ class ApiClient {
     }
   }
 
+  private async requestForm<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
+    try {
+      const headers: HeadersInit = {};
+      if (this.token) {
+        headers["Authorization"] = `Bearer ${this.token}`;
+      }
+
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: "POST",
+        body: formData,
+        headers,
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        const refreshed = await this.refreshAuth();
+        if (refreshed) {
+          return this.requestForm(endpoint, formData);
+        }
+        this.authErrorHandler?.(response.status);
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.message || data.error || "Request failed" };
+      }
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Network error",
+      };
+    }
+  }
+
   // Auth endpoints
   async login(email: string, password: string) {
     return this.request("/auth/login", {
@@ -163,6 +197,22 @@ class ApiClient {
     });
   }
 
+  logoutOnExit(refreshToken: string) {
+    const url = `${this.baseUrl}/auth/logout`;
+    const payload = JSON.stringify({ refreshToken });
+    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: "application/json" });
+      navigator.sendBeacon(url, blob);
+      return;
+    }
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      keepalive: true,
+    });
+  }
+
   // User endpoints
   async getProfile() {
     return this.request("/users/profile");
@@ -173,6 +223,12 @@ class ApiClient {
       method: "PUT",
       body: JSON.stringify(data),
     });
+  }
+
+  async uploadAvatar(file: File) {
+    const form = new FormData();
+    form.append("avatar", file);
+    return this.requestForm("/users/avatar", form);
   }
 
   // Messages endpoints
@@ -192,25 +248,36 @@ class ApiClient {
     return this.request(`/messages/conversations/${conversationId}${suffix}`);
   }
 
-  async sendMessage(conversationId: string, message: string) {
+  async sendMessage(conversationId: string, message: string, viewOnce: boolean = false) {
     return this.request(`/messages/conversations/${conversationId}`, {
       method: "POST",
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, viewOnce }),
     });
   }
 
   async sendEncryptedMessage(
     conversationId: string,
-    payload: { ciphertext: string; iv: string }
+    payload: { ciphertext: string; iv: string; viewOnce?: boolean }
   ) {
     return this.request(`/messages/conversations/${conversationId}`, {
       method: "POST",
-      body: JSON.stringify({ ciphertext: payload.ciphertext, iv: payload.iv, encrypted: true }),
+      body: JSON.stringify({
+        ciphertext: payload.ciphertext,
+        iv: payload.iv,
+        encrypted: true,
+        viewOnce: Boolean(payload.viewOnce),
+      }),
     });
   }
 
   async markConversationRead(conversationId: string) {
     return this.request(`/messages/conversations/${conversationId}/read`, {
+      method: "POST",
+    });
+  }
+
+  async viewOnceMessage(conversationId: string, messageId: string) {
+    return this.request(`/messages/conversations/${conversationId}/view-once/${messageId}`, {
       method: "POST",
     });
   }
@@ -228,6 +295,12 @@ class ApiClient {
     return this.request("/calls/initiate", {
       method: "POST",
       body: JSON.stringify({ userId, type }),
+    });
+  }
+
+  async endCall(callId: string) {
+    return this.request(`/calls/${callId}/end`, {
+      method: "POST",
     });
   }
 
@@ -306,6 +379,17 @@ class ApiClient {
 
   async verifyDevice(deviceId: string) {
     return this.request(`/users/devices/${deviceId}/verify`, { method: "POST" });
+  }
+
+  async createStatus(payload: { text?: string; media?: File }) {
+    const form = new FormData();
+    if (payload.text) form.append("text", payload.text);
+    if (payload.media) form.append("media", payload.media);
+    return this.requestForm("/status", form);
+  }
+
+  async getStatuses() {
+    return this.request("/status");
   }
 }
 

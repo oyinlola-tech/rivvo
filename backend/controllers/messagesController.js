@@ -29,13 +29,17 @@ export const getConversations = async (req, res) => {
         lm.body AS last_text,
         lm.created_at AS last_timestamp,
         lm.is_encrypted AS last_encrypted,
+        lm.view_once AS last_view_once,
         cp1.last_read_at AS last_read_at,
         (
           SELECT COUNT(*)
           FROM messages m
           WHERE m.conversation_id = c.id
             AND m.sender_id <> :user_id
-            AND (cp1.last_read_at IS NULL OR m.created_at > cp1.last_read_at)
+            AND (
+              (m.view_once = 1 AND m.view_once_viewed_at IS NULL)
+              OR (m.view_once = 0 AND (cp1.last_read_at IS NULL OR m.created_at > cp1.last_read_at))
+            )
         ) AS unread_count
      FROM conversations c
      JOIN conversation_participants cp1
@@ -44,7 +48,7 @@ export const getConversations = async (req, res) => {
        ON cp2.conversation_id = c.id AND cp2.user_id <> :user_id
      JOIN users u ON u.id = cp2.user_id
      LEFT JOIN (
-       SELECT m1.conversation_id, m1.body, m1.created_at, m1.is_encrypted
+       SELECT m1.conversation_id, m1.body, m1.created_at, m1.is_encrypted, m1.view_once
        FROM messages m1
        JOIN (
          SELECT conversation_id, MAX(created_at) AS max_created
@@ -68,7 +72,11 @@ export const getConversations = async (req, res) => {
       isModerator: Boolean(row.is_moderator)
     },
     lastMessage: {
-      text: row.last_encrypted ? 'Encrypted message' : row.last_text || '',
+      text: row.last_view_once
+        ? 'View once message'
+        : row.last_encrypted
+          ? 'Encrypted message'
+          : row.last_text || '',
       timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : null,
       unreadCount: Number(row.unread_count || 0)
     }
@@ -99,7 +107,7 @@ export const getMessages = async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    `SELECT id, body, created_at, sender_id, read_at, is_encrypted, iv
+    `SELECT id, body, created_at, sender_id, read_at, is_encrypted, iv, view_once, view_once_viewed_at
      FROM messages
      WHERE conversation_id = :conversation_id${sinceFilter}
      ORDER BY created_at ASC`,
@@ -119,21 +127,28 @@ export const getMessages = async (req, res) => {
        SET read_at = NOW()
        WHERE conversation_id = :conversation_id
          AND sender_id <> :user_id
-         AND read_at IS NULL`,
+         AND read_at IS NULL
+         AND view_once = 0`,
       { conversation_id: conversationId, user_id: userId }
     );
   }
 
-  const messages = rows.map((row) => ({
-    id: row.id,
-    text: row.body,
-    timestamp: new Date(row.created_at).toISOString(),
-    sender: row.sender_id === userId ? 'me' : 'them',
-    senderId: row.sender_id,
-    readAt: row.read_at ? new Date(row.read_at).toISOString() : null,
-    encrypted: Boolean(row.is_encrypted),
-    iv: row.iv || null
-  }));
+  const messages = rows
+    .filter((row) => !(row.view_once && row.sender_id !== userId && row.view_once_viewed_at))
+    .map((row) => ({
+      id: row.id,
+      text: row.body,
+      timestamp: new Date(row.created_at).toISOString(),
+      sender: row.sender_id === userId ? 'me' : 'them',
+      senderId: row.sender_id,
+      readAt: row.read_at ? new Date(row.read_at).toISOString() : null,
+      encrypted: Boolean(row.is_encrypted),
+      iv: row.iv || null,
+      viewOnce: Boolean(row.view_once),
+      viewOnceViewedAt: row.view_once_viewed_at
+        ? new Date(row.view_once_viewed_at).toISOString()
+        : null
+    }));
 
   return res.json({
     messages,
@@ -144,7 +159,7 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
-  const { message, ciphertext, iv, encrypted } = req.body || {};
+  const { message, ciphertext, iv, encrypted, viewOnce } = req.body || {};
 
   const finalMessage = ciphertext || message;
   if (!conversationId) {
@@ -161,15 +176,16 @@ export const sendMessage = async (req, res) => {
 
   const messageId = uuid();
   await pool.execute(
-    `INSERT INTO messages (id, conversation_id, sender_id, body, iv, is_encrypted)
-     VALUES (:id, :conversation_id, :sender_id, :body, :iv, :is_encrypted)`,
+    `INSERT INTO messages (id, conversation_id, sender_id, body, iv, is_encrypted, view_once)
+     VALUES (:id, :conversation_id, :sender_id, :body, :iv, :is_encrypted, :view_once)`,
     {
       id: messageId,
       conversation_id: conversationId,
       sender_id: userId,
       body: finalMessage.trim(),
       iv: iv || null,
-      is_encrypted: encrypted ? 1 : 0
+      is_encrypted: encrypted ? 1 : 0,
+      view_once: viewOnce ? 1 : 0
     }
   );
 
@@ -195,7 +211,9 @@ export const sendMessage = async (req, res) => {
     senderId: userId,
     readAt: null,
     encrypted: Boolean(encrypted),
-    iv: iv || null
+    iv: iv || null,
+    viewOnce: Boolean(viewOnce),
+    viewOnceViewedAt: null
   };
 
   const io = req.app.get('io');
@@ -234,7 +252,8 @@ export const markConversationRead = async (req, res) => {
      SET read_at = NOW()
      WHERE conversation_id = :conversation_id
        AND sender_id <> :user_id
-       AND read_at IS NULL`,
+       AND read_at IS NULL
+       AND view_once = 0`,
     { conversation_id: conversationId, user_id: userId }
   );
 
@@ -255,6 +274,42 @@ export const markConversationRead = async (req, res) => {
   }
 
   return res.json({ message: 'Conversation marked as read' });
+};
+
+export const viewOnceMessage = async (req, res) => {
+  const userId = req.user?.id;
+  const conversationId = req.params.id;
+  const messageId = req.params.messageId;
+
+  const isParticipant = await ensureParticipant(userId, conversationId);
+  if (!isParticipant) {
+    return sendError(res, 404, 'Conversation not found');
+  }
+
+  await pool.execute(
+    `UPDATE messages
+     SET view_once_viewed_at = NOW(), read_at = NOW()
+     WHERE id = :id AND conversation_id = :conversation_id AND sender_id <> :user_id`,
+    { id: messageId, conversation_id: conversationId, user_id: userId }
+  );
+
+  const [participantRows] = await pool.execute(
+    `SELECT user_id FROM conversation_participants
+     WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+
+  const otherUserId = participantRows[0]?.user_id;
+  const io = req.app.get('io');
+  if (io && otherUserId) {
+    io.to(`user:${otherUserId}`).emit('view_once_viewed', {
+      conversationId,
+      messageId,
+      readAt: new Date().toISOString()
+    });
+  }
+
+  return res.json({ message: 'View-once message viewed' });
 };
 
 export const getConversationPeer = async (req, res) => {

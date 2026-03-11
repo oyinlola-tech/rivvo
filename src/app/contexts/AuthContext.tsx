@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
 import { api } from "../lib/api";
 import { getDeviceId, getOrCreateDeviceKeyPair, getOrCreateKeyPair } from "../lib/crypto";
 
@@ -25,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const logoutOnExitRef = useRef(false);
 
   useEffect(() => {
     api.setAuthErrorHandler(() => {
@@ -36,6 +37,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.assign("/auth/login");
     });
     return () => api.setAuthErrorHandler(null);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      if (logoutOnExitRef.current) return;
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) return;
+      logoutOnExitRef.current = true;
+      api.logoutOnExit(refreshToken);
+    };
+
+    window.addEventListener("beforeunload", handler);
+    window.addEventListener("pagehide", handler);
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+      window.removeEventListener("pagehide", handler);
+    };
   }, []);
 
   useEffect(() => {

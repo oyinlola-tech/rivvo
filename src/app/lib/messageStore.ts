@@ -14,6 +14,8 @@ interface StoredMessage {
   senderId?: string;
   encrypted?: boolean;
   iv?: string | null;
+  viewOnce?: boolean;
+  viewOnceViewedAt?: string | null;
   readAt?: string | null;
   localCiphertext: string;
   localIv: string;
@@ -49,6 +51,8 @@ export const saveMessages = async (
     senderId?: string;
     encrypted?: boolean;
     iv?: string | null;
+    viewOnce?: boolean;
+    viewOnceViewedAt?: string | null;
     readAt?: string | null;
   }>
 ) => {
@@ -67,6 +71,8 @@ export const saveMessages = async (
       senderId: msg.senderId,
       encrypted: msg.encrypted,
       iv: msg.iv || null,
+      viewOnce: msg.viewOnce,
+      viewOnceViewedAt: msg.viewOnceViewedAt || null,
       readAt: msg.readAt || null,
       localCiphertext: localEncrypted.ciphertext,
       localIv: localEncrypted.iv,
@@ -106,6 +112,8 @@ export const loadMessages = async (ownerId: string, conversationId: string) => {
         senderId: record.senderId,
         encrypted: record.encrypted,
         iv: record.iv,
+        viewOnce: record.viewOnce,
+        viewOnceViewedAt: record.viewOnceViewedAt,
         readAt: record.readAt
       };
     })
@@ -135,4 +143,15 @@ export const getConversationSync = async (ownerId: string, conversationId: strin
     request.onerror = () => reject(request.error);
   });
   return record?.lastSyncAt || null;
+};
+
+export const deleteMessage = async (messageId: string) => {
+  const db = await openDb();
+  const tx = db.transaction(STORE_MESSAGES, "readwrite");
+  const store = tx.objectStore(STORE_MESSAGES);
+  store.delete(messageId);
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve(null);
+    tx.onerror = () => reject(tx.error);
+  });
 };

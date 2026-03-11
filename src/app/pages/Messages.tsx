@@ -16,6 +16,7 @@ import {
 import {
   getConversationSync,
   loadMessages as loadCachedMessages,
+  deleteMessage,
   saveMessages,
   setConversationSync
 } from "../lib/messageStore";
@@ -29,6 +30,8 @@ interface Message {
   readAt?: string | null;
   encrypted?: boolean;
   iv?: string | null;
+  viewOnce?: boolean;
+  viewOnceViewedAt?: string | null;
 }
 
 export default function Messages() {
@@ -40,9 +43,11 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [viewOnceMode, setViewOnceMode] = useState(false);
   const [sharedKey, setSharedKey] = useState<CryptoKey | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
+  const viewOnceTimeoutRef = useRef<number | null>(null);
 
   const contact = {
     name: "John Abraham",
@@ -68,7 +73,9 @@ export default function Messages() {
       }
       if (payload.conversationId === id) {
         let nextMessage = payload.message;
-        if (payload.message.encrypted && payload.message.iv && sharedKey) {
+        if (payload.message.viewOnce) {
+          nextMessage = { ...payload.message, text: "View once message" };
+        } else if (payload.message.encrypted && payload.message.iv && sharedKey) {
           try {
             const text = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
             nextMessage = { ...payload.message, text };
@@ -98,6 +105,19 @@ export default function Messages() {
       });
     };
 
+    const handleViewOnceViewed = (payload: { conversationId: string; messageId: string; readAt: string }) => {
+      if (payload.conversationId !== id) return;
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === payload.messageId ? { ...msg, readAt: payload.readAt } : msg
+        );
+        if (user?.id) {
+          saveMessages(user.id, id, updated);
+        }
+        return updated;
+      });
+    };
+
     const handleTyping = (payload: { conversationId: string; userId?: string }) => {
       if (payload.conversationId !== id) return;
       if (payload.userId && payload.userId === user?.id) return;
@@ -111,12 +131,14 @@ export default function Messages() {
     socket.emit("join_conversation", { conversationId: id });
     socket.on("new_message", handleIncoming);
     socket.on("read_receipt", handleRead);
+    socket.on("view_once_viewed", handleViewOnceViewed);
     socket.on("typing", handleTyping);
 
     return () => {
       socket.emit("leave_conversation", { conversationId: id });
       socket.off("new_message", handleIncoming);
       socket.off("read_receipt", handleRead);
+      socket.off("view_once_viewed", handleViewOnceViewed);
       socket.off("typing", handleTyping);
     };
   }, [id, sharedKey, user?.id]);
@@ -155,6 +177,9 @@ export default function Messages() {
     if (response.success && incomingRaw) {
       const incoming = await Promise.all(
         incomingRaw.map(async (msg: Message) => {
+          if (msg.viewOnce) {
+            return { ...msg, text: "View once message" };
+          }
           if (msg.encrypted && msg.iv && derivedKey) {
             try {
               const text = await decryptMessage(msg.text, msg.iv, derivedKey);
@@ -202,6 +227,7 @@ export default function Messages() {
       timestamp: new Date().toISOString(),
       sender: "me",
       readAt: null,
+      viewOnce: viewOnceMode,
     };
 
     setMessages([...messages, tempMessage]);
@@ -211,9 +237,9 @@ export default function Messages() {
     let response;
     if (sharedKey) {
       const encrypted = await encryptMessage(newMessage, sharedKey);
-      response = await api.sendEncryptedMessage(id, encrypted);
+      response = await api.sendEncryptedMessage(id, { ...encrypted, viewOnce: viewOnceMode });
     } else {
-      response = await api.sendMessage(id, newMessage);
+      response = await api.sendMessage(id, newMessage, viewOnceMode);
     }
 
     if (!response.success) {
@@ -222,7 +248,39 @@ export default function Messages() {
       return;
     }
 
+    setViewOnceMode(false);
     await loadMessages();
+  };
+
+  const handleViewOnce = async (message: Message) => {
+    if (!id || !user?.id) return;
+    if (message.sender !== "them") return;
+
+    let revealText = message.text;
+    if (message.encrypted && message.iv && sharedKey) {
+      try {
+        revealText = await decryptMessage(message.text, message.iv, sharedKey);
+      } catch {
+        setError("Unable to decrypt this message");
+        return;
+      }
+    }
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === message.id ? { ...msg, text: revealText } : msg
+      )
+    );
+
+    await api.viewOnceMessage(id, message.id);
+
+    if (viewOnceTimeoutRef.current) {
+      window.clearTimeout(viewOnceTimeoutRef.current);
+    }
+    viewOnceTimeoutRef.current = window.setTimeout(async () => {
+      setMessages((prev) => prev.filter((msg) => msg.id !== message.id));
+      await deleteMessage(message.id);
+    }, 5000);
   };
 
   const handleTypingInput = (value: string) => {
@@ -300,14 +358,23 @@ export default function Messages() {
                       : "bg-white text-gray-900"
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
+                  {message.viewOnce && message.sender === "them" ? (
+                    <button
+                      onClick={() => handleViewOnce(message)}
+                      className="text-sm font-medium underline"
+                    >
+                      View once message
+                    </button>
+                  ) : (
+                    <p className="text-sm">{message.text}</p>
+                  )}
                   <p
                     className={`text-xs mt-1 ${
                       message.sender === "me" ? "text-white/70" : "text-gray-500"
                     }`}
                   >
                     {formatTime(message.timestamp)}
-                    {message.sender === "me" && message.readAt ? " • Seen" : ""}
+                    {message.sender === "me" && message.readAt ? " - Seen" : ""}
                   </p>
                 </div>
               </div>
@@ -352,3 +419,4 @@ export default function Messages() {
     </div>
   );
 }
+
