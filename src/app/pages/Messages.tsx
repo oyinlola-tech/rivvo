@@ -13,6 +13,12 @@ import {
   encryptMessage,
   decryptMessage,
 } from "../lib/crypto";
+import {
+  getConversationSync,
+  loadMessages as loadCachedMessages,
+  saveMessages,
+  setConversationSync
+} from "../lib/messageStore";
 
 interface Message {
   id: string;
@@ -32,8 +38,11 @@ export default function Messages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [sharedKey, setSharedKey] = useState<CryptoKey | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
 
   const contact = {
     name: "John Abraham",
@@ -70,6 +79,9 @@ export default function Messages() {
           nextMessage = { ...payload.message, text: "Encrypted message" };
         }
         setMessages((prev) => [...prev, nextMessage]);
+        if (user?.id) {
+          saveMessages(user.id, id, [nextMessage]);
+        }
       }
     };
 
@@ -82,14 +94,26 @@ export default function Messages() {
       );
     };
 
+    const handleTyping = (payload: { conversationId: string; userId?: string }) => {
+      if (payload.conversationId !== id) return;
+      if (payload.userId && payload.userId === user?.id) return;
+      setIsTyping(true);
+      if (typingTimeoutRef.current) {
+        window.clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = window.setTimeout(() => setIsTyping(false), 2000);
+    };
+
     socket.emit("join_conversation", { conversationId: id });
     socket.on("new_message", handleIncoming);
     socket.on("read_receipt", handleRead);
+    socket.on("typing", handleTyping);
 
     return () => {
       socket.emit("leave_conversation", { conversationId: id });
       socket.off("new_message", handleIncoming);
       socket.off("read_receipt", handleRead);
+      socket.off("typing", handleTyping);
     };
   }, [id, sharedKey, user?.id]);
 
@@ -98,7 +122,13 @@ export default function Messages() {
   }, [messages]);
 
   const loadMessages = async () => {
-    if (!id) return;
+    if (!id || !user?.id) return;
+    const cached = await loadCachedMessages(user.id, id);
+    if (cached.length) {
+      setMessages(cached);
+      setLoading(false);
+    }
+
     let derivedKey: CryptoKey | null = null;
     const peerResponse = await api.getConversationPeer(id);
     if (peerResponse.success && peerResponse.data?.publicKey) {
@@ -109,29 +139,39 @@ export default function Messages() {
       setSharedKey(derivedKey);
     }
 
-    const response = await api.getMessages(id);
-    if (response.success && response.data) {
-      if (derivedKey) {
-        const decrypted = await Promise.all(
-          response.data.map(async (msg: Message) => {
-            if (msg.encrypted && msg.iv) {
-              try {
-                const text = await decryptMessage(msg.text, msg.iv, derivedKey as CryptoKey);
-                return { ...msg, text };
-              } catch {
-                return { ...msg, text: "Encrypted message" };
-              }
+    const lastSync = await getConversationSync(user.id, id);
+    const response = await api.getMessages(id, {
+      since: lastSync || undefined,
+      markRead: true,
+    });
+    if (response.success && response.data?.messages) {
+      const incoming = await Promise.all(
+        response.data.messages.map(async (msg: Message) => {
+          if (msg.encrypted && msg.iv && derivedKey) {
+            try {
+              const text = await decryptMessage(msg.text, msg.iv, derivedKey);
+              return { ...msg, text };
+            } catch {
+              return { ...msg, text: "Encrypted message" };
             }
-            return msg;
-          })
-        );
-        setMessages(decrypted);
-      } else {
-        setMessages(
-          response.data.map((msg: Message) =>
-            msg.encrypted ? { ...msg, text: "Encrypted message" } : msg
-          )
-        );
+          }
+          if (msg.encrypted) {
+            return { ...msg, text: "Encrypted message" };
+          }
+          return msg;
+        })
+      );
+
+      const mergedMap = new Map<string, Message>();
+      [...cached, ...incoming].forEach((msg) => mergedMap.set(msg.id, msg));
+      const merged = Array.from(mergedMap.values()).sort((a, b) =>
+        a.timestamp.localeCompare(b.timestamp)
+      );
+
+      setMessages(merged);
+      await saveMessages(user.id, id, incoming);
+      if (response.data.serverTime) {
+        await setConversationSync(user.id, id, response.data.serverTime);
       }
     }
     await api.markConversationRead(id);
@@ -155,6 +195,9 @@ export default function Messages() {
 
     setMessages([...messages, tempMessage]);
     setNewMessage("");
+    if (user?.id) {
+      saveMessages(user.id, id, [tempMessage]);
+    }
 
     if (sharedKey) {
       const encrypted = await encryptMessage(newMessage, sharedKey);

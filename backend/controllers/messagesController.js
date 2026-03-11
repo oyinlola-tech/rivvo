@@ -80,6 +80,8 @@ export const getConversations = async (req, res) => {
 export const getMessages = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
+  const since = req.query.since ? new Date(req.query.since) : null;
+  const markRead = req.query.markRead !== 'false';
   if (!conversationId) {
     return sendError(res, 400, 'Conversation id is required');
   }
@@ -89,29 +91,38 @@ export const getMessages = async (req, res) => {
     return sendError(res, 404, 'Conversation not found');
   }
 
+  const params = { conversation_id: conversationId };
+  let sinceFilter = '';
+  if (since && !Number.isNaN(since.getTime())) {
+    params.since = since;
+    sinceFilter = ' AND created_at > :since';
+  }
+
   const [rows] = await pool.execute(
     `SELECT id, body, created_at, sender_id, read_at, is_encrypted, iv
      FROM messages
-     WHERE conversation_id = :conversation_id
+     WHERE conversation_id = :conversation_id${sinceFilter}
      ORDER BY created_at ASC`,
-    { conversation_id: conversationId }
+    params
   );
 
-  await pool.execute(
-    `UPDATE conversation_participants
-     SET last_read_at = NOW()
-     WHERE conversation_id = :conversation_id AND user_id = :user_id`,
-    { conversation_id: conversationId, user_id: userId }
-  );
+  if (markRead) {
+    await pool.execute(
+      `UPDATE conversation_participants
+       SET last_read_at = NOW()
+       WHERE conversation_id = :conversation_id AND user_id = :user_id`,
+      { conversation_id: conversationId, user_id: userId }
+    );
 
-  await pool.execute(
-    `UPDATE messages
-     SET read_at = NOW()
-     WHERE conversation_id = :conversation_id
-       AND sender_id <> :user_id
-       AND read_at IS NULL`,
-    { conversation_id: conversationId, user_id: userId }
-  );
+    await pool.execute(
+      `UPDATE messages
+       SET read_at = NOW()
+       WHERE conversation_id = :conversation_id
+         AND sender_id <> :user_id
+         AND read_at IS NULL`,
+      { conversation_id: conversationId, user_id: userId }
+    );
+  }
 
   const messages = rows.map((row) => ({
     id: row.id,
@@ -124,7 +135,10 @@ export const getMessages = async (req, res) => {
     iv: row.iv || null
   }));
 
-  return res.json(messages);
+  return res.json({
+    messages,
+    serverTime: new Date().toISOString()
+  });
 };
 
 export const sendMessage = async (req, res) => {

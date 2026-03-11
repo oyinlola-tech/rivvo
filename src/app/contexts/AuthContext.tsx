@@ -29,8 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     api.setAuthErrorHandler(() => {
       api.setToken(null);
+      api.setRefreshToken(null);
       setUser(null);
       localStorage.removeItem("authToken");
+      localStorage.removeItem("refreshToken");
+      window.location.assign("/auth/login");
     });
     return () => api.setAuthErrorHandler(null);
   }, []);
@@ -45,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(response.data);
         } else {
           localStorage.removeItem("authToken");
+          localStorage.removeItem("refreshToken");
         }
       }
       setLoading(false);
@@ -57,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.login(email, password);
     if (response.success && response.data) {
       api.setToken(response.data.token);
+      api.setRefreshToken(response.data.refreshToken);
       setUser(response.data.user);
       const keyPair = await getOrCreateKeyPair();
       await api.setPublicKey(JSON.stringify(keyPair.publicKey));
@@ -77,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.verifyOTP(email, otp);
     if (response.success && response.data) {
       api.setToken(response.data.token);
+      api.setRefreshToken(response.data.refreshToken);
       setUser(response.data.user);
       const keyPair = await getOrCreateKeyPair();
       await api.setPublicKey(JSON.stringify(keyPair.publicKey));
@@ -86,9 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken) {
+      api.logout(refreshToken);
+    }
     api.setToken(null);
+    api.setRefreshToken(null);
     setUser(null);
     localStorage.removeItem("authToken");
+    localStorage.removeItem("refreshToken");
   };
 
   return (

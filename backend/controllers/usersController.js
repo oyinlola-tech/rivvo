@@ -76,3 +76,63 @@ export const getPublicKey = async (req, res) => {
 
   return res.json({ userId, publicKey: rows[0].public_key });
 };
+
+export const registerDeviceKey = async (req, res) => {
+  const userId = req.user?.id;
+  const { deviceId, publicKey, deviceName } = req.body || {};
+
+  if (!deviceId || !publicKey) {
+    return res.status(400).json({ error: 'Bad Request', message: 'deviceId and publicKey are required' });
+  }
+
+  await pool.execute(
+    `INSERT INTO device_keys (device_id, user_id, public_key, device_name, verified_at)
+     VALUES (:device_id, :user_id, :public_key, :device_name, NULL)
+     ON DUPLICATE KEY UPDATE
+       public_key = VALUES(public_key),
+       device_name = VALUES(device_name),
+       verified_at = NULL`,
+    {
+      device_id: deviceId,
+      user_id: userId,
+      public_key: publicKey,
+      device_name: deviceName || null
+    }
+  );
+
+  return res.json({ message: 'Device key registered' });
+};
+
+export const listDevices = async (req, res) => {
+  const userId = req.user?.id;
+  const [rows] = await pool.execute(
+    `SELECT device_id, device_name, verified_at, created_at
+     FROM device_keys
+     WHERE user_id = :user_id
+     ORDER BY created_at DESC`,
+    { user_id: userId }
+  );
+
+  const devices = rows.map((row) => ({
+    deviceId: row.device_id,
+    deviceName: row.device_name,
+    verifiedAt: row.verified_at ? new Date(row.verified_at).toISOString() : null,
+    createdAt: new Date(row.created_at).toISOString()
+  }));
+
+  return res.json(devices);
+};
+
+export const verifyDevice = async (req, res) => {
+  const userId = req.user?.id;
+  const { deviceId } = req.params;
+
+  await pool.execute(
+    `UPDATE device_keys
+     SET verified_at = NOW()
+     WHERE device_id = :device_id AND user_id = :user_id`,
+    { device_id: deviceId, user_id: userId }
+  );
+
+  return res.json({ message: 'Device verified' });
+};

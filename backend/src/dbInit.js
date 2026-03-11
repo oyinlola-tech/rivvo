@@ -139,6 +139,18 @@ export const initDb = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS device_keys (
+      device_id VARCHAR(64) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      public_key TEXT NOT NULL,
+      device_name VARCHAR(100) NULL,
+      verified_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_device_user (user_id)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS refresh_tokens (
       id CHAR(36) PRIMARY KEY,
       user_id CHAR(36) NOT NULL,
@@ -324,6 +336,17 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE user_keys
       ADD CONSTRAINT fk_user_keys_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE device_keys
+      ADD CONSTRAINT fk_device_keys_user
       FOREIGN KEY (user_id) REFERENCES users(id)
       ON DELETE CASCADE
     `);

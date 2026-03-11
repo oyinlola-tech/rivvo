@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
+import { sendError, requireFields, isEmail, isNonEmptyString } from '../utils/validation.js';
 
 const mapUserRow = (row) => ({
   id: row.id,
@@ -11,6 +12,24 @@ const mapUserRow = (row) => ({
   createdAt: new Date(row.created_at).toISOString(),
   status: row.status
 });
+
+const logAdminAction = async (adminId, action, targetId, metadata) => {
+  try {
+    await pool.execute(
+      `INSERT INTO admin_audit_logs (id, admin_id, action, target_id, metadata)
+       VALUES (:id, :admin_id, :action, :target_id, :metadata)`,
+      {
+        id: uuid(),
+        admin_id: adminId,
+        action,
+        target_id: targetId || null,
+        metadata: metadata ? JSON.stringify(metadata) : null
+      }
+    );
+  } catch (error) {
+    // Audit failures should not block admin actions.
+  }
+};
 
 export const getUsers = async (req, res) => {
   const page = Number(req.query.page || 1);
@@ -39,7 +58,11 @@ export const getUsers = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
   const { userId } = req.params;
+  if (!userId) {
+    return sendError(res, 400, 'userId is required');
+  }
   await pool.execute('DELETE FROM users WHERE id = :id', { id: userId });
+  await logAdminAction(req.user?.id, 'delete_user', userId, null);
   return res.json({ message: 'User deleted successfully' });
 };
 
@@ -48,7 +71,7 @@ export const updateVerification = async (req, res) => {
   const { verified } = req.body || {};
 
   if (verified === undefined) {
-    return res.status(400).json({ error: 'Bad Request', message: 'verified is required' });
+    return sendError(res, 400, 'verified is required');
   }
 
   await pool.execute('UPDATE users SET verified = :verified WHERE id = :id', {
@@ -56,6 +79,7 @@ export const updateVerification = async (req, res) => {
     verified: verified ? 1 : 0
   });
 
+  await logAdminAction(req.user?.id, 'update_verification', userId, { verified: Boolean(verified) });
   return res.json({ message: 'Verification status updated' });
 };
 
@@ -99,6 +123,7 @@ export const getReports = async (req, res) => {
 export const resolveReport = async (req, res) => {
   const { reportId } = req.params;
   await pool.execute('UPDATE reports SET status = \"resolved\" WHERE id = :id', { id: reportId });
+  await logAdminAction(req.user?.id, 'resolve_report', reportId, null);
   return res.json({ message: 'Report resolved successfully' });
 };
 
@@ -159,13 +184,23 @@ export const getModerators = async (req, res) => {
 
 export const createModerator = async (req, res) => {
   const { email, password, name } = req.body || {};
-  if (!email || !password || !name) {
-    return res.status(400).json({ error: 'Bad Request', message: 'Email, password, and name required' });
+  const missing = requireFields(req.body, ['email', 'password', 'name']);
+  if (missing.length) {
+    return sendError(res, 400, 'Email, password, and name required');
+  }
+  if (!isEmail(email)) {
+    return sendError(res, 400, 'Email is invalid');
+  }
+  if (!isNonEmptyString(name)) {
+    return sendError(res, 400, 'Name is required');
+  }
+  if (typeof password !== 'string' || password.length < 8) {
+    return sendError(res, 400, 'Password must be at least 8 characters');
   }
 
   const [existing] = await pool.execute('SELECT id FROM users WHERE email = :email', { email });
   if (existing.length) {
-    return res.status(400).json({ error: 'Bad Request', message: 'Email already in use' });
+    return sendError(res, 400, 'Email already in use');
   }
 
   const userId = uuid();
@@ -182,6 +217,7 @@ export const createModerator = async (req, res) => {
     }
   );
 
+  await logAdminAction(req.user?.id, 'create_moderator', userId, { email });
   return res.status(201).json({
     id: userId,
     name,

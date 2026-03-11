@@ -2,6 +2,9 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 const KEYPAIR_STORAGE = "rivvo_keypair_jwk";
+const DEVICE_KEYPAIR_STORAGE = "rivvo_device_keypair_jwk";
+const STORAGE_KEY = "rivvo_storage_key_jwk";
+const DEVICE_ID = "rivvo_device_id";
 
 export interface StoredKeyPair {
   publicKey: JsonWebKey;
@@ -43,6 +46,36 @@ export const getOrCreateKeyPair = async () => {
   return created;
 };
 
+export const getDeviceId = () => {
+  const existing = localStorage.getItem(DEVICE_ID);
+  if (existing) return existing;
+  const created = crypto.randomUUID();
+  localStorage.setItem(DEVICE_ID, created);
+  return created;
+};
+
+export const loadDeviceKeyPair = (): StoredKeyPair | null => {
+  const raw = localStorage.getItem(DEVICE_KEYPAIR_STORAGE);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as StoredKeyPair;
+  } catch {
+    return null;
+  }
+};
+
+export const saveDeviceKeyPair = (pair: StoredKeyPair) => {
+  localStorage.setItem(DEVICE_KEYPAIR_STORAGE, JSON.stringify(pair));
+};
+
+export const getOrCreateDeviceKeyPair = async () => {
+  const existing = loadDeviceKeyPair();
+  if (existing) return existing;
+  const created = await generateKeyPair();
+  saveDeviceKeyPair(created);
+  return created;
+};
+
 export const importPublicKey = async (jwk: JsonWebKey) => {
   return crypto.subtle.importKey(
     "jwk",
@@ -71,6 +104,25 @@ export const deriveSharedKey = async (privateKey: CryptoKey, publicKey: CryptoKe
     false,
     ["encrypt", "decrypt"]
   );
+};
+
+export const getOrCreateStorageKey = async () => {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    const jwk = JSON.parse(raw) as JsonWebKey;
+    return crypto.subtle.importKey("jwk", jwk, { name: "AES-GCM" }, true, [
+      "encrypt",
+      "decrypt",
+    ]);
+  }
+
+  const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
+  const jwk = await crypto.subtle.exportKey("jwk", key);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(jwk));
+  return key;
 };
 
 const toBase64 = (buffer: ArrayBuffer) =>
@@ -102,4 +154,14 @@ export const decryptMessage = async (ciphertext: string, iv: string, key: Crypto
     cipherBytes
   );
   return decoder.decode(plainBuffer);
+};
+
+export const encryptLocal = async (plainText: string) => {
+  const key = await getOrCreateStorageKey();
+  return encryptMessage(plainText, key);
+};
+
+export const decryptLocal = async (ciphertext: string, iv: string) => {
+  const key = await getOrCreateStorageKey();
+  return decryptMessage(ciphertext, iv, key);
 };
