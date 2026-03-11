@@ -130,7 +130,7 @@ export const resolveReport = async (req, res) => {
 export const getAnalytics = async (req, res) => {
   const [[totalUsersRow]] = await pool.query('SELECT COUNT(*) AS totalUsers FROM users');
   const [[activeUsersRow]] = await pool.query(
-    \"SELECT COUNT(*) AS activeUsers FROM users WHERE status = 'active'\"
+    "SELECT COUNT(*) AS activeUsers FROM users WHERE status = 'active'"
   );
   const [[totalMessagesRow]] = await pool.query('SELECT COUNT(*) AS totalMessages FROM messages');
   const [[totalCallsRow]] = await pool.query('SELECT COUNT(*) AS totalCalls FROM calls');
