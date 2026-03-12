@@ -34,7 +34,16 @@ export default function Privacy() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">4. Why We Use Your Data</h2>
+          <h2 className="text-xl font-semibold text-white">4. Reporting and Safety</h2>
+          <p>
+            If you report and block a user, we capture the last 10 messages in that conversation
+            to help moderators review the report. These messages remain encrypted and are stored
+            alongside limited metadata such as timestamps and sender identifiers.
+          </p>
+        </section>
+
+        <section className="space-y-4 text-white/90">
+          <h2 className="text-xl font-semibold text-white">5. Why We Use Your Data</h2>
           <p>
             We use your email for account verification, and your phone number to help others
             find you. We use metadata to deliver messages reliably, prevent abuse, and keep
@@ -43,7 +52,7 @@ export default function Privacy() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">5. Data Sharing</h2>
+          <h2 className="text-xl font-semibold text-white">6. Data Sharing</h2>
           <p>
             We do not sell your data. We only share information when required to provide the
             service (for example, routing messages) or when legally required.
@@ -51,7 +60,7 @@ export default function Privacy() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">6. Security</h2>
+          <h2 className="text-xl font-semibold text-white">7. Security</h2>
           <p>
             We use modern cryptography, device keys, and secure transport. We also rate-limit
             and monitor for abuse to keep the platform safe.
@@ -59,7 +68,7 @@ export default function Privacy() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">7. Your Choices</h2>
+          <h2 className="text-xl font-semibold text-white">8. Your Choices</h2>
           <p>
             You can update your profile and remove the app at any time. If you need help
             deleting your account, contact support.
@@ -67,7 +76,7 @@ export default function Privacy() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">8. Changes</h2>
+          <h2 className="text-xl font-semibold text-white">9. Changes</h2>
           <p>
             We may update this policy. Continued use of Rivvo means you accept the updated
             policy.

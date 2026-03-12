@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, MoreVertical, CheckCircle, XCircle } from "lucide-react";
+import { Search, CheckCircle, XCircle, UserX } from "lucide-react";
 import { api } from "../../lib/api";
 import { VerificationBadge } from "../../components/VerificationBadge";
 
@@ -55,6 +55,20 @@ export default function AdminUsers() {
       setUsers(users.filter((user) => user.id !== userId));
     } else if (!response.success) {
       setError(response.error || "Failed to delete user");
+    }
+  };
+
+  const handleToggleStatus = async (userId: string, status: "active" | "suspended") => {
+    const next = status === "active" ? "suspended" : "active";
+    const confirmAction = window.confirm(
+      next === "suspended" ? "Ban this user?" : "Unban this user?"
+    );
+    if (!confirmAction) return;
+    const response = await api.updateUserStatus(userId, next);
+    if (response.success) {
+      setUsers(users.map((user) => (user.id === userId ? { ...user, status: next } : user)));
+    } else if (!response.success) {
+      setError(response.error || "Failed to update user status");
     }
   };
 
@@ -154,6 +168,13 @@ export default function AdminUsers() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleToggleStatus(user.id, user.status)}
+                        className="mr-4 text-gray-600 hover:text-gray-800"
+                        title={user.status === "active" ? "Ban user" : "Unban user"}
+                      >
+                        <UserX size={18} />
+                      </button>
                       <button
                         onClick={() => handleDeleteUser(user.id)}
                         className="text-red-600 hover:text-red-800"

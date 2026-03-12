@@ -48,7 +48,17 @@ export default function Terms() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">6. Encryption and Privacy</h2>
+          <h2 className="text-xl font-semibold text-white">6. Reporting and Blocking</h2>
+          <p>
+            You can report messages or users and block users at any time. When you report and
+            block, we capture the last 10 messages in the relevant conversation to help with
+            review. These messages are stored in encrypted form and are not readable without
+            the encryption keys.
+          </p>
+        </section>
+
+        <section className="space-y-4 text-white/90">
+          <h2 className="text-xl font-semibold text-white">7. Encryption and Privacy</h2>
           <p>
             Rivvo is designed with end-to-end encryption for message content. Messages are
             encrypted on your device and can only be decrypted by the intended recipient.
@@ -61,7 +71,7 @@ export default function Terms() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">7. Availability</h2>
+          <h2 className="text-xl font-semibold text-white">8. Availability</h2>
           <p>
             We may modify, suspend, or discontinue parts of the service at any time. We do not
             guarantee uninterrupted availability.
@@ -69,7 +79,7 @@ export default function Terms() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">8. Termination</h2>
+          <h2 className="text-xl font-semibold text-white">9. Termination</h2>
           <p>
             You may stop using Rivvo at any time. We may suspend or terminate accounts for
             violations or security risks.
@@ -77,7 +87,7 @@ export default function Terms() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">9. Changes</h2>
+          <h2 className="text-xl font-semibold text-white">10. Changes</h2>
           <p>
             We may update these Terms from time to time. Continued use of the service means you
             accept the updated Terms.

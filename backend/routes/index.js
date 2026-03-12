@@ -8,6 +8,9 @@ import adminRoutes from './admin.js';
 import reportRoutes from './reports.js';
 import blockRoutes from './blocks.js';
 import moderationRoutes from './moderation.js';
+import groupRoutes from './groups.js';
+import inviteRoutes from './invites.js';
+import callLinkRoutes from './callLinks.js';
 import statusRoutes from './status.js';
 
 const router = Router();
@@ -22,5 +25,8 @@ router.use('/admin', adminRoutes);
 router.use('/reports', reportRoutes);
 router.use('/blocks', blockRoutes);
 router.use('/moderation', moderationRoutes);
+router.use('/groups', groupRoutes);
+router.use('/invites', inviteRoutes);
+router.use('/call-links', callLinkRoutes);
 
 export default router;

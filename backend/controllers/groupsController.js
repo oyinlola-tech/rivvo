@@ -1,0 +1,345 @@
+import { v4 as uuid } from 'uuid';
+import pool from '../config/db.js';
+import { sendError, requireFields, isNonEmptyString } from '../utils/validation.js';
+
+const isGroupMember = async (groupId, userId) => {
+  const [rows] = await pool.execute(
+    `SELECT role, status FROM group_members WHERE group_id = :group_id AND user_id = :user_id LIMIT 1`,
+    { group_id: groupId, user_id: userId }
+  );
+  return rows[0] || null;
+};
+
+const countAdmins = async (groupId) => {
+  const [[row]] = await pool.execute(
+    `SELECT COUNT(*) AS total
+     FROM group_members
+     WHERE group_id = :group_id AND role IN ('owner', 'admin') AND status = 'active'`,
+    { group_id: groupId }
+  );
+  return Number(row?.total || 0);
+};
+
+export const createGroup = async (req, res) => {
+  const userId = req.user?.id;
+  const { name, description, isPrivate } = req.body || {};
+  const missing = requireFields(req.body, ['name']);
+  if (missing.length) {
+    return sendError(res, 400, 'name is required');
+  }
+  if (!isNonEmptyString(name)) {
+    return sendError(res, 400, 'name is required');
+  }
+
+  const groupId = uuid();
+  await pool.execute(
+    `INSERT INTO groups (id, owner_id, name, description, is_private)
+     VALUES (:id, :owner_id, :name, :description, :is_private)`,
+    {
+      id: groupId,
+      owner_id: userId,
+      name,
+      description: description || null,
+      is_private: isPrivate ? 1 : 0
+    }
+  );
+
+  await pool.execute(
+    `INSERT INTO group_members (group_id, user_id, role, status)
+     VALUES (:group_id, :user_id, 'owner', 'active')`,
+    { group_id: groupId, user_id: userId }
+  );
+
+  return res.status(201).json({ id: groupId });
+};
+
+export const listGroups = async (req, res) => {
+  const userId = req.user?.id;
+  const [rows] = await pool.execute(
+    `SELECT g.id, g.name, g.description, g.is_private, g.owner_id, gm.role
+     FROM group_members gm
+     JOIN groups g ON g.id = gm.group_id
+     WHERE gm.user_id = :user_id AND gm.status = 'active'
+     ORDER BY g.created_at DESC`,
+    { user_id: userId }
+  );
+
+  const groups = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    isPrivate: Boolean(row.is_private),
+    ownerId: row.owner_id,
+    role: row.role
+  }));
+
+  return res.json(groups);
+};
+
+export const searchPublicGroups = async (req, res) => {
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const [rows] = await pool.execute(
+    `SELECT id, name, description
+     FROM groups
+     WHERE is_private = 0 AND name LIKE :query
+     ORDER BY created_at DESC
+     LIMIT 20`,
+    { query: `%${query}%` }
+  );
+  return res.json(rows);
+};
+
+export const getGroup = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const [rows] = await pool.execute(
+    `SELECT id, name, description, is_private, owner_id
+     FROM groups
+     WHERE id = :id`,
+    { id: groupId }
+  );
+  if (!rows.length) {
+    return sendError(res, 404, 'Group not found');
+  }
+  const membership = await isGroupMember(groupId, userId);
+  return res.json({
+    ...rows[0],
+    isPrivate: Boolean(rows[0].is_private),
+    membership
+  });
+};
+
+export const listMembers = async (req, res) => {
+  const { groupId } = req.params;
+  const [rows] = await pool.execute(
+    `SELECT u.id, u.name, u.email, gm.role, gm.status
+     FROM group_members gm
+     JOIN users u ON u.id = gm.user_id
+     WHERE gm.group_id = :group_id
+     ORDER BY gm.created_at DESC`,
+    { group_id: groupId }
+  );
+  const members = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    status: row.status
+  }));
+  return res.json(members);
+};
+
+export const createInvite = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const [groups] = await pool.execute(
+    `SELECT id, is_private FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  if (!groups.length) {
+    return sendError(res, 404, 'Group not found');
+  }
+  const group = groups[0];
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || membership.status !== 'active') {
+    return sendError(res, 403, 'Not a group member');
+  }
+
+  if (group.is_private) {
+    if (!['owner', 'admin'].includes(membership.role)) {
+      return sendError(res, 403, 'Only admins can create private invites');
+    }
+  }
+
+  const token = uuid().replace(/-/g, '');
+  const inviteId = uuid();
+  await pool.execute(
+    `INSERT INTO group_invites (id, group_id, token, created_by, is_private)
+     VALUES (:id, :group_id, :token, :created_by, :is_private)`,
+    {
+      id: inviteId,
+      group_id: groupId,
+      token,
+      created_by: userId,
+      is_private: group.is_private ? 1 : 0
+    }
+  );
+
+  return res.status(201).json({ token, groupId });
+};
+
+export const joinByInvite = async (req, res) => {
+  const userId = req.user?.id;
+  const { token } = req.params;
+  const [invites] = await pool.execute(
+    `SELECT gi.group_id, g.is_private
+     FROM group_invites gi
+     JOIN groups g ON g.id = gi.group_id
+     WHERE gi.token = :token
+     LIMIT 1`,
+    { token }
+  );
+  if (!invites.length) {
+    return sendError(res, 404, 'Invite not found');
+  }
+  const invite = invites[0];
+
+  if (invite.is_private) {
+    await pool.execute(
+      `INSERT INTO group_join_requests (id, group_id, user_id, status)
+       VALUES (:id, :group_id, :user_id, 'pending')
+       ON DUPLICATE KEY UPDATE status = 'pending'`,
+      { id: uuid(), group_id: invite.group_id, user_id: userId }
+    );
+    return res.json({ status: 'pending' });
+  }
+
+  await pool.execute(
+    `INSERT INTO group_members (group_id, user_id, role, status)
+     VALUES (:group_id, :user_id, 'member', 'active')
+     ON DUPLICATE KEY UPDATE status = 'active'`,
+    { group_id: invite.group_id, user_id: userId }
+  );
+  return res.json({ status: 'joined', groupId: invite.group_id });
+};
+
+export const joinPublic = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const [groups] = await pool.execute(
+    `SELECT id, is_private FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  if (!groups.length) {
+    return sendError(res, 404, 'Group not found');
+  }
+  if (groups[0].is_private) {
+    return sendError(res, 400, 'Group is private');
+  }
+
+  await pool.execute(
+    `INSERT INTO group_members (group_id, user_id, role, status)
+     VALUES (:group_id, :user_id, 'member', 'active')
+     ON DUPLICATE KEY UPDATE status = 'active'`,
+    { group_id: groupId, user_id: userId }
+  );
+  return res.json({ status: 'joined' });
+};
+
+export const listJoinRequests = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+  const [rows] = await pool.execute(
+    `SELECT jr.id, jr.user_id, u.name, u.email, jr.status, jr.created_at
+     FROM group_join_requests jr
+     JOIN users u ON u.id = jr.user_id
+     WHERE jr.group_id = :group_id AND jr.status = 'pending'
+     ORDER BY jr.created_at DESC`,
+    { group_id: groupId }
+  );
+  const requests = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    email: row.email,
+    status: row.status,
+    createdAt: new Date(row.created_at).toISOString()
+  }));
+  return res.json(requests);
+};
+
+export const approveJoin = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId, requestId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT user_id FROM group_join_requests WHERE id = :id AND group_id = :group_id`,
+    { id: requestId, group_id: groupId }
+  );
+  if (!rows.length) {
+    return sendError(res, 404, 'Request not found');
+  }
+  const requestUserId = rows[0].user_id;
+  await pool.execute(
+    `UPDATE group_join_requests
+     SET status = 'approved', reviewed_by = :reviewed_by, reviewed_at = NOW()
+     WHERE id = :id`,
+    { id: requestId, reviewed_by: userId }
+  );
+  await pool.execute(
+    `INSERT INTO group_members (group_id, user_id, role, status)
+     VALUES (:group_id, :user_id, 'member', 'active')
+     ON DUPLICATE KEY UPDATE status = 'active'`,
+    { group_id: groupId, user_id: requestUserId }
+  );
+
+  return res.json({ message: 'Approved' });
+};
+
+export const rejectJoin = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId, requestId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+
+  await pool.execute(
+    `UPDATE group_join_requests
+     SET status = 'rejected', reviewed_by = :reviewed_by, reviewed_at = NOW()
+     WHERE id = :id`,
+    { id: requestId, reviewed_by: userId }
+  );
+  return res.json({ message: 'Rejected' });
+};
+
+export const promoteAdmin = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const { memberId } = req.body || {};
+  if (!memberId) {
+    return sendError(res, 400, 'memberId is required');
+  }
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || membership.role !== 'owner') {
+    return sendError(res, 403, 'Only owner can promote admins');
+  }
+
+  const totalAdmins = await countAdmins(groupId);
+  if (totalAdmins >= 11) {
+    return sendError(res, 400, 'Group admin limit reached');
+  }
+
+  await pool.execute(
+    `UPDATE group_members
+     SET role = 'admin'
+     WHERE group_id = :group_id AND user_id = :user_id`,
+    { group_id: groupId, user_id: memberId }
+  );
+  return res.json({ message: 'Promoted' });
+};
+
+export const demoteAdmin = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId, memberId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || membership.role !== 'owner') {
+    return sendError(res, 403, 'Only owner can demote admins');
+  }
+
+  await pool.execute(
+    `UPDATE group_members
+     SET role = 'member'
+     WHERE group_id = :group_id AND user_id = :user_id AND role = 'admin'`,
+    { group_id: groupId, user_id: memberId }
+  );
+  return res.json({ message: 'Demoted' });
+};

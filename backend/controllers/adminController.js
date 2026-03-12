@@ -97,8 +97,10 @@ export const getReports = async (req, res) => {
         r.resolved_by_id,
         r.resolved_at,
         r.created_at,
+        ru.id AS reported_id,
         ru.name AS reported_name,
         ru.email AS reported_email,
+        rb.id AS reporter_id,
         rb.name AS reporter_name,
         rb.email AS reporter_email,
         am.name AS assigned_name,
@@ -113,10 +115,12 @@ export const getReports = async (req, res) => {
   const reports = rows.map((row) => ({
     id: row.id,
     reportedUser: {
+      id: row.reported_id,
       name: row.reported_name,
       email: row.reported_email
     },
     reportedBy: {
+      id: row.reporter_id,
       name: row.reporter_name,
       email: row.reporter_email
     },
@@ -154,18 +158,26 @@ export const resolveReport = async (req, res) => {
 export const assignReport = async (req, res) => {
   const { reportId } = req.params;
   const { moderatorId } = req.body || {};
-  if (!moderatorId) {
-    return sendError(res, 400, 'moderatorId is required');
+  const value = moderatorId || null;
+
+  if (value) {
+    const [rows] = await pool.execute(
+      `SELECT id FROM users WHERE id = :id AND is_moderator = 1 LIMIT 1`,
+      { id: value }
+    );
+    if (!rows.length) {
+      return sendError(res, 400, 'Moderator not found');
+    }
   }
 
   await pool.execute(
     `UPDATE reports
      SET assigned_moderator_id = :moderator_id
      WHERE id = :id`,
-    { id: reportId, moderator_id: moderatorId }
+    { id: reportId, moderator_id: value }
   );
 
-  await logAdminAction(req.user?.id, 'assign_report', reportId, { moderatorId });
+  await logAdminAction(req.user?.id, 'assign_report', reportId, { moderatorId: value });
   return res.json({ message: 'Report assigned' });
 };
 

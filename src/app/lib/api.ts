@@ -427,6 +427,103 @@ class ApiClient {
     return this.requestForm(`/messages/conversations/${conversationId}/attachments`, formData);
   }
 
+  async getOrCreateConversation(userId: string): Promise<ApiResponse<{ id: string }>> {
+    return this.request(`/messages/conversations/with/${userId}`, { method: "POST" });
+  }
+
+  // Invites
+  async createUserInvite(): Promise<ApiResponse<{ token: string }>> {
+    return this.request("/invites/users", { method: "POST" });
+  }
+
+  async resolveUserInvite(token: string): Promise<ApiResponse<ApiUser>> {
+    return this.request(`/invites/users/${token}`);
+  }
+
+  async resolveGroupInvite(token: string): Promise<ApiResponse<any>> {
+    return this.request(`/invites/groups/${token}`);
+  }
+
+  // Groups
+  async createGroup(payload: {
+    name: string;
+    description?: string;
+    isPrivate: boolean;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request("/groups", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async listGroups(): Promise<ApiResponse<any[]>> {
+    return this.request("/groups");
+  }
+
+  async searchPublicGroups(query: string): Promise<ApiResponse<any[]>> {
+    const q = encodeURIComponent(query);
+    return this.request(`/groups/public?q=${q}`);
+  }
+
+  async getGroup(groupId: string): Promise<ApiResponse<any>> {
+    return this.request(`/groups/${groupId}`);
+  }
+
+  async listGroupMembers(groupId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/groups/${groupId}/members`);
+  }
+
+  async createGroupInvite(groupId: string): Promise<ApiResponse<{ token: string; groupId: string }>> {
+    return this.request(`/groups/${groupId}/invites`, { method: "POST" });
+  }
+
+  async joinGroupByInvite(token: string): Promise<ApiResponse<any>> {
+    return this.request(`/groups/invites/${token}/join`, { method: "POST" });
+  }
+
+  async joinPublicGroup(groupId: string): Promise<ApiResponse<any>> {
+    return this.request(`/groups/${groupId}/join`, { method: "POST" });
+  }
+
+  async listJoinRequests(groupId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/groups/${groupId}/requests`);
+  }
+
+  async approveJoin(groupId: string, requestId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}/requests/${requestId}/approve`, { method: "POST" });
+  }
+
+  async rejectJoin(groupId: string, requestId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}/requests/${requestId}/reject`, { method: "POST" });
+  }
+
+  async promoteGroupAdmin(groupId: string, memberId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}/admins`, {
+      method: "POST",
+      body: JSON.stringify({ memberId }),
+    });
+  }
+
+  async demoteGroupAdmin(groupId: string, memberId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}/admins/${memberId}`, { method: "DELETE" });
+  }
+
+  // Call links
+  async createCallLink(payload: {
+    type: "audio" | "video";
+    scope: "direct" | "group";
+    groupId?: string;
+  }): Promise<ApiResponse<{ token: string; roomUrl: string; joinUrl: string; type: string; scope: string }>> {
+    return this.request("/call-links", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async resolveCallLink(token: string): Promise<ApiResponse<any>> {
+    return this.request(`/call-links/${token}`);
+  }
+
   // Reports & Blocks
   async reportUser(payload: {
     reportedUserId: string;
@@ -489,7 +586,7 @@ class ApiClient {
     });
   }
 
-  async assignReport(reportId: string, moderatorId: string): Promise<ApiResponse<{ message: string }>> {
+  async assignReport(reportId: string, moderatorId: string | null): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/admin/reports/${reportId}/assign`, {
       method: "POST",
       body: JSON.stringify({ moderatorId }),
@@ -502,6 +599,44 @@ class ApiClient {
 
   async updateUserStatus(userId: string, status: "active" | "suspended"): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/admin/users/${userId}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Moderation endpoints
+  async getModerationReports(): Promise<ApiResponse<any[]>> {
+    return this.request("/moderation/reports");
+  }
+
+  async getModerationUnassignedReports(): Promise<ApiResponse<any[]>> {
+    return this.request("/moderation/reports/unassigned");
+  }
+
+  async getModerationReportMessages(reportId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/moderation/reports/${reportId}/messages`);
+  }
+
+  async resolveModerationReport(reportId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/moderation/reports/${reportId}/resolve`, { method: "POST" });
+  }
+
+  async assignModerationReport(reportId: string, moderatorId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/moderation/reports/${reportId}/assign`, {
+      method: "POST",
+      body: JSON.stringify({ moderatorId }),
+    });
+  }
+
+  async getModeratorsList(): Promise<ApiResponse<any[]>> {
+    return this.request("/moderation/moderators");
+  }
+
+  async updateModerationUserStatus(
+    userId: string,
+    status: "active" | "suspended"
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/moderation/users/${userId}/status`, {
       method: "PUT",
       body: JSON.stringify({ status }),
     });

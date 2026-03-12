@@ -8,7 +8,8 @@ import {
   markConversationRead,
   getConversationPeer,
   viewOnceMessage,
-  uploadAttachment
+  uploadAttachment,
+  getOrCreateConversation
 } from '../controllers/messagesController.js';
 import { uploadAttachments } from '../utils/upload.js';
 
@@ -16,6 +17,7 @@ const router = Router();
 
 router.get('/conversations', auth, asyncHandler(getConversations));
 router.get('/conversations/:id', auth, asyncHandler(getMessages));
+router.post('/conversations/with/:userId', auth, asyncHandler(getOrCreateConversation));
 router.post('/conversations/:id', auth, asyncHandler(sendMessage));
 router.post(
   '/conversations/:id/attachments',

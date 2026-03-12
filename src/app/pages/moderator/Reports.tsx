@@ -1,90 +1,85 @@
-import { useState, useEffect } from "react";
-import { Flag, CheckCircle, UserX, ClipboardList } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle, ClipboardList, UserX } from "lucide-react";
 import { api } from "../../lib/api";
 
 interface Report {
   id: string;
-  reportedUser: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  reportedBy: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  reportedUser: { id: string; name: string; email: string };
+  reportedBy: { id: string; name: string; email: string };
   reason: string;
-  description: string;
+  description?: string;
   status: "pending" | "resolved";
   type?: "user" | "message";
-  assignedModerator?: { id: string; name: string; email: string } | null;
-  reportedMessageId?: string | null;
-  conversationId?: string | null;
   createdAt: string;
 }
 
-export default function AdminReports() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [moderators, setModerators] = useState<Array<{ id: string; name: string; email: string }>>([]);
+export default function ModeratorReports() {
+  const [assigned, setAssigned] = useState<Report[]>([]);
+  const [unassigned, setUnassigned] = useState<Report[]>([]);
+  const [moderators, setModerators] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [reportMessages, setReportMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<"all" | "pending" | "resolved">("all");
+  const [tab, setTab] = useState<"assigned" | "unassigned">("assigned");
 
   useEffect(() => {
-    loadReports();
-    loadModerators();
+    loadAll();
   }, []);
 
-  const loadReports = async () => {
+  const loadAll = async () => {
     setError("");
-    const response = await api.getReports();
-    if (response.success && response.data) {
-      setReports(response.data);
-    } else if (!response.success) {
-      setError(response.error || "Failed to load reports");
+    const [assignedResp, unassignedResp, modsResp] = await Promise.all([
+      api.getModerationReports(),
+      api.getModerationUnassignedReports(),
+      api.getModeratorsList(),
+    ]);
+
+    if (assignedResp.success && assignedResp.data) {
+      setAssigned(assignedResp.data);
+    }
+    if (unassignedResp.success && unassignedResp.data) {
+      setUnassigned(unassignedResp.data);
+    }
+    if (modsResp.success && modsResp.data) {
+      setModerators(modsResp.data);
+    }
+    if (!assignedResp.success || !unassignedResp.success) {
+      setError(assignedResp.error || unassignedResp.error || "Failed to load reports");
     }
     setLoading(false);
   };
 
-  const loadModerators = async () => {
-    const response = await api.getModerators();
-    if (response.success && response.data) {
-      setModerators(response.data);
+  const handleResolve = async (reportId: string) => {
+    const response = await api.resolveModerationReport(reportId);
+    if (!response.success) {
+      setError(response.error || "Failed to resolve report");
+      return;
     }
+    setAssigned((prev) => prev.map((r) => (r.id === reportId ? { ...r, status: "resolved" } : r)));
   };
 
   const handleAssign = async (reportId: string, moderatorId: string) => {
-    const response = await api.assignReport(reportId, moderatorId || null);
-    if (response.success) {
-      setReports(
-        reports.map((report) =>
-          report.id === reportId
-            ? {
-                ...report,
-                assignedModerator: moderators.find((mod) => mod.id === moderatorId) || null,
-              }
-            : report
-        )
-      );
-    } else if (!response.success) {
+    if (!moderatorId) return;
+    const response = await api.assignModerationReport(reportId, moderatorId);
+    if (!response.success) {
       setError(response.error || "Failed to assign report");
+      return;
     }
+    await loadAll();
   };
 
-  const handleBan = async (email: string, userId: string) => {
+  const handleBan = async (userId: string, email: string) => {
     const confirmBan = window.confirm(`Ban ${email}?`);
     if (!confirmBan) return;
-    const response = await api.updateUserStatus(userId, "suspended");
+    const response = await api.updateModerationUserStatus(userId, "suspended");
     if (!response.success) {
       setError(response.error || "Failed to ban user");
     }
   };
 
-  const handleLoadReportMessages = async (reportId: string) => {
-    const response = await api.getReportMessages(reportId);
+  const handleLoadMessages = async (reportId: string) => {
+    const response = await api.getModerationReportMessages(reportId);
     if (response.success && response.data) {
       setSelectedReportId(reportId);
       setReportMessages(response.data);
@@ -93,40 +88,22 @@ export default function AdminReports() {
     }
   };
 
-  const handleResolve = async (reportId: string) => {
-    const response = await api.resolveReport(reportId);
-    if (response.success) {
-      setReports(
-        reports.map((report) =>
-          report.id === reportId ? { ...report, status: "resolved" } : report
-        )
-      );
-    } else if (!response.success) {
-      setError(response.error || "Failed to resolve report");
-    }
-  };
-
-  const filteredReports = reports.filter((report) => {
-    if (filter === "all") return true;
-    return report.status === filter;
-  });
+  const reports = tab === "assigned" ? assigned : unassigned;
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Reports</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Moderation Reports</h1>
         <div className="flex gap-2">
-          {(["all", "pending", "resolved"] as const).map((status) => (
+          {(["assigned", "unassigned"] as const).map((value) => (
             <button
-              key={status}
-              onClick={() => setFilter(status)}
+              key={value}
+              onClick={() => setTab(value)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === status
-                  ? "bg-[#20A090] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                tab === value ? "bg-[#20A090] text-white" : "bg-gray-100 text-gray-600"
               }`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {value.charAt(0).toUpperCase() + value.slice(1)}
             </button>
           ))}
         </div>
@@ -141,19 +118,18 @@ export default function AdminReports() {
           <div className="text-center py-12">
             <p className="text-red-600">{error}</p>
           </div>
-        ) : filteredReports.length === 0 ? (
+        ) : reports.length === 0 ? (
           <div className="text-center py-12">
-            <Flag className="mx-auto mb-4 text-gray-400" size={48} />
+            <ClipboardList className="mx-auto mb-4 text-gray-400" size={48} />
             <p className="text-gray-500">No reports found</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {filteredReports.map((report) => (
+            {reports.map((report) => (
               <div key={report.id} className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Flag size={20} className="text-red-500" />
                       <h3 className="font-semibold text-lg">{report.reason}</h3>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -187,11 +163,11 @@ export default function AdminReports() {
                       <div>
                         <span className="text-gray-500 mr-2">Assign to</span>
                         <select
-                          value={report.assignedModerator?.id || ""}
+                          value=""
                           onChange={(e) => handleAssign(report.id, e.target.value)}
                           className="border rounded-md px-2 py-1 text-sm"
                         >
-                          <option value="">Unassigned</option>
+                          <option value="">Select moderator</option>
                           {moderators.map((mod) => (
                             <option key={mod.id} value={mod.id}>
                               {mod.name}
@@ -200,20 +176,20 @@ export default function AdminReports() {
                         </select>
                       </div>
                       <button
-                        onClick={() => handleLoadReportMessages(report.id)}
+                        onClick={() => handleLoadMessages(report.id)}
                         className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
                       >
                         <ClipboardList size={16} /> View last 10 messages
                       </button>
                       <button
-                        onClick={() => handleBan(report.reportedUser.email, report.reportedUser.id)}
+                        onClick={() => handleBan(report.reportedUser.id, report.reportedUser.email)}
                         className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
                       >
                         <UserX size={16} /> Ban user
                       </button>
                     </div>
                   </div>
-                  {report.status === "pending" && (
+                  {report.status === "pending" && tab === "assigned" && (
                     <button
                       onClick={() => handleResolve(report.id)}
                       className="ml-4 flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"

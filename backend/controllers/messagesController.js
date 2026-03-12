@@ -15,6 +15,19 @@ const ensureParticipant = async (userId, conversationId) => {
   return rows.length > 0;
 };
 
+const findConversationWith = async (userId, otherUserId) => {
+  const [rows] = await pool.execute(
+    `SELECT cp1.conversation_id AS id
+     FROM conversation_participants cp1
+     JOIN conversation_participants cp2
+       ON cp2.conversation_id = cp1.conversation_id
+     WHERE cp1.user_id = :user_id AND cp2.user_id = :other_user_id
+     LIMIT 1`,
+    { user_id: userId, other_user_id: otherUserId }
+  );
+  return rows[0]?.id || null;
+};
+
 export const getConversations = async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
@@ -245,6 +258,44 @@ export const sendMessage = async (req, res) => {
   }
 
   return res.status(201).json(payload);
+};
+
+export const getOrCreateConversation = async (req, res) => {
+  const userId = req.user?.id;
+  const { userId: otherUserId } = req.params;
+
+  if (!otherUserId) {
+    return sendError(res, 400, 'userId is required');
+  }
+  if (otherUserId === userId) {
+    return sendError(res, 400, 'Cannot create conversation with yourself');
+  }
+
+  const [blockRows] = await pool.execute(
+    `SELECT 1 FROM blocks
+     WHERE (blocker_id = :user_id AND blocked_id = :other_user_id)
+        OR (blocker_id = :other_user_id AND blocked_id = :user_id)
+     LIMIT 1`,
+    { user_id: userId, other_user_id: otherUserId }
+  );
+  if (blockRows.length) {
+    return sendError(res, 403, 'Messaging is blocked');
+  }
+
+  const existing = await findConversationWith(userId, otherUserId);
+  if (existing) {
+    return res.json({ id: existing });
+  }
+
+  const conversationId = uuid();
+  await pool.execute(`INSERT INTO conversations (id) VALUES (:id)`, { id: conversationId });
+  await pool.execute(
+    `INSERT INTO conversation_participants (conversation_id, user_id)
+     VALUES (:conversation_id, :user_id), (:conversation_id, :other_user_id)`,
+    { conversation_id: conversationId, user_id: userId, other_user_id: otherUserId }
+  );
+
+  return res.status(201).json({ id: conversationId });
 };
 
 export const markConversationRead = async (req, res) => {

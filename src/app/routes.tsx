@@ -20,6 +20,8 @@ import AdminReports from "./pages/admin/Reports";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminModerators from "./pages/admin/Moderators";
 import NotFound from "./pages/NotFound";
+import ModeratorLayout from "./layouts/ModeratorLayout";
+import ModeratorReports from "./pages/moderator/Reports";
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +65,11 @@ export const router = createBrowserRouter([
       { path: "analytics", Component: AdminAnalytics },
       { path: "moderators", Component: AdminModerators },
     ],
+  },
+  {
+    path: "/moderator",
+    Component: ModeratorLayout,
+    children: [{ path: "reports", Component: ModeratorReports }],
   },
   {
     path: "*",

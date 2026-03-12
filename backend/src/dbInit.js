@@ -206,6 +206,85 @@ export const initDb = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_invites (
+      id CHAR(36) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      token VARCHAR(64) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_user_invite_token (token),
+      INDEX idx_user_invite_user (user_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS groups (
+      id CHAR(36) PRIMARY KEY,
+      owner_id CHAR(36) NOT NULL,
+      name VARCHAR(120) NOT NULL,
+      description TEXT NULL,
+      is_private TINYINT(1) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_groups_owner (owner_id),
+      INDEX idx_groups_public (is_private)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_members (
+      group_id CHAR(36) NOT NULL,
+      user_id CHAR(36) NOT NULL,
+      role ENUM('owner', 'admin', 'member') DEFAULT 'member',
+      status ENUM('active', 'pending') DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (group_id, user_id),
+      INDEX idx_group_members_group (group_id),
+      INDEX idx_group_members_user (user_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_invites (
+      id CHAR(36) PRIMARY KEY,
+      group_id CHAR(36) NOT NULL,
+      token VARCHAR(64) NOT NULL,
+      created_by CHAR(36) NOT NULL,
+      is_private TINYINT(1) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_group_invite_token (token),
+      INDEX idx_group_invite_group (group_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_join_requests (
+      id CHAR(36) PRIMARY KEY,
+      group_id CHAR(36) NOT NULL,
+      user_id CHAR(36) NOT NULL,
+      status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      reviewed_by CHAR(36) NULL,
+      reviewed_at DATETIME NULL,
+      UNIQUE KEY uq_group_join_request (group_id, user_id),
+      INDEX idx_group_join_group (group_id),
+      INDEX idx_group_join_user (user_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS call_links (
+      id CHAR(36) PRIMARY KEY,
+      token VARCHAR(64) NOT NULL,
+      created_by CHAR(36) NOT NULL,
+      type ENUM('audio', 'video') NOT NULL,
+      scope ENUM('direct', 'group') NOT NULL,
+      group_id CHAR(36) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_call_link_token (token),
+      INDEX idx_call_link_group (group_id)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS device_keys (
       device_id VARCHAR(64) PRIMARY KEY,
       user_id CHAR(36) NOT NULL,
@@ -378,6 +457,72 @@ export const initDb = async () => {
       ALTER TABLE reports
       ADD CONSTRAINT fk_reports_reported
       FOREIGN KEY (reported_user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE user_invites
+      ADD CONSTRAINT fk_user_invites_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD CONSTRAINT fk_groups_owner
+      FOREIGN KEY (owner_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE group_members
+      ADD CONSTRAINT fk_group_members_group
+      FOREIGN KEY (group_id) REFERENCES groups(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE group_members
+      ADD CONSTRAINT fk_group_members_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE group_invites
+      ADD CONSTRAINT fk_group_invites_group
+      FOREIGN KEY (group_id) REFERENCES groups(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE group_join_requests
+      ADD CONSTRAINT fk_group_join_group
+      FOREIGN KEY (group_id) REFERENCES groups(id)
       ON DELETE CASCADE
     `);
   } catch (error) {
