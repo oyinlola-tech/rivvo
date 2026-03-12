@@ -90,14 +90,23 @@ export const getReports = async (req, res) => {
         r.reason,
         r.description,
         r.status,
+        r.type,
+        r.reported_message_id,
+        r.conversation_id,
+        r.assigned_moderator_id,
+        r.resolved_by_id,
+        r.resolved_at,
         r.created_at,
         ru.name AS reported_name,
         ru.email AS reported_email,
         rb.name AS reporter_name,
-        rb.email AS reporter_email
+        rb.email AS reporter_email,
+        am.name AS assigned_name,
+        am.email AS assigned_email
      FROM reports r
      JOIN users ru ON ru.id = r.reported_user_id
      JOIN users rb ON rb.id = r.reported_by_id
+     LEFT JOIN users am ON am.id = r.assigned_moderator_id
      ORDER BY r.created_at DESC`
   );
 
@@ -114,6 +123,14 @@ export const getReports = async (req, res) => {
     reason: row.reason,
     description: row.description,
     status: row.status,
+    type: row.type,
+    reportedMessageId: row.reported_message_id,
+    conversationId: row.conversation_id,
+    assignedModerator: row.assigned_moderator_id
+      ? { id: row.assigned_moderator_id, name: row.assigned_name, email: row.assigned_email }
+      : null,
+    resolvedBy: row.resolved_by_id,
+    resolvedAt: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
     createdAt: new Date(row.created_at).toISOString()
   }));
 
@@ -122,9 +139,81 @@ export const getReports = async (req, res) => {
 
 export const resolveReport = async (req, res) => {
   const { reportId } = req.params;
-  await pool.execute('UPDATE reports SET status = \"resolved\" WHERE id = :id', { id: reportId });
+  await pool.execute(
+    `UPDATE reports
+     SET status = 'resolved',
+         resolved_by_id = :resolved_by_id,
+         resolved_at = NOW()
+     WHERE id = :id`,
+    { id: reportId, resolved_by_id: req.user?.id }
+  );
   await logAdminAction(req.user?.id, 'resolve_report', reportId, null);
   return res.json({ message: 'Report resolved successfully' });
+};
+
+export const assignReport = async (req, res) => {
+  const { reportId } = req.params;
+  const { moderatorId } = req.body || {};
+  if (!moderatorId) {
+    return sendError(res, 400, 'moderatorId is required');
+  }
+
+  await pool.execute(
+    `UPDATE reports
+     SET assigned_moderator_id = :moderator_id
+     WHERE id = :id`,
+    { id: reportId, moderator_id: moderatorId }
+  );
+
+  await logAdminAction(req.user?.id, 'assign_report', reportId, { moderatorId });
+  return res.json({ message: 'Report assigned' });
+};
+
+export const updateUserStatus = async (req, res) => {
+  const { userId } = req.params;
+  const { status } = req.body || {};
+  if (!userId) {
+    return sendError(res, 400, 'userId is required');
+  }
+  if (status !== 'active' && status !== 'suspended') {
+    return sendError(res, 400, 'status must be active or suspended');
+  }
+
+  await pool.execute('UPDATE users SET status = :status WHERE id = :id', {
+    id: userId,
+    status
+  });
+
+  await logAdminAction(req.user?.id, 'update_user_status', userId, { status });
+  return res.json({ message: 'User status updated' });
+};
+
+export const getReportMessagesAdmin = async (req, res) => {
+  const { reportId } = req.params;
+  if (!reportId) {
+    return sendError(res, 400, 'reportId is required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT rm.message_id, rm.sender_id, rm.body, rm.iv, rm.is_encrypted, rm.created_at, u.name
+     FROM report_messages rm
+     LEFT JOIN users u ON u.id = rm.sender_id
+     WHERE rm.report_id = :report_id
+     ORDER BY rm.created_at DESC`,
+    { report_id: reportId }
+  );
+
+  const messages = rows.map((row) => ({
+    id: row.message_id,
+    senderId: row.sender_id,
+    senderName: row.name || 'Unknown',
+    body: row.body,
+    iv: row.iv || null,
+    encrypted: Boolean(row.is_encrypted),
+    createdAt: new Date(row.created_at).toISOString()
+  }));
+
+  return res.json(messages);
 };
 
 export const getAnalytics = async (req, res) => {

@@ -71,6 +71,7 @@ export default function Messages() {
   const [recording, setRecording] = useState(false);
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const attachmentUrlsRef = useRef<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -110,7 +111,7 @@ export default function Messages() {
             const text = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
             const attachment = parseAttachment(text);
             nextMessage = attachment
-              ? { ...payload.message, text: attachment.name, attachment }
+              ? { ...payload.message, text, attachment }
               : { ...payload.message, text };
           } catch {
             nextMessage = { ...payload.message, text: "Encrypted message" };
@@ -182,9 +183,9 @@ export default function Messages() {
 
   useEffect(() => {
     return () => {
-      Object.values(attachmentUrls).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(attachmentUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [attachmentUrls]);
+  }, []);
 
   const parseAttachment = (text: string) => {
     try {
@@ -210,7 +211,11 @@ export default function Messages() {
     setError("");
     const cached = await loadCachedMessages(user.id, id);
     if (cached.length) {
-      setMessages(cached);
+      const hydratedCached = cached.map((msg) => {
+        const attachment = parseAttachment(msg.text);
+        return attachment ? { ...msg, attachment } : msg;
+      });
+      setMessages(hydratedCached);
       setLoading(false);
     }
 
@@ -259,7 +264,7 @@ export default function Messages() {
           try {
             const text = await decryptMessage(msg.text, msg.iv, derivedKey);
             const attachment = parseAttachment(text);
-            return attachment ? { ...msg, text: attachment.name, attachment } : { ...msg, text };
+            return attachment ? { ...msg, text, attachment } : { ...msg, text };
           } catch {
             return { ...msg, text: "Encrypted message" };
           }
@@ -272,7 +277,11 @@ export default function Messages() {
       );
 
       const mergedMap = new Map<string, Message>();
-      [...cached, ...incoming].forEach((msg) => mergedMap.set(msg.id, msg));
+      const mergedSource = cached.map((msg) => {
+        const attachment = parseAttachment(msg.text);
+        return attachment ? { ...msg, attachment } : msg;
+      });
+      [...mergedSource, ...incoming].forEach((msg) => mergedMap.set(msg.id, msg));
       const merged = Array.from(mergedMap.values()).sort((a, b) =>
         a.timestamp.localeCompare(b.timestamp)
       );
@@ -356,6 +365,50 @@ export default function Messages() {
     }, 1000);
   };
 
+  const handleReportUser = async () => {
+    if (!peer?.id || !id) return;
+    const reason = window.prompt("Why are you reporting this user?");
+    if (!reason) return;
+    const block = window.confirm("Block this user as well?");
+    const response = await api.reportUser({
+      reportedUserId: peer.id,
+      reason,
+      conversationId: id,
+      block,
+    });
+    if (!response.success) {
+      setError(response.error || "Failed to submit report");
+      return;
+    }
+    if (block) {
+      setError("User reported and blocked");
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!peer?.id) return;
+    const confirmBlock = window.confirm("Block this user? They will not be able to message you.");
+    if (!confirmBlock) return;
+    const response = await api.blockUser(peer.id);
+    if (!response.success) {
+      setError(response.error || "Failed to block user");
+      return;
+    }
+    setError("User blocked");
+  };
+
+  const handleReportMessage = async (messageId: string) => {
+    const reason = window.prompt("Why are you reporting this message?");
+    if (!reason) return;
+    const block = window.confirm("Block this user as well?");
+    const response = await api.reportMessage({ messageId, reason, block });
+    if (!response.success) {
+      setError(response.error || "Failed to report message");
+    } else if (block) {
+      setError("Message reported and user blocked");
+    }
+  };
+
   const handleViewOnce = async (message: Message) => {
     if (!id || !user?.id) return;
     if (message.sender !== "them") return;
@@ -414,6 +467,7 @@ export default function Messages() {
     "text/plain",
     "text/csv",
     "audio/mpeg",
+    "audio/mp3",
     "audio/webm",
     "audio/ogg",
   ]);
@@ -549,7 +603,11 @@ export default function Messages() {
       const plainBuffer = await decryptBytes(encryptedBuffer, message.attachment.iv, sharedKey);
       const blob = new Blob([plainBuffer], { type: message.attachment.mime });
       const url = URL.createObjectURL(blob);
-      setAttachmentUrls((prev) => ({ ...prev, [message.id]: url }));
+      setAttachmentUrls((prev) => {
+        const next = { ...prev, [message.id]: url };
+        attachmentUrlsRef.current = next;
+        return next;
+      });
     } catch {
       setError("Unable to decrypt attachment");
     }
@@ -609,6 +667,18 @@ export default function Messages() {
             className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
           >
             <Video size={20} />
+          </button>
+          <button
+            onClick={handleReportUser}
+            className="px-3 py-2 rounded-full text-sm text-gray-600 hover:bg-gray-100"
+          >
+            Report
+          </button>
+          <button
+            onClick={handleBlockUser}
+            className="px-3 py-2 rounded-full text-sm text-gray-600 hover:bg-gray-100"
+          >
+            Block
           </button>
         </div>
       </div>
@@ -692,6 +762,14 @@ export default function Messages() {
                   ) : (
                     <p className="text-sm">{message.text}</p>
                   )}
+                  {message.sender === "them" && !message.viewOnce && (
+                    <button
+                      onClick={() => handleReportMessage(message.id)}
+                      className="mt-1 text-[11px] underline text-gray-400"
+                    >
+                      Report message
+                    </button>
+                  )}
                   <p
                     className={`text-xs mt-1 ${
                       message.sender === "me" ? "text-white/70" : "text-gray-500"
@@ -712,10 +790,32 @@ export default function Messages() {
       {/* Input */}
       <div className="bg-white border-t p-4">
         <div className="flex items-center gap-2">
-          <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFilePick}
+            accept=".pdf,.docx,.xlsx,.pptx,.txt,.csv,.mp3,.gif,.jpg,.jpeg,.png,.mp4"
+          />
+          <input
+            ref={mediaInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleMediaPick}
+            accept=".gif,.jpg,.jpeg,.png,.mp4"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+            disabled={uploading}
+          >
             <Paperclip size={20} className="text-gray-600" />
           </button>
-          <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+          <button
+            onClick={() => mediaInputRef.current?.click()}
+            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+            disabled={uploading}
+          >
             <Camera size={20} className="text-gray-600" />
           </button>
           <button
@@ -743,11 +843,19 @@ export default function Messages() {
               <Send size={20} className="text-white" />
             </button>
           ) : (
-            <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
-              <Mic size={20} className="text-gray-600" />
+            <button
+              onClick={handleToggleRecording}
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                recording ? "bg-red-50 text-red-600" : "hover:bg-gray-100 text-gray-600"
+              }`}
+              disabled={uploading}
+            >
+              <Mic size={20} className={recording ? "text-red-600" : "text-gray-600"} />
             </button>
           )}
         </div>
+        {uploading && <p className="mt-2 text-xs text-gray-500">Uploading encrypted file...</p>}
+        {recording && <p className="mt-2 text-xs text-red-600">Recording voice note...</p>}
       </div>
     </div>
   );

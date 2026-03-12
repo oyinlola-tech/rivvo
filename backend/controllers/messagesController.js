@@ -176,6 +176,26 @@ export const sendMessage = async (req, res) => {
     return sendError(res, 404, 'Conversation not found');
   }
 
+  const [participantRows] = await pool.execute(
+    `SELECT user_id FROM conversation_participants
+     WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+
+  const otherUserId = participantRows[0]?.user_id;
+  if (otherUserId) {
+    const [blockRows] = await pool.execute(
+      `SELECT 1 FROM blocks
+       WHERE (blocker_id = :user_id AND blocked_id = :other_user_id)
+          OR (blocker_id = :other_user_id AND blocked_id = :user_id)
+       LIMIT 1`,
+      { user_id: userId, other_user_id: otherUserId }
+    );
+    if (blockRows.length) {
+      return sendError(res, 403, 'Messaging is blocked');
+    }
+  }
+
   const messageId = uuid();
   await pool.execute(
     `INSERT INTO messages (id, conversation_id, sender_id, body, iv, is_encrypted, view_once)
@@ -198,13 +218,7 @@ export const sendMessage = async (req, res) => {
     { conversation_id: conversationId, user_id: userId }
   );
 
-  const [participantRows] = await pool.execute(
-    `SELECT user_id FROM conversation_participants
-     WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
-    { conversation_id: conversationId, user_id: userId }
-  );
-
-  const otherUserId = participantRows[0]?.user_id;
+  const recipientId = otherUserId;
   const payload = {
     id: messageId,
     text: finalMessage.trim(),
@@ -219,8 +233,8 @@ export const sendMessage = async (req, res) => {
   };
 
   const io = req.app.get('io');
-  if (io && otherUserId) {
-    io.to(`user:${otherUserId}`).emit('new_message', {
+  if (io && recipientId) {
+    io.to(`user:${recipientId}`).emit('new_message', {
       conversationId,
       message: { ...payload, sender: 'them' }
     });
@@ -361,6 +375,7 @@ const allowedAttachmentMimes = new Set([
   'text/plain',
   'text/csv',
   'audio/mpeg',
+  'audio/mp3',
   'audio/webm',
   'audio/ogg'
 ]);
@@ -371,6 +386,7 @@ export const uploadAttachment = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
   const { fileType, fileName, kind } = req.body || {};
+  const normalizedType = typeof fileType === 'string' ? fileType.toLowerCase() : '';
 
   if (!conversationId) {
     return sendError(res, 400, 'Conversation id is required');
@@ -385,7 +401,7 @@ export const uploadAttachment = async (req, res) => {
     return sendError(res, 400, 'File is required');
   }
 
-  if (!fileType || !allowedAttachmentMimes.has(fileType)) {
+  if (!normalizedType || !allowedAttachmentMimes.has(normalizedType)) {
     fs.unlink(req.file.path, () => {});
     return sendError(res, 400, 'Unsupported file type');
   }
@@ -400,7 +416,7 @@ export const uploadAttachment = async (req, res) => {
   return res.status(201).json({
     url: relativePath,
     size: req.file.size,
-    fileType,
+    fileType: normalizedType,
     fileName: fileName || req.file.originalname || 'attachment',
     kind: kind || 'document'
   });

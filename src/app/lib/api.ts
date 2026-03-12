@@ -427,6 +427,47 @@ class ApiClient {
     return this.requestForm(`/messages/conversations/${conversationId}/attachments`, formData);
   }
 
+  // Reports & Blocks
+  async reportUser(payload: {
+    reportedUserId: string;
+    reason: string;
+    description?: string;
+    conversationId?: string;
+    block?: boolean;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request("/reports/users", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async reportMessage(payload: {
+    messageId: string;
+    reason: string;
+    description?: string;
+    block?: boolean;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request("/reports/messages", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getBlockedUsers(): Promise<ApiResponse<ApiUser[]>> {
+    return this.request("/blocks");
+  }
+
+  async blockUser(blockedUserId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request("/blocks", {
+      method: "POST",
+      body: JSON.stringify({ blockedUserId }),
+    });
+  }
+
+  async unblockUser(blockedUserId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/blocks/${blockedUserId}`, { method: "DELETE" });
+  }
+
   // Admin endpoints
   async getUsers(page: number = 1, limit: number = 20): Promise<ApiResponse<any>> {
     return this.request(`/admin/users?page=${page}&limit=${limit}`);
@@ -445,6 +486,24 @@ class ApiClient {
   async resolveReport(reportId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/admin/reports/${reportId}/resolve`, {
       method: "POST",
+    });
+  }
+
+  async assignReport(reportId: string, moderatorId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/admin/reports/${reportId}/assign`, {
+      method: "POST",
+      body: JSON.stringify({ moderatorId }),
+    });
+  }
+
+  async getReportMessages(reportId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/admin/reports/${reportId}/messages`);
+  }
+
+  async updateUserStatus(userId: string, status: "active" | "suspended"): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/admin/users/${userId}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
     });
   }
 

@@ -146,8 +146,40 @@ export const initDb = async () => {
       reported_by_id CHAR(36) NOT NULL,
       reason VARCHAR(255) NOT NULL,
       description TEXT NULL,
+      type ENUM('user', 'message') DEFAULT 'user',
+      reported_message_id CHAR(36) NULL,
+      conversation_id CHAR(36) NULL,
+      assigned_moderator_id CHAR(36) NULL,
+      resolved_by_id CHAR(36) NULL,
+      resolved_at DATETIME NULL,
       status ENUM('pending', 'resolved') DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS report_messages (
+      id CHAR(36) PRIMARY KEY,
+      report_id CHAR(36) NOT NULL,
+      message_id CHAR(36) NOT NULL,
+      sender_id CHAR(36) NOT NULL,
+      body TEXT NOT NULL,
+      iv VARCHAR(64) NULL,
+      is_encrypted TINYINT(1) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_report_messages_report (report_id),
+      INDEX idx_report_messages_message (message_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blocks (
+      blocker_id CHAR(36) NOT NULL,
+      blocked_id CHAR(36) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (blocker_id, blocked_id),
+      INDEX idx_blocks_blocker (blocker_id),
+      INDEX idx_blocks_blocked (blocked_id)
     )
   `);
 
@@ -350,6 +382,60 @@ export const initDb = async () => {
     `);
   } catch (error) {
     // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE reports
+      ADD COLUMN type ENUM('user', 'message') DEFAULT 'user'
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE reports
+      ADD COLUMN reported_message_id CHAR(36) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE reports
+      ADD COLUMN conversation_id CHAR(36) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE reports
+      ADD COLUMN assigned_moderator_id CHAR(36) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE reports
+      ADD COLUMN resolved_by_id CHAR(36) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE reports
+      ADD COLUMN resolved_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
   }
 
   try {
