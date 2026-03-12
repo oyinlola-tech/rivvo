@@ -9,7 +9,8 @@ import {
   registerDeviceKey,
   listDevices,
   verifyDevice,
-  uploadAvatar
+  uploadAvatar,
+  searchUsers
 } from '../controllers/usersController.js';
 import { upload } from '../utils/upload.js';
 
@@ -26,5 +27,6 @@ router.get('/keys/:userId', auth, asyncHandler(getPublicKey));
 router.put('/devices/register', auth, asyncHandler(registerDeviceKey));
 router.get('/devices', auth, asyncHandler(listDevices));
 router.post('/devices/:deviceId/verify', auth, asyncHandler(verifyDevice));
+router.get('/search', auth, asyncHandler(searchUsers));
 
 export default router;

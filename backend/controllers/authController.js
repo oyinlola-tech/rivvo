@@ -5,11 +5,12 @@ import pool from '../config/db.js';
 import env from '../config/env.js';
 import { createToken } from '../services/tokenService.js';
 import { sendOtpEmail } from '../services/emailService.js';
-import { sendError, requireFields, isEmail, isNonEmptyString } from '../utils/validation.js';
+import { sendError, requireFields, isEmail, isNonEmptyString, isPhone, normalizePhone } from '../utils/validation.js';
 
 const buildUserPayload = (user) => ({
   id: user.id,
   email: user.email,
+  phone: user.phone || null,
   name: user.name,
   verified: Boolean(user.verified),
   isModerator: Boolean(user.is_moderator),
@@ -19,8 +20,16 @@ const buildUserPayload = (user) => ({
 
 const getUserByEmail = async (email) => {
   const [rows] = await pool.execute(
-    'SELECT * FROM users WHERE email = :email LIMIT 1',
-    { email }
+    'SELECT * FROM users WHERE LOWER(email) = :email LIMIT 1',
+    { email: email.toLowerCase() }
+  );
+  return rows[0] || null;
+};
+
+const getUserByPhone = async (phone) => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM users WHERE phone = :phone LIMIT 1',
+    { phone }
   );
   return rows[0] || null;
 };
@@ -92,10 +101,10 @@ export const login = async (req, res) => {
 };
 
 export const signup = async (req, res) => {
-  const { email, password, name } = req.body || {};
-  const missing = requireFields(req.body, ['email', 'password', 'name']);
+  const { email, password, name, phone } = req.body || {};
+  const missing = requireFields(req.body, ['email', 'password', 'name', 'phone']);
   if (missing.length) {
-    return sendError(res, 400, 'Email, password, and name required');
+    return sendError(res, 400, 'Email, password, name, and phone required');
   }
   if (!isEmail(email)) {
     return sendError(res, 400, 'Email is invalid');
@@ -103,13 +112,21 @@ export const signup = async (req, res) => {
   if (!isNonEmptyString(name)) {
     return sendError(res, 400, 'Name is required');
   }
+  if (!isPhone(phone)) {
+    return sendError(res, 400, 'Phone number is invalid');
+  }
   if (typeof password !== 'string' || password.length < 8) {
     return sendError(res, 400, 'Password must be at least 8 characters');
   }
 
+  const normalizedPhone = normalizePhone(phone);
   const existing = await getUserByEmail(email);
   if (existing) {
     return sendError(res, 400, 'Email already in use');
+  }
+  const existingPhone = await getUserByPhone(normalizedPhone);
+  if (existingPhone) {
+    return sendError(res, 400, 'Phone number already in use');
   }
 
   const userId = uuid();
@@ -123,11 +140,12 @@ export const signup = async (req, res) => {
     await connection.beginTransaction();
 
     await connection.execute(
-      `INSERT INTO users (id, email, password_hash, name, verified, is_moderator, is_admin)
-       VALUES (:id, :email, :password_hash, :name, 0, 0, 0)`,
+      `INSERT INTO users (id, email, phone, password_hash, name, verified, is_moderator, is_admin)
+       VALUES (:id, :email, :phone, :password_hash, :name, 0, 0, 0)`,
       {
         id: userId,
         email,
+        phone: normalizedPhone,
         password_hash: passwordHash,
         name
       }

@@ -5,6 +5,7 @@ export const initDb = async () => {
     CREATE TABLE IF NOT EXISTS users (
       id CHAR(36) PRIMARY KEY,
       email VARCHAR(255) UNIQUE NOT NULL,
+      phone VARCHAR(20) UNIQUE NULL,
       password_hash VARCHAR(255) NOT NULL,
       name VARCHAR(255) NOT NULL,
       avatar VARCHAR(512) NULL,
@@ -218,6 +219,24 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE users
       ADD INDEX idx_users_email (email)
+    `);
+  } catch (error) {
+    // Index likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN phone VARCHAR(20) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
+      ADD UNIQUE INDEX uq_users_phone (phone)
     `);
   } catch (error) {
     // Index likely exists already.

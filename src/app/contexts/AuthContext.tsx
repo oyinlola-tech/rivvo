@@ -5,6 +5,7 @@ import { getDeviceId, getOrCreateDeviceKeyPair, getOrCreateKeyPair } from "../li
 interface User {
   id: string;
   email: string;
+  phone?: string | null;
   name: string;
   verified: boolean;
   isModerator: boolean;

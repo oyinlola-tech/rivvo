@@ -21,23 +21,18 @@ export default function Contacts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const normalizedQuery = searchQuery.trim();
+  const queryIsEmail = normalizedQuery.includes("@");
+  const queryIsPhone = normalizedQuery.replace(/\D/g, "").length >= 7;
+  const showSearchResults = normalizedQuery.length > 0 && (queryIsEmail || queryIsPhone);
 
   useEffect(() => {
     loadContacts();
   }, []);
 
   useEffect(() => {
-    const query = searchQuery.trim();
-    if (!query) {
-      setResults([]);
-      return;
-    }
-
-    const isEmail = query.includes("@");
-    const digits = query.replace(/\D/g, "");
-    const isPhone = digits.length >= 7;
-
-    if (!isEmail && !isPhone) {
+    const query = normalizedQuery;
+    if (!query || !showSearchResults) {
       setResults([]);
       return;
     }
@@ -54,7 +49,7 @@ export default function Contacts() {
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [searchQuery]);
+  }, [normalizedQuery, showSearchResults]);
 
   const loadContacts = async () => {
     setError("");
@@ -102,7 +97,7 @@ export default function Contacts() {
       </div>
 
       {/* Search Results */}
-      {searchQuery.trim() && (
+      {showSearchResults && (
         <div className="bg-white dark:bg-white rounded-t-[40px] pt-6">
           {searching ? (
             <div className="flex items-center justify-center py-6">

@@ -5,7 +5,7 @@ import { sendError, requireFields } from '../utils/validation.js';
 export const getContacts = async (req, res) => {
   const userId = req.user?.id;
   const [rows] = await pool.execute(
-    `SELECT u.id, u.name, u.email, u.avatar, u.verified, u.is_moderator
+    `SELECT u.id, u.name, u.email, u.phone, u.avatar, u.verified, u.is_moderator
      FROM contacts c
      JOIN users u ON u.id = c.contact_id
      WHERE c.user_id = :user_id
@@ -17,6 +17,7 @@ export const getContacts = async (req, res) => {
     id: row.id,
     name: row.name,
     email: row.email,
+    phone: row.phone || null,
     avatar: row.avatar || null,
     online: isUserOnline(row.id),
     verified: Boolean(row.verified),

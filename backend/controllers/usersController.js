@@ -1,9 +1,10 @@
 import pool from '../config/db.js';
-import { sendError, isNonEmptyString } from '../utils/validation.js';
+import { sendError, isNonEmptyString, isEmail, normalizePhone } from '../utils/validation.js';
 
 const buildUserPayload = (user) => ({
   id: user.id,
   email: user.email,
+  phone: user.phone || null,
   name: user.name,
   verified: Boolean(user.verified),
   isModerator: Boolean(user.is_moderator),
@@ -25,21 +26,38 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   const userId = req.user?.id;
-  const { name, avatar } = req.body || {};
+  const { name, avatar, phone } = req.body || {};
 
-  if (!isNonEmptyString(name) && avatar === undefined) {
+  if (!isNonEmptyString(name) && avatar === undefined && phone === undefined) {
     return sendError(res, 400, 'Nothing to update');
+  }
+
+  const normalizedPhone = phone ? normalizePhone(phone) : null;
+  if (phone !== undefined && !normalizedPhone) {
+    return sendError(res, 400, 'Phone number is invalid');
+  }
+
+  if (normalizedPhone) {
+    const [rows] = await pool.execute(
+      'SELECT id FROM users WHERE phone = :phone AND id <> :id LIMIT 1',
+      { phone: normalizedPhone, id: userId }
+    );
+    if (rows.length) {
+      return sendError(res, 400, 'Phone number already in use');
+    }
   }
 
   await pool.execute(
     `UPDATE users
      SET name = COALESCE(:name, name),
-         avatar = COALESCE(:avatar, avatar)
+         avatar = COALESCE(:avatar, avatar),
+         phone = COALESCE(:phone, phone)
      WHERE id = :id`,
     {
       id: userId,
       name: name || null,
-      avatar: avatar || null
+      avatar: avatar || null,
+      phone: normalizedPhone
     }
   );
 
@@ -152,4 +170,49 @@ export const verifyDevice = async (req, res) => {
   );
 
   return res.json({ message: 'Device verified' });
+};
+
+export const searchUsers = async (req, res) => {
+  const userId = req.user?.id;
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+
+  if (!query) {
+    return sendError(res, 400, 'Search query required');
+  }
+
+  let where = '';
+  const params = { user_id: userId };
+
+  if (isEmail(query)) {
+    where = 'LOWER(email) = :email';
+    params.email = query.toLowerCase();
+  } else {
+    const normalizedPhone = normalizePhone(query);
+    if (!normalizedPhone) {
+      return sendError(res, 400, 'Search query must be a valid email or phone number');
+    }
+    where = 'phone = :phone';
+    params.phone = normalizedPhone;
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, name, email, phone, avatar, verified, is_moderator
+     FROM users
+     WHERE ${where} AND id <> :user_id AND status = 'active'
+     LIMIT 10`,
+    params
+  );
+
+  const results = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone || null,
+    avatar: row.avatar || null,
+    verified: Boolean(row.verified),
+    isModerator: Boolean(row.is_moderator),
+    isAdmin: false
+  }));
+
+  return res.json(results);
 };
