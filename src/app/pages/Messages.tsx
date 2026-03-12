@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -12,6 +12,8 @@ import {
   deriveSharedKey,
   encryptMessage,
   decryptMessage,
+  encryptBytes,
+  decryptBytes,
 } from "../lib/crypto";
 import {
   getConversationSync,
@@ -32,6 +34,7 @@ interface Message {
   iv?: string | null;
   viewOnce?: boolean;
   viewOnceViewedAt?: string | null;
+  attachment?: Attachment | null;
 }
 
 interface PeerInfo {
@@ -40,6 +43,16 @@ interface PeerInfo {
   avatar?: string | null;
   verified: boolean;
   isModerator: boolean;
+}
+
+interface Attachment {
+  type: "attachment";
+  kind: "media" | "document" | "audio" | "voice";
+  name: string;
+  mime: string;
+  size: number;
+  url: string;
+  iv: string;
 }
 
 export default function Messages() {
@@ -54,7 +67,13 @@ export default function Messages() {
   const [viewOnceMode, setViewOnceMode] = useState(false);
   const [sharedKey, setSharedKey] = useState<CryptoKey | null>(null);
   const [peer, setPeer] = useState<PeerInfo | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const viewOnceTimeoutRef = useRef<number | null>(null);
 
@@ -89,7 +108,10 @@ export default function Messages() {
         } else if (payload.message.encrypted && payload.message.iv && sharedKey) {
           try {
             const text = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
-            nextMessage = { ...payload.message, text };
+            const attachment = parseAttachment(text);
+            nextMessage = attachment
+              ? { ...payload.message, text: attachment.name, attachment }
+              : { ...payload.message, text };
           } catch {
             nextMessage = { ...payload.message, text: "Encrypted message" };
           }
@@ -158,6 +180,31 @@ export default function Messages() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      Object.values(attachmentUrls).forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [attachmentUrls]);
+
+  const parseAttachment = (text: string) => {
+    try {
+      const parsed = JSON.parse(text) as Attachment;
+      if (
+        parsed &&
+        parsed.type === "attachment" &&
+        parsed.url &&
+        parsed.iv &&
+        parsed.mime &&
+        parsed.name
+      ) {
+        return parsed;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   const loadMessages = async () => {
     if (!id || !user?.id) return;
     setError("");
@@ -208,14 +255,15 @@ export default function Messages() {
           if (msg.viewOnce) {
             return msg;
           }
-          if (msg.encrypted && msg.iv && derivedKey) {
-            try {
-              const text = await decryptMessage(msg.text, msg.iv, derivedKey);
-              return { ...msg, text };
-            } catch {
-              return { ...msg, text: "Encrypted message" };
-            }
+        if (msg.encrypted && msg.iv && derivedKey) {
+          try {
+            const text = await decryptMessage(msg.text, msg.iv, derivedKey);
+            const attachment = parseAttachment(text);
+            return attachment ? { ...msg, text: attachment.name, attachment } : { ...msg, text };
+          } catch {
+            return { ...msg, text: "Encrypted message" };
           }
+        }
           if (msg.encrypted) {
             return { ...msg, text: "Encrypted message" };
           }
@@ -353,6 +401,160 @@ export default function Messages() {
     socket.emit("typing", { conversationId: id, userId: user?.id });
   };
 
+  const ALLOWED_MIMES = new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "video/mp4",
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "text/csv",
+    "audio/mpeg",
+    "audio/webm",
+    "audio/ogg",
+  ]);
+
+  const MAX_FILE_SIZE = 40 * 1024 * 1024;
+
+  const inferKind = (type: string) => {
+    if (type.startsWith("image/") || type.startsWith("video/")) return "media";
+    if (type.startsWith("audio/")) return "audio";
+    return "document";
+  };
+
+  const validateFile = (file: File) => {
+    if (file.size > MAX_FILE_SIZE) {
+      setError("File size must be 40MB or less");
+      return false;
+    }
+    if (!ALLOWED_MIMES.has(file.type)) {
+      setError("Unsupported file type");
+      return false;
+    }
+    return true;
+  };
+
+  const uploadEncryptedAttachment = async (file: File, kindOverride?: "voice") => {
+    if (!id) return;
+    if (!sharedKey) {
+      setError("Encrypted attachments require an active encryption key");
+      return;
+    }
+    if (!validateFile(file)) return;
+
+    setUploading(true);
+    setError("");
+    try {
+      const buffer = await file.arrayBuffer();
+      const encryptedFile = await encryptBytes(buffer, sharedKey);
+      const encryptedBlob = new Blob([encryptedFile.cipherBuffer], {
+        type: "application/octet-stream",
+      });
+
+      const formData = new FormData();
+      formData.append("file", encryptedBlob, `${file.name}.enc`);
+      formData.append("fileType", file.type);
+      formData.append("fileName", file.name);
+      formData.append("kind", kindOverride || inferKind(file.type));
+
+      const upload = await api.uploadAttachment(id, formData);
+      if (!upload.success || !upload.data) {
+        setError(upload.error || "Failed to upload attachment");
+        return;
+      }
+
+      const payload: Attachment = {
+        type: "attachment",
+        kind: (kindOverride || inferKind(file.type)) as Attachment["kind"],
+        name: upload.data.fileName || file.name,
+        mime: file.type,
+        size: file.size,
+        url: upload.data.url,
+        iv: encryptedFile.iv,
+      };
+
+      const encryptedMeta = await encryptMessage(JSON.stringify(payload), sharedKey);
+      const response = await api.sendEncryptedMessage(id, { ...encryptedMeta, viewOnce: false });
+      if (!response.success) {
+        setError(response.error || "Failed to send attachment");
+        return;
+      }
+      await loadMessages();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload attachment");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFilePick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) {
+      await uploadEncryptedAttachment(file);
+    }
+  };
+
+  const handleMediaPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) {
+      await uploadEncryptedAttachment(file);
+    }
+  };
+
+  const handleToggleRecording = async () => {
+    if (recording) {
+      recorderRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+        const voiceFile = new File([blob], `voice-note-${Date.now()}.webm`, {
+          type: blob.type || "audio/webm",
+        });
+        await uploadEncryptedAttachment(voiceFile, "voice");
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setError("Microphone access denied");
+    }
+  };
+
+  const handleDecryptAttachment = async (message: Message) => {
+    if (!message.attachment || !sharedKey) return;
+    if (attachmentUrls[message.id]) return;
+    try {
+      const response = await fetch(message.attachment.url);
+      const encryptedBuffer = await response.arrayBuffer();
+      const plainBuffer = await decryptBytes(encryptedBuffer, message.attachment.iv, sharedKey);
+      const blob = new Blob([plainBuffer], { type: message.attachment.mime });
+      const url = URL.createObjectURL(blob);
+      setAttachmentUrls((prev) => ({ ...prev, [message.id]: url }));
+    } catch {
+      setError("Unable to decrypt attachment");
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -449,6 +651,44 @@ export default function Messages() {
                     ) : (
                       <p className="text-sm">{message.text}</p>
                     )
+                  ) : message.attachment ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} />
+                        <span className="text-sm font-medium">{message.attachment.name}</span>
+                      </div>
+                      {attachmentUrls[message.id] ? (
+                        message.attachment.mime.startsWith("image/") ? (
+                          <img
+                            src={attachmentUrls[message.id]}
+                            alt={message.attachment.name}
+                            className="max-h-64 rounded-lg"
+                          />
+                        ) : message.attachment.mime.startsWith("video/") ? (
+                          <video controls src={attachmentUrls[message.id]} className="w-full rounded-lg" />
+                        ) : message.attachment.mime.startsWith("audio/") ? (
+                          <audio controls src={attachmentUrls[message.id]} className="w-full" />
+                        ) : (
+                          <a
+                            href={attachmentUrls[message.id]}
+                            download={message.attachment.name}
+                            className="inline-flex items-center gap-2 text-sm underline"
+                          >
+                            <Download size={14} /> Download
+                          </a>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => handleDecryptAttachment(message)}
+                          className="text-sm underline"
+                        >
+                          Open attachment
+                        </button>
+                      )}
+                      <p className="text-xs text-gray-400">
+                        {(message.attachment.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
                   ) : (
                     <p className="text-sm">{message.text}</p>
                   )}

@@ -420,6 +420,13 @@ class ApiClient {
     return this.request(`/users/search?q=${q}`);
   }
 
+  async uploadAttachment(
+    conversationId: string,
+    formData: FormData
+  ): Promise<ApiResponse<{ url: string; size: number; fileType: string; fileName: string; kind: string }>> {
+    return this.requestForm(`/messages/conversations/${conversationId}/attachments`, formData);
+  }
+
   // Admin endpoints
   async getUsers(page: number = 1, limit: number = 20): Promise<ApiResponse<any>> {
     return this.request(`/admin/users?page=${page}&limit=${limit}`);

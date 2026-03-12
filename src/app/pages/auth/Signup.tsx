@@ -10,6 +10,7 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
@@ -42,6 +43,11 @@ export default function Signup() {
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setError("Please accept the Terms and Privacy Policy");
       return;
     }
 
@@ -160,6 +166,26 @@ export default function Signup() {
             required
           />
         </div>
+
+        <label className="flex items-start gap-3 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-[#20A090] focus:ring-[#20A090]"
+          />
+          <span>
+            By signing up, you agree to the{" "}
+            <Link to="/terms" className="text-[#20A090] font-medium hover:underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="text-[#20A090] font-medium hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
 
         <button
           type="submit"

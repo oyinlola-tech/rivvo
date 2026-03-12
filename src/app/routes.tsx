@@ -12,6 +12,8 @@ import Contacts from "./pages/Contacts";
 import Status from "./pages/Status";
 import Settings from "./pages/Settings";
 import DeviceKeys from "./pages/DeviceKeys";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminReports from "./pages/admin/Reports";
@@ -28,6 +30,14 @@ export const router = createBrowserRouter([
       { path: "signup", Component: Signup },
       { path: "verify-otp", Component: OTPVerification },
     ],
+  },
+  {
+    path: "/terms",
+    Component: Terms,
+  },
+  {
+    path: "/privacy",
+    Component: Privacy,
   },
   {
     path: "/",

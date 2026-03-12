@@ -44,3 +44,16 @@ export const upload = multer({
   fileFilter,
   limits: { fileSize: 25 * 1024 * 1024 }
 });
+
+const attachmentFilter = (req, file, cb) => {
+  if (file.mimetype === 'application/octet-stream') {
+    return cb(null, true);
+  }
+  return cb(new Error('Encrypted payload required'), false);
+};
+
+export const uploadAttachments = multer({
+  storage,
+  fileFilter: attachmentFilter,
+  limits: { fileSize: 40 * 1024 * 1024 }
+});

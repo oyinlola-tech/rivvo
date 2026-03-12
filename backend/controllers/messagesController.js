@@ -2,6 +2,8 @@ import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
 import { isUserOnline } from '../services/presenceService.js';
 import { sendError, isNonEmptyString } from '../utils/validation.js';
+import fs from 'fs';
+import path from 'path';
 
 const ensureParticipant = async (userId, conversationId) => {
   const [rows] = await pool.execute(
@@ -343,5 +345,63 @@ export const getConversationPeer = async (req, res) => {
     verified: Boolean(peer.verified),
     isModerator: Boolean(peer.is_moderator),
     publicKey: peer.public_key || null
+  });
+};
+
+const allowedAttachmentMimes = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'video/mp4',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'audio/mpeg',
+  'audio/webm',
+  'audio/ogg'
+]);
+
+const allowedAttachmentKinds = new Set(['media', 'document', 'audio', 'voice']);
+
+export const uploadAttachment = async (req, res) => {
+  const userId = req.user?.id;
+  const conversationId = req.params.id;
+  const { fileType, fileName, kind } = req.body || {};
+
+  if (!conversationId) {
+    return sendError(res, 400, 'Conversation id is required');
+  }
+
+  const isParticipant = await ensureParticipant(userId, conversationId);
+  if (!isParticipant) {
+    return sendError(res, 404, 'Conversation not found');
+  }
+
+  if (!req.file) {
+    return sendError(res, 400, 'File is required');
+  }
+
+  if (!fileType || !allowedAttachmentMimes.has(fileType)) {
+    fs.unlink(req.file.path, () => {});
+    return sendError(res, 400, 'Unsupported file type');
+  }
+
+  if (kind && !allowedAttachmentKinds.has(kind)) {
+    fs.unlink(req.file.path, () => {});
+    return sendError(res, 400, 'Unsupported attachment kind');
+  }
+
+  const relativePath = `/uploads/messages/${path.basename(req.file.path)}`;
+
+  return res.status(201).json({
+    url: relativePath,
+    size: req.file.size,
+    fileType,
+    fileName: fileName || req.file.originalname || 'attachment',
+    kind: kind || 'document'
   });
 };

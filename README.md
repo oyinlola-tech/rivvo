@@ -35,7 +35,7 @@ Rivvo is a cross‑platform messaging application that uses an internet connecti
 ## Environment Variables
 ### Frontend
 ```
-REACT_APP_API_URL=http://localhost:3000/api
+VITE_API_URL=http://localhost:3000/api
 ```
 
 ### Backend
@@ -53,6 +53,14 @@ JWT_EXPIRES_IN=1h
 REFRESH_TOKEN_EXPIRES_DAYS=30
 CALL_ROOM_BASE_URL=http://localhost:5173/call/
 ```
+
+## Signup Requirements
+- Email is used for OTP verification.
+- Phone number is required and must be unique per user.
+
+## User Discovery
+- Users can be found by exact email or phone number.
+- Phone numbers are normalized server-side (digits with optional leading `+`).
 
 ## Local Development
 ### Install

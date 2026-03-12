@@ -7,14 +7,26 @@ import {
   sendMessage,
   markConversationRead,
   getConversationPeer,
-  viewOnceMessage
+  viewOnceMessage,
+  uploadAttachment
 } from '../controllers/messagesController.js';
+import { uploadAttachments } from '../utils/upload.js';
 
 const router = Router();
 
 router.get('/conversations', auth, asyncHandler(getConversations));
 router.get('/conversations/:id', auth, asyncHandler(getMessages));
 router.post('/conversations/:id', auth, asyncHandler(sendMessage));
+router.post(
+  '/conversations/:id/attachments',
+  auth,
+  (req, res, next) => {
+    req.uploadFolder = 'uploads/messages';
+    next();
+  },
+  uploadAttachments.single('file'),
+  asyncHandler(uploadAttachment)
+);
 router.post('/conversations/:id/read', auth, asyncHandler(markConversationRead));
 router.post('/conversations/:id/view-once/:messageId', auth, asyncHandler(viewOnceMessage));
 router.get('/conversations/:id/peer', auth, asyncHandler(getConversationPeer));
