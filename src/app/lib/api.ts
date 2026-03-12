@@ -12,6 +12,7 @@ export interface ApiResponse<T = any> {
 export interface ApiUser {
   id: string;
   email: string;
+  phone?: string | null;
   name: string;
   verified: boolean;
   isModerator: boolean;
@@ -255,10 +256,15 @@ class ApiClient {
     });
   }
 
-  async signup(email: string, password: string, name: string): Promise<ApiResponse<{ message: string }>> {
+  async signup(
+    email: string,
+    password: string,
+    name: string,
+    phone: string
+  ): Promise<ApiResponse<{ message: string }>> {
     return this.request("/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, phone }),
     });
   }
 
@@ -407,6 +413,11 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify({ userId }),
     });
+  }
+
+  async searchUsers(query: string): Promise<ApiResponse<ApiUser[]>> {
+    const q = encodeURIComponent(query);
+    return this.request(`/users/search?q=${q}`);
   }
 
   // Admin endpoints

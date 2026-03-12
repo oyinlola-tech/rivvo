@@ -6,6 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +29,12 @@ export default function Signup() {
       return;
     }
 
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 7 || digits.length > 15) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -40,7 +47,7 @@ export default function Signup() {
 
     setLoading(true);
 
-    const result = await signup(email, password, name);
+    const result = await signup(email, password, name, phone);
     
     if (result.success) {
       navigate("/auth/verify-otp", { state: { email } });
@@ -53,7 +60,15 @@ export default function Signup() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-center mb-6">Create Account</h2>
+      <div className="flex flex-col items-center mb-6">
+        <img
+          src="/rivvo.png"
+          alt="Rivvo logo"
+          className="h-12 w-12 rounded-xl object-cover mb-3"
+          loading="lazy"
+        />
+        <h2 className="text-2xl font-bold text-center">Create Account</h2>
+      </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -88,6 +103,21 @@ export default function Signup() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
             placeholder="Enter your email"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium mb-2">
+            Phone Number
+          </label>
+          <input
+            id="phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+            placeholder="Enter your phone number"
             required
           />
         </div>

@@ -48,3 +48,15 @@ export const isNonEmptyString = (value) =>
   typeof value === 'string' && value.trim().length > 0;
 
 export const isOneOf = (value, options) => options.includes(value);
+
+export const normalizePhone = (value) => {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const plus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length < 7 || digits.length > 15) return '';
+  return plus ? `+${digits}` : digits;
+};
+
+export const isPhone = (value) => Boolean(normalizePhone(value));

@@ -7,6 +7,7 @@ interface Contact {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
   avatar?: string;
   online: boolean;
   verified: boolean;
@@ -15,6 +16,8 @@ interface Contact {
 
 export default function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [results, setResults] = useState<Contact[]>([]);
+  const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,6 +25,36 @@ export default function Contacts() {
   useEffect(() => {
     loadContacts();
   }, []);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setResults([]);
+      return;
+    }
+
+    const isEmail = query.includes("@");
+    const digits = query.replace(/\D/g, "");
+    const isPhone = digits.length >= 7;
+
+    if (!isEmail && !isPhone) {
+      setResults([]);
+      return;
+    }
+
+    setSearching(true);
+    const timer = window.setTimeout(async () => {
+      const response = await api.searchUsers(query);
+      if (response.success && response.data) {
+        setResults(response.data as Contact[]);
+      } else {
+        setResults([]);
+      }
+      setSearching(false);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadContacts = async () => {
     setError("");
@@ -34,10 +67,14 @@ export default function Contacts() {
     setLoading(false);
   };
 
-  const filteredContacts = contacts.filter((contact) =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredContacts = contacts.filter((contact) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      contact.name.toLowerCase().includes(q) ||
+      contact.email.toLowerCase().includes(q) ||
+      (contact.phone ? contact.phone.toLowerCase().includes(q) : false)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-[#000e08] md:ml-64">
@@ -63,6 +100,59 @@ export default function Contacts() {
           </div>
         </div>
       </div>
+
+      {/* Search Results */}
+      {searchQuery.trim() && (
+        <div className="bg-white dark:bg-white rounded-t-[40px] pt-6">
+          {searching ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+            </div>
+          ) : results.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-gray-500">No users found</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {results.map((user) => (
+                <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          user.name[0].toUpperCase()
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-[#000e08]">{user.name}</h3>
+                        {user.verified && (
+                          <VerificationBadge type={user.isModerator ? "mod" : "user"} size="sm" />
+                        )}
+                      </div>
+                      <p className="text-sm text-[#797c7b]">{user.email}</p>
+                      {user.phone && <p className="text-xs text-[#797c7b]">{user.phone}</p>}
+                    </div>
+                    <button
+                      onClick={() => api.addContact(user.id).then(loadContacts)}
+                      className="px-3 py-2 rounded-lg bg-[#20A090] text-white text-sm hover:bg-[#1a8c7a] transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Contacts List */}
       <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-160px)] pt-6">
