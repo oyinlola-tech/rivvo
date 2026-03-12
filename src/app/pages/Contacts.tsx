@@ -14,9 +14,19 @@ interface Contact {
   isModerator: boolean;
 }
 
+interface SearchResult {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  avatar?: string;
+  verified: boolean;
+  isModerator: boolean;
+}
+
 export default function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [results, setResults] = useState<Contact[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -41,7 +51,7 @@ export default function Contacts() {
     const timer = window.setTimeout(async () => {
       const response = await api.searchUsers(query);
       if (response.success && response.data) {
-        setResults(response.data as Contact[]);
+        setResults(response.data as SearchResult[]);
       } else {
         setResults([]);
       }
