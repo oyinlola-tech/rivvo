@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing } from "lucide-react";
+import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Link as LinkIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { VerificationBadge } from "../components/VerificationBadge";
 
@@ -21,9 +21,15 @@ export default function Calls() {
   const [calls, setCalls] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [groups, setGroups] = useState<any[]>([]);
+  const [scope, setScope] = useState<"direct" | "group">("direct");
+  const [type, setType] = useState<"audio" | "video">("audio");
+  const [groupId, setGroupId] = useState("");
+  const [callLink, setCallLink] = useState("");
 
   useEffect(() => {
     loadCalls();
+    loadGroups();
   }, []);
 
   const loadCalls = async () => {
@@ -35,6 +41,32 @@ export default function Calls() {
       setError(response.error || "Failed to load call history");
     }
     setLoading(false);
+  };
+
+  const loadGroups = async () => {
+    const response = await api.listGroups();
+    if (response.success && response.data) {
+      setGroups(response.data);
+    }
+  };
+
+  const handleCreateCallLink = async () => {
+    setError("");
+    if (scope === "group" && !groupId) {
+      setError("Please select a group");
+      return;
+    }
+    const response = await api.createCallLink({
+      type,
+      scope,
+      groupId: scope === "group" ? groupId : undefined,
+    });
+    if (response.success && response.data?.joinUrl) {
+      setCallLink(response.data.joinUrl);
+      await navigator.clipboard.writeText(response.data.joinUrl);
+    } else if (!response.success) {
+      setError(response.error || "Failed to create call link");
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -71,6 +103,48 @@ export default function Calls() {
 
       {/* Calls List */}
       <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-100px)] pt-6">
+        <div className="px-6 mb-6">
+          <h2 className="font-semibold text-lg mb-3">Create call link</h2>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as "audio" | "video")}
+              className="border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="audio">Audio</option>
+              <option value="video">Video</option>
+            </select>
+            <select
+              value={scope}
+              onChange={(e) => setScope(e.target.value as "direct" | "group")}
+              className="border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="direct">1-to-1</option>
+              <option value="group">Group</option>
+            </select>
+            {scope === "group" && (
+              <select
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">Select group</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={handleCreateCallLink}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#20A090] text-white text-sm"
+            >
+              <LinkIcon size={16} /> Create link
+            </button>
+          </div>
+          {callLink && <p className="text-xs text-gray-600 break-all">{callLink}</p>}
+        </div>
         <div className="px-6 mb-4">
           <h2 className="font-semibold text-lg">Recent</h2>
         </div>

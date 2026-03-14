@@ -642,6 +642,19 @@ class ApiClient {
     });
   }
 
+  async getModerationAuditLogs(): Promise<ApiResponse<any[]>> {
+    return this.request("/moderation/audit-logs");
+  }
+
+  async getModerationBlocks(): Promise<ApiResponse<any[]>> {
+    return this.request("/moderation/blocks");
+  }
+
+  async searchModerationUsers(query: string): Promise<ApiResponse<any[]>> {
+    const q = encodeURIComponent(query);
+    return this.request(`/moderation/users/search?q=${q}`);
+  }
+
   async getAnalytics(): Promise<ApiResponse<any>> {
     return this.request("/admin/analytics");
   }

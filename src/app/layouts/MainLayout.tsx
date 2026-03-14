@@ -26,6 +26,7 @@ export default function MainLayout() {
     { path: "/status", icon: CircleDot, label: "Status" },
     { path: "/calls", icon: Phone, label: "Calls" },
     { path: "/contacts", icon: Users, label: "Contacts" },
+    { path: "/groups", icon: Users, label: "Groups" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
 

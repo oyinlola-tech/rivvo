@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router";
-import { ClipboardList, LogOut } from "lucide-react";
+import { ClipboardList, LogOut, ShieldAlert, Ban, Search } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function ModeratorLayout() {
@@ -21,7 +21,12 @@ export default function ModeratorLayout() {
     return <Navigate to="/" replace />;
   }
 
-  const navItems = [{ path: "/moderator/reports", icon: ClipboardList, label: "Reports" }];
+  const navItems = [
+    { path: "/moderator/reports", icon: ClipboardList, label: "Reports" },
+    { path: "/moderator/audit-log", icon: ShieldAlert, label: "Audit Log" },
+    { path: "/moderator/blocks", icon: Ban, label: "Blocked Users" },
+    { path: "/moderator/search", icon: Search, label: "User Search" }
+  ];
 
   return (
     <div className="min-h-screen bg-background flex">

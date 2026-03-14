@@ -65,10 +65,55 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    const roomId = socket.data.callRoomId;
+    if (roomId) {
+      socket.to(roomId).emit('call:peer-left', { peerId: socket.id });
+    }
     if (userId) {
       setUserOffline(userId);
       io.emit('user_offline', { userId });
     }
+  });
+
+  socket.on('call:join', async ({ roomId, name }) => {
+    if (!roomId) return;
+    const roomKey = `call:${roomId}`;
+    const room = io.sockets.adapter.rooms.get(roomKey);
+    if (room && room.size >= 10) {
+      socket.emit('call:full');
+      return;
+    }
+
+    socket.join(roomKey);
+    socket.data.callRoomId = roomKey;
+    socket.data.displayName = name || 'Guest';
+
+    const sockets = await io.in(roomKey).fetchSockets();
+    const peers = sockets
+      .filter((s) => s.id !== socket.id)
+      .map((s) => ({
+        peerId: s.id,
+        name: s.data.displayName || 'Guest'
+      }));
+
+    socket.emit('call:peers', peers);
+    socket.to(roomKey).emit('call:peer-joined', {
+      peerId: socket.id,
+      name: socket.data.displayName || 'Guest'
+    });
+  });
+
+  socket.on('call:leave', () => {
+    const roomId = socket.data.callRoomId;
+    if (!roomId) return;
+    socket.leave(roomId);
+    socket.to(roomId).emit('call:peer-left', { peerId: socket.id });
+    socket.data.callRoomId = null;
+  });
+
+  socket.on('call:signal', ({ to, data }) => {
+    if (!to || !data) return;
+    io.to(to).emit('call:signal', { from: socket.id, data });
   });
 });
 

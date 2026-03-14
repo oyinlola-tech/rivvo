@@ -23,7 +23,8 @@ export default function Settings() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
-  const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  const [inviteLink, setInviteLink] = useState("");
+  const apiBase = import.meta.env.VITE_API_URL;
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const avatarSrc = avatarUrl ? `${mediaBase}${avatarUrl}` : "";
 
@@ -45,6 +46,15 @@ export default function Settings() {
       setAvatarError("");
     } else {
       setAvatarError(response.error || "Failed to upload avatar");
+    }
+  };
+
+  const handleCreateInvite = async () => {
+    const response = await api.createUserInvite();
+    if (response.success && response.data?.token) {
+      const link = `${window.location.origin}/invite/user/${response.data.token}`;
+      setInviteLink(link);
+      await navigator.clipboard.writeText(link);
     }
   };
 
@@ -140,6 +150,17 @@ export default function Settings() {
             </button>
           </div>
           {avatarError && <p className="text-sm text-red-600 mt-2">{avatarError}</p>}
+          <div className="mt-4">
+            <button
+              onClick={handleCreateInvite}
+              className="px-4 py-2 rounded-lg bg-[#20A090] text-white"
+            >
+              Create profile link
+            </button>
+            {inviteLink && (
+              <p className="mt-2 text-xs text-gray-600 break-all">{inviteLink}</p>
+            )}
+          </div>
         </div>
 
         {/* Settings Groups */}

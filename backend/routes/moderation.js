@@ -9,7 +9,10 @@ import {
   resolveAssignedReport,
   getModerators,
   assignReport,
-  updateUserStatus
+  updateUserStatus,
+  getAuditLogs,
+  getAllBlocks,
+  searchUsers
 } from '../controllers/moderationController.js';
 
 const router = Router();
@@ -22,5 +25,8 @@ router.post('/reports/:reportId/resolve', asyncHandler(resolveAssignedReport));
 router.post('/reports/:reportId/assign', asyncHandler(assignReport));
 router.get('/moderators', asyncHandler(getModerators));
 router.put('/users/:userId/status', asyncHandler(updateUserStatus));
+router.get('/audit-logs', asyncHandler(getAuditLogs));
+router.get('/blocks', asyncHandler(getAllBlocks));
+router.get('/users/search', asyncHandler(searchUsers));
 
 export default router;

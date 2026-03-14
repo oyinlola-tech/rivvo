@@ -22,7 +22,7 @@ export default function CallJoin() {
 
   const handleJoin = () => {
     if (!token) return;
-    window.open(`/call/room/${token}`, "_blank", "noopener,noreferrer");
+    window.location.assign(`/call/room/${token}`);
   };
 
   return (

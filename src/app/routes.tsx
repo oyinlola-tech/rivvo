@@ -14,6 +14,12 @@ import Settings from "./pages/Settings";
 import DeviceKeys from "./pages/DeviceKeys";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Groups from "./pages/Groups";
+import GroupDetail from "./pages/GroupDetail";
+import InviteUser from "./pages/InviteUser";
+import InviteGroup from "./pages/InviteGroup";
+import CallJoin from "./pages/CallJoin";
+import CallRoom from "./pages/CallRoom";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminReports from "./pages/admin/Reports";
@@ -22,6 +28,9 @@ import AdminModerators from "./pages/admin/Moderators";
 import NotFound from "./pages/NotFound";
 import ModeratorLayout from "./layouts/ModeratorLayout";
 import ModeratorReports from "./pages/moderator/Reports";
+import ModeratorAuditLog from "./pages/moderator/AuditLog";
+import ModeratorBlockedUsers from "./pages/moderator/BlockedUsers";
+import ModeratorUserSearch from "./pages/moderator/UserSearch";
 
 export const router = createBrowserRouter([
   {
@@ -49,12 +58,18 @@ export const router = createBrowserRouter([
       { path: "messages", Component: Messages },
       { path: "messages/:id", Component: Messages },
       { path: "calls", Component: Calls },
+      { path: "groups", Component: Groups },
+      { path: "groups/:groupId", Component: GroupDetail },
       { path: "status", Component: Status },
       { path: "contacts", Component: Contacts },
       { path: "settings", Component: Settings },
       { path: "settings/device-keys", Component: DeviceKeys },
     ],
   },
+  { path: "/invite/user/:token", Component: InviteUser },
+  { path: "/invite/:groupName/:token", Component: InviteGroup },
+  { path: "/call/:token", Component: CallJoin },
+  { path: "/call/room/:token", Component: CallRoom },
   {
     path: "/admin",
     Component: AdminLayout,
@@ -69,7 +84,12 @@ export const router = createBrowserRouter([
   {
     path: "/moderator",
     Component: ModeratorLayout,
-    children: [{ path: "reports", Component: ModeratorReports }],
+    children: [
+      { path: "reports", Component: ModeratorReports },
+      { path: "audit-log", Component: ModeratorAuditLog },
+      { path: "blocks", Component: ModeratorBlockedUsers },
+      { path: "search", Component: ModeratorUserSearch }
+    ],
   },
   {
     path: "*",

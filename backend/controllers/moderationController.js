@@ -201,3 +201,77 @@ export const resolveAssignedReport = async (req, res) => {
 
   return res.json({ message: 'Report resolved' });
 };
+
+export const getAuditLogs = async (req, res) => {
+  const [rows] = await pool.execute(
+    `SELECT l.id, l.action, l.target_id, l.metadata, l.created_at, u.name AS admin_name, u.email AS admin_email
+     FROM admin_audit_logs l
+     LEFT JOIN users u ON u.id = l.admin_id
+     ORDER BY l.created_at DESC
+     LIMIT 200`
+  );
+
+  const logs = rows.map((row) => ({
+    id: row.id,
+    action: row.action,
+    targetId: row.target_id,
+    metadata: row.metadata ? JSON.parse(row.metadata) : null,
+    createdAt: new Date(row.created_at).toISOString(),
+    admin: {
+      name: row.admin_name || 'Unknown',
+      email: row.admin_email || ''
+    }
+  }));
+
+  return res.json(logs);
+};
+
+export const getAllBlocks = async (req, res) => {
+  const [rows] = await pool.execute(
+    `SELECT b.blocker_id, b.blocked_id, b.created_at,
+            ub.name AS blocker_name, ub.email AS blocker_email,
+            ud.name AS blocked_name, ud.email AS blocked_email
+     FROM blocks b
+     JOIN users ub ON ub.id = b.blocker_id
+     JOIN users ud ON ud.id = b.blocked_id
+     ORDER BY b.created_at DESC
+     LIMIT 200`
+  );
+
+  const blocks = rows.map((row) => ({
+    blocker: { id: row.blocker_id, name: row.blocker_name, email: row.blocker_email },
+    blocked: { id: row.blocked_id, name: row.blocked_name, email: row.blocked_email },
+    createdAt: new Date(row.created_at).toISOString()
+  }));
+
+  return res.json(blocks);
+};
+
+export const searchUsers = async (req, res) => {
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (!query) {
+    return sendError(res, 400, 'Search query required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, name, email, phone, verified, is_moderator, is_admin, status
+     FROM users
+     WHERE name LIKE :query OR email LIKE :query OR phone LIKE :query
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    { query: `%${query}%` }
+  );
+
+  const users = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone || null,
+    verified: Boolean(row.verified),
+    isModerator: Boolean(row.is_moderator),
+    isAdmin: Boolean(row.is_admin),
+    status: row.status
+  }));
+
+  return res.json(users);
+};
