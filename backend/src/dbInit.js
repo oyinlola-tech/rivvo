@@ -10,6 +10,7 @@ export const initDb = async () => {
       name VARCHAR(255) NOT NULL,
       avatar VARCHAR(512) NULL,
       verified TINYINT(1) DEFAULT 0,
+      is_verified_badge TINYINT(1) DEFAULT 0,
       is_moderator TINYINT(1) DEFAULT 0,
       is_admin TINYINT(1) DEFAULT 0,
       status ENUM('active', 'suspended') DEFAULT 'active',
@@ -326,6 +327,40 @@ export const initDb = async () => {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS verification_settings (
+      id CHAR(36) PRIMARY KEY,
+      amount DECIMAL(12,2) NOT NULL,
+      currency CHAR(3) NOT NULL,
+      active TINYINT(1) DEFAULT 1,
+      updated_by CHAR(36) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_verification_settings_active (active),
+      INDEX idx_verification_settings_updated (updated_at)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS verification_payments (
+      id CHAR(36) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      amount DECIMAL(12,2) NOT NULL,
+      currency CHAR(3) NOT NULL,
+      status ENUM('pending', 'successful', 'failed', 'cancelled') DEFAULT 'pending',
+      tx_ref VARCHAR(64) NOT NULL,
+      flw_transaction_id VARCHAR(32) NULL,
+      flw_status VARCHAR(32) NULL,
+      payment_link VARCHAR(512) NULL,
+      raw_response JSON NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_verification_payments_tx_ref (tx_ref),
+      INDEX idx_verification_payments_user (user_id),
+      INDEX idx_verification_payments_status (status)
+    )
+  `);
+
   try {
     await pool.query(`
       ALTER TABLE users
@@ -339,6 +374,15 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE users
       ADD COLUMN phone VARCHAR(20) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN is_verified_badge TINYINT(1) DEFAULT 0
     `);
   } catch (error) {
     // Column likely exists already.
@@ -610,6 +654,17 @@ export const initDb = async () => {
       ALTER TABLE admin_audit_logs
       ADD CONSTRAINT fk_audit_admin
       FOREIGN KEY (admin_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payments
+      ADD CONSTRAINT fk_verification_payments_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
       ON DELETE CASCADE
     `);
   } catch (error) {

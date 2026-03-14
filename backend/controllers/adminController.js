@@ -326,3 +326,58 @@ export const createModerator = async (req, res) => {
     createdAt: new Date().toISOString()
   });
 };
+
+export const getVerificationPricing = async (req, res) => {
+  const [rows] = await pool.execute(
+    `SELECT amount, currency, active, updated_at
+     FROM verification_settings
+     ORDER BY updated_at DESC
+     LIMIT 1`
+  );
+
+  if (!rows.length) {
+    return res.json({ amount: null, currency: null, active: false, updatedAt: null });
+  }
+
+  const row = rows[0];
+  return res.json({
+    amount: Number(row.amount),
+    currency: row.currency,
+    active: Boolean(row.active),
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null
+  });
+};
+
+export const setVerificationPricing = async (req, res) => {
+  const { amount, currency, active } = req.body || {};
+  const parsedAmount = Number(amount);
+  const normalizedCurrency =
+    typeof currency === 'string' ? currency.trim().toUpperCase() : '';
+
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    return sendError(res, 400, 'amount must be a positive number');
+  }
+  if (!normalizedCurrency || normalizedCurrency.length !== 3) {
+    return sendError(res, 400, 'currency must be a 3-letter code');
+  }
+
+  await pool.execute(
+    `INSERT INTO verification_settings (id, amount, currency, active, updated_by)
+     VALUES (:id, :amount, :currency, :active, :updated_by)`,
+    {
+      id: uuid(),
+      amount: parsedAmount,
+      currency: normalizedCurrency,
+      active: active === undefined ? 1 : active ? 1 : 0,
+      updated_by: req.user?.id || null
+    }
+  );
+
+  await logAdminAction(req.user?.id, 'update_verification_pricing', null, {
+    amount: parsedAmount,
+    currency: normalizedCurrency,
+    active: active === undefined ? true : Boolean(active)
+  });
+
+  return res.json({ message: 'Verification pricing updated' });
+};

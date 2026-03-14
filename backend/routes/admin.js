@@ -13,7 +13,9 @@ import {
   getReportMessagesAdmin,
   getAnalytics,
   getModerators,
-  createModerator
+  createModerator,
+  getVerificationPricing,
+  setVerificationPricing
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -31,5 +33,7 @@ router.get('/analytics', asyncHandler(getAnalytics));
 router.get('/moderators', asyncHandler(getModerators));
 router.post('/moderators', asyncHandler(createModerator));
 router.put('/users/:userId/status', asyncHandler(updateUserStatus));
+router.get('/verification/pricing', asyncHandler(getVerificationPricing));
+router.put('/verification/pricing', asyncHandler(setVerificationPricing));
 
 export default router;
