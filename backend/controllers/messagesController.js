@@ -44,6 +44,11 @@ export const getConversations = async (req, res) => {
           WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
           THEN 1 ELSE 0
         END AS is_verified_badge_active,
+        CASE
+          WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW() THEN 'active'
+          WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at <= NOW() THEN 'expired'
+          ELSE 'none'
+        END AS badge_status,
         u.is_moderator,
         u.is_admin,
         lm.body AS last_text,
@@ -90,6 +95,7 @@ export const getConversations = async (req, res) => {
       online: isUserOnline(row.user_id),
       verified: Boolean(row.verified),
       isVerifiedBadge: Boolean(row.is_verified_badge_active),
+      badgeStatus: row.badge_status,
       isModerator: Boolean(row.is_moderator),
       isAdmin: Boolean(row.is_admin)
     },
@@ -401,6 +407,11 @@ export const getConversationPeer = async (req, res) => {
               WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
               THEN 1 ELSE 0
             END AS is_verified_badge_active,
+            CASE
+              WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW() THEN 'active'
+              WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at <= NOW() THEN 'expired'
+              ELSE 'none'
+            END AS badge_status,
             u.is_moderator, u.is_admin, uk.public_key
      FROM conversation_participants cp
      JOIN users u ON u.id = cp.user_id
@@ -421,6 +432,7 @@ export const getConversationPeer = async (req, res) => {
     avatar: peer.avatar || null,
     verified: Boolean(peer.verified),
     isVerifiedBadge: Boolean(peer.is_verified_badge_active),
+    badgeStatus: peer.badge_status,
     isModerator: Boolean(peer.is_moderator),
     isAdmin: Boolean(peer.is_admin),
     publicKey: peer.public_key || null

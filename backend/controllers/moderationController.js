@@ -254,7 +254,15 @@ export const searchUsers = async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    `SELECT id, name, email, phone, verified, is_moderator, is_admin, status
+    `SELECT id, name, email, phone, verified, is_moderator, is_admin, status,
+            CASE
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW() THEN 'active'
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at <= NOW() THEN 'expired'
+              ELSE 'none'
+            END AS badge_status,
+            CASE
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW() THEN 1 ELSE 0
+            END AS is_verified_badge_active
      FROM users
      WHERE name LIKE :query OR email LIKE :query OR phone LIKE :query
      ORDER BY created_at DESC
@@ -268,6 +276,8 @@ export const searchUsers = async (req, res) => {
     email: row.email,
     phone: row.phone || null,
     verified: Boolean(row.verified),
+    isVerifiedBadge: Boolean(row.is_verified_badge_active),
+    badgeStatus: row.badge_status,
     isModerator: Boolean(row.is_moderator),
     isAdmin: Boolean(row.is_admin),
     status: row.status

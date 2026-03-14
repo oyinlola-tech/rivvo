@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router";
-import { LayoutDashboard, Users, Flag, BarChart3, Shield, LogOut, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Users, Flag, BarChart3, Shield, LogOut, MessageCircle, CheckCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function AdminLayout() {
@@ -27,6 +27,7 @@ export default function AdminLayout() {
     { path: "/admin/reports", icon: Flag, label: "Reports" },
     { path: "/admin/analytics", icon: BarChart3, label: "Analytics" },
     { path: "/admin/moderators", icon: Shield, label: "Moderators" },
+    { path: "/admin/verification-payments", icon: CheckCircle, label: "Verification" },
   ];
 
   return (

@@ -85,6 +85,13 @@ const runCleanup = async () => {
               WHERE u.id IS NULL`
       },
       {
+        label: 'verification_payments stale pending',
+        sql: `UPDATE verification_payments
+              SET status = 'failed'
+              WHERE status = 'pending'
+                AND created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)`
+      },
+      {
         label: 'verification_payments -> users',
         sql: `DELETE vp FROM verification_payments vp
               LEFT JOIN users u ON u.id = vp.user_id

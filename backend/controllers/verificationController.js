@@ -17,7 +17,7 @@ const getActivePricing = async () => {
 
 const getUser = async (userId) => {
   const [rows] = await pool.execute(
-    `SELECT id, email, name, phone, is_verified_badge, verified_badge_expires_at, created_at
+    `SELECT id, email, name, phone, username, is_verified_badge, verified_badge_expires_at, created_at
      FROM users
      WHERE id = :id
      LIMIT 1`,
@@ -32,6 +32,15 @@ const isBadgeActive = (user) => {
   return new Date(user.verified_badge_expires_at) > new Date();
 };
 
+const isWithinRenewalWindow = (user) => {
+  if (!user?.verified_badge_expires_at) return false;
+  const expiresAt = new Date(user.verified_badge_expires_at);
+  const windowStart = new Date(expiresAt);
+  windowStart.setDate(windowStart.getDate() - 7);
+  const now = new Date();
+  return now >= windowStart && now <= expiresAt;
+};
+
 const getEligibility = (user) => {
   if (!user?.created_at) {
     return { eligible: false, eligibleAt: null };
@@ -43,6 +52,21 @@ const getEligibility = (user) => {
     eligible: eligibleAt <= new Date(),
     eligibleAt
   };
+};
+
+const hasPendingPayment = async (userId) => {
+  const [rows] = await pool.execute(
+    `SELECT id
+     FROM verification_payments
+     WHERE user_id = :user_id
+       AND (
+         status = 'pending'
+         OR (status = 'successful' AND review_status = 'pending')
+       )
+     LIMIT 1`,
+    { user_id: userId }
+  );
+  return rows.length > 0;
 };
 
 const flutterwaveRequest = async (path, options = {}) => {
@@ -119,14 +143,62 @@ export const getVerificationEligibility = async (req, res) => {
   });
 };
 
+export const getVerificationStatus = async (req, res) => {
+  const userId = req.user?.id;
+  const reviewStatus = typeof req.query.reviewStatus === 'string' ? req.query.reviewStatus : null;
+  let row = null;
+  if (reviewStatus) {
+    const [rows] = await pool.execute(
+      `SELECT status, review_status, rejection_reason, created_at
+       FROM verification_payments
+       WHERE user_id = :user_id AND review_status = :review_status
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      { user_id: userId, review_status: reviewStatus }
+    );
+    row = rows[0] || null;
+  } else {
+    const [pendingRows] = await pool.execute(
+      `SELECT status, review_status, rejection_reason, created_at
+       FROM verification_payments
+       WHERE user_id = :user_id AND review_status = 'pending'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      { user_id: userId }
+    );
+    row = pendingRows[0] || null;
+    if (!row) {
+      const [rows] = await pool.execute(
+        `SELECT status, review_status, rejection_reason, created_at
+         FROM verification_payments
+         WHERE user_id = :user_id
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        { user_id: userId }
+      );
+      row = rows[0] || null;
+    }
+  }
+
+  if (!row) {
+    return res.json({ status: null, reviewStatus: null, rejectionReason: null, createdAt: null });
+  }
+  return res.json({
+    status: row.status,
+    reviewStatus: row.review_status,
+    rejectionReason: row.rejection_reason || null,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
+  });
+};
+
 export const createVerificationCheckout = async (req, res) => {
   const userId = req.user?.id;
   const user = await getUser(userId);
   if (!user) {
     return sendError(res, 404, 'User not found');
   }
-  if (isBadgeActive(user)) {
-    return sendError(res, 409, 'User already has an active verification badge');
+  if (isBadgeActive(user) && !isWithinRenewalWindow(user)) {
+    return sendError(res, 409, 'Verification badge is active. Renew within 7 days of expiry.');
   }
 
   const { eligible, eligibleAt } = getEligibility(user);
@@ -136,6 +208,14 @@ export const createVerificationCheckout = async (req, res) => {
       403,
       `Verification is available after 3 months on the platform${eligibleAt ? ` (eligible on ${eligibleAt.toISOString()})` : ''}`
     );
+  }
+
+  if (!user.phone || !user.username) {
+    return sendError(res, 400, 'Add both phone number and username to buy verification');
+  }
+
+  if (await hasPendingPayment(userId)) {
+    return sendError(res, 409, 'You already have a payment pending review');
   }
 
   const pricing = await getActivePricing();
@@ -259,6 +339,11 @@ export const confirmVerificationPayment = async (req, res) => {
   await pool.execute(
     `UPDATE verification_payments
      SET status = :status,
+         review_status = CASE
+           WHEN review_status IS NULL OR review_status = 'pending'
+             THEN CASE WHEN :status = 'successful' THEN 'pending' ELSE review_status END
+           ELSE review_status
+         END,
          flw_transaction_id = :flw_transaction_id,
          flw_status = :flw_status,
          raw_response = :raw_response
@@ -271,19 +356,6 @@ export const confirmVerificationPayment = async (req, res) => {
       raw_response: JSON.stringify(verified)
     }
   );
-
-  if (nextStatus === 'successful') {
-    await pool.execute(
-      `UPDATE users
-       SET is_verified_badge = 1,
-           verified_badge_expires_at = DATE_ADD(
-             GREATEST(NOW(), COALESCE(verified_badge_expires_at, NOW())),
-             INTERVAL 1 MONTH
-           )
-       WHERE id = :id`,
-      { id: paymentRow.user_id }
-    );
-  }
 
   return res.json({
     status: nextStatus,
@@ -338,6 +410,11 @@ export const handleVerificationWebhook = async (req, res) => {
   await pool.execute(
     `UPDATE verification_payments
      SET status = :status,
+         review_status = CASE
+           WHEN review_status IS NULL OR review_status = 'pending'
+             THEN CASE WHEN :status = 'successful' THEN 'pending' ELSE review_status END
+           ELSE review_status
+         END,
          flw_transaction_id = :flw_transaction_id,
          flw_status = :flw_status,
          raw_response = :raw_response
@@ -350,19 +427,6 @@ export const handleVerificationWebhook = async (req, res) => {
       raw_response: JSON.stringify(verified)
     }
   );
-
-  if (nextStatus === 'successful') {
-    await pool.execute(
-      `UPDATE users
-       SET is_verified_badge = 1,
-           verified_badge_expires_at = DATE_ADD(
-             GREATEST(NOW(), COALESCE(verified_badge_expires_at, NOW())),
-             INTERVAL 1 MONTH
-           )
-       WHERE id = :id`,
-      { id: paymentRow.user_id }
-    );
-  }
 
   return res.status(200).json({ received: true });
 };

@@ -4,6 +4,7 @@ import auth from '../middleware/auth.js';
 import {
   getVerificationPricing,
   getVerificationEligibility,
+  getVerificationStatus,
   createVerificationCheckout,
   confirmVerificationPayment,
   handleVerificationWebhook
@@ -13,6 +14,7 @@ const router = Router();
 
 router.get('/pricing', asyncHandler(getVerificationPricing));
 router.get('/eligibility', auth, asyncHandler(getVerificationEligibility));
+router.get('/status', auth, asyncHandler(getVerificationStatus));
 router.post('/checkout', auth, asyncHandler(createVerificationCheckout));
 router.post('/confirm', auth, asyncHandler(confirmVerificationPayment));
 router.post('/webhook', asyncHandler(handleVerificationWebhook));

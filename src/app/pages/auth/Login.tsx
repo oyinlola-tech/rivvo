@@ -4,7 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -17,19 +17,13 @@ export default function Login() {
     setError("");
     setLoading(true);
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email address");
-      setLoading(false);
-      return;
-    }
-
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
 
-    const result = await login(email, password);
+    const result = await login(identifier, password);
     
     if (result.success) {
       navigate("/");
@@ -53,15 +47,15 @@ export default function Login() {
 
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-2">
-            Email Address
+            Email, Phone, or Username
           </label>
           <input
             id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
-            placeholder="Enter your email"
+            placeholder="Enter email, phone, or @username"
             required
           />
         </div>

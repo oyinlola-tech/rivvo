@@ -19,6 +19,11 @@ export const getStatuses = async (req, res) => {
           WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
           THEN 1 ELSE 0
         END AS is_verified_badge_active,
+        CASE
+          WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW() THEN 'active'
+          WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at <= NOW() THEN 'expired'
+          ELSE 'none'
+        END AS badge_status,
         u.is_moderator,
         u.is_admin
      FROM statuses s
@@ -42,6 +47,7 @@ export const getStatuses = async (req, res) => {
           avatar: row.avatar || null,
           verified: Boolean(row.verified),
           isVerifiedBadge: Boolean(row.is_verified_badge_active),
+          badgeStatus: row.badge_status,
           isModerator: Boolean(row.is_moderator),
           isAdmin: Boolean(row.is_admin)
         },

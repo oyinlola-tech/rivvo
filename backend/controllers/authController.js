@@ -5,7 +5,16 @@ import pool from '../config/db.js';
 import env from '../config/env.js';
 import { createToken } from '../services/tokenService.js';
 import { sendOtpEmail } from '../services/emailService.js';
-import { sendError, requireFields, isEmail, isNonEmptyString, isPhone, normalizePhone } from '../utils/validation.js';
+import {
+  sendError,
+  requireFields,
+  isEmail,
+  isNonEmptyString,
+  isPhone,
+  isUsername,
+  normalizePhone,
+  normalizeUsername
+} from '../utils/validation.js';
 
 const isBadgeActive = (user) => {
   if (!user?.is_verified_badge) return false;
@@ -45,6 +54,14 @@ const getUserByPhone = async (phone) => {
   return rows[0] || null;
 };
 
+const getUserByUsername = async (username) => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM users WHERE username = :username LIMIT 1',
+    { username }
+  );
+  return rows[0] || null;
+};
+
 const getUserById = async (id) => {
   const [rows] = await pool.execute('SELECT * FROM users WHERE id = :id LIMIT 1', { id });
   return rows[0] || null;
@@ -80,16 +97,25 @@ const issueAuthTokens = async (user, req) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body || {};
-  const missing = requireFields(req.body, ['email', 'password']);
+  const { email, password, identifier } = req.body || {};
+  const loginValue = typeof identifier === 'string' ? identifier : email;
+  const missing = requireFields({ loginValue, password }, ['loginValue', 'password']);
   if (missing.length) {
-    return sendError(res, 400, 'Email and password required');
-  }
-  if (!isEmail(email)) {
-    return sendError(res, 400, 'Email is invalid');
+    return sendError(res, 400, 'Email, phone, or username and password required');
   }
 
-  const user = await getUserByEmail(email);
+  let user = null;
+  const usernameCandidate = loginValue.startsWith('@') ? loginValue.slice(1) : loginValue;
+  if (isEmail(loginValue)) {
+    user = await getUserByEmail(loginValue);
+  } else if (isPhone(loginValue)) {
+    user = await getUserByPhone(normalizePhone(loginValue));
+  } else if (isUsername(usernameCandidate)) {
+    user = await getUserByUsername(normalizeUsername(usernameCandidate));
+  } else {
+    return sendError(res, 400, 'Login must be a valid email, phone number, or username');
+  }
+
   if (!user) {
     return sendError(res, 401, 'Invalid credentials');
   }
@@ -113,9 +139,9 @@ export const login = async (req, res) => {
 
 export const signup = async (req, res) => {
   const { email, password, name, phone } = req.body || {};
-  const missing = requireFields(req.body, ['email', 'password', 'name', 'phone']);
+  const missing = requireFields(req.body, ['email', 'password', 'name']);
   if (missing.length) {
-    return sendError(res, 400, 'Email, password, name, and phone required');
+    return sendError(res, 400, 'Email, password, and name required');
   }
   if (!isEmail(email)) {
     return sendError(res, 400, 'Email is invalid');
@@ -123,21 +149,23 @@ export const signup = async (req, res) => {
   if (!isNonEmptyString(name)) {
     return sendError(res, 400, 'Name is required');
   }
-  if (!isPhone(phone)) {
+  if (phone !== undefined && phone !== null && phone !== '' && !isPhone(phone)) {
     return sendError(res, 400, 'Phone number is invalid');
   }
   if (typeof password !== 'string' || password.length < 8) {
     return sendError(res, 400, 'Password must be at least 8 characters');
   }
 
-  const normalizedPhone = normalizePhone(phone);
+  const normalizedPhone = phone ? normalizePhone(phone) : null;
   const existing = await getUserByEmail(email);
   if (existing) {
     return sendError(res, 400, 'Email already in use');
   }
-  const existingPhone = await getUserByPhone(normalizedPhone);
-  if (existingPhone) {
-    return sendError(res, 400, 'Phone number already in use');
+  if (normalizedPhone) {
+    const existingPhone = await getUserByPhone(normalizedPhone);
+    if (existingPhone) {
+      return sendError(res, 400, 'Phone number already in use');
+    }
   }
 
   const userId = uuid();

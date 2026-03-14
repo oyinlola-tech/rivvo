@@ -28,11 +28,27 @@ export default function Settings() {
   const [inviteLink, setInviteLink] = useState("");
   const [pricing, setPricing] = useState<{ amount: number | null; currency: string | null; active: boolean } | null>(null);
   const [eligibility, setEligibility] = useState<{ eligible: boolean; eligibleAt: string | null } | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<{
+    status: string | null;
+    reviewStatus: string | null;
+    rejectionReason: string | null;
+    createdAt: string | null;
+  } | null>(null);
+  const [showVerificationNotice, setShowVerificationNotice] = useState(true);
   const [verificationError, setVerificationError] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const apiBase = import.meta.env.VITE_API_URL;
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const avatarSrc = avatarUrl ? `${mediaBase}${avatarUrl}` : "";
+  const missingVerificationProfile = !user?.phone || !user?.username;
+  const renewalWindowOpen = (() => {
+    if (!user?.verifiedBadgeExpiresAt) return false;
+    const expiresAt = new Date(user.verifiedBadgeExpiresAt);
+    const windowStart = new Date(expiresAt);
+    windowStart.setDate(windowStart.getDate() - 7);
+    const now = new Date();
+    return now >= windowStart && now <= expiresAt;
+  })();
 
   useEffect(() => {
     setAvatarUrl(user?.avatar || "");
@@ -40,15 +56,19 @@ export default function Settings() {
 
   useEffect(() => {
     const loadVerification = async () => {
-      const [pricingResponse, eligibilityResponse] = await Promise.all([
+      const [pricingResponse, eligibilityResponse, statusResponse] = await Promise.all([
         api.getVerificationPricing(),
         api.getVerificationEligibility(),
+        api.getVerificationStatus(),
       ]);
       if (pricingResponse.success && pricingResponse.data) {
         setPricing(pricingResponse.data);
       }
       if (eligibilityResponse.success && eligibilityResponse.data) {
         setEligibility(eligibilityResponse.data);
+      }
+      if (statusResponse.success && statusResponse.data) {
+        setVerificationStatus(statusResponse.data);
       }
     };
     loadVerification();
@@ -226,13 +246,39 @@ export default function Settings() {
             </div>
 
             {user?.isVerifiedBadge ? (
-              <div className="text-sm text-[#1a8c7a] font-medium">
-                Active badge{user.verifiedBadgeExpiresAt
-                  ? ` • Renews on ${new Date(user.verifiedBadgeExpiresAt).toLocaleDateString()}`
-                  : ""}
-              </div>
+              <>
+                <div className="text-sm text-[#1a8c7a] font-medium mb-3">
+                  Active badge{user.verifiedBadgeExpiresAt
+                    ? ` • Renews on ${new Date(user.verifiedBadgeExpiresAt).toLocaleDateString()}`
+                    : ""}
+                </div>
+                {renewalWindowOpen && (
+                  <button
+                    onClick={handleVerificationCheckout}
+                    disabled={checkoutLoading || !pricing?.active || missingVerificationProfile}
+                    className="w-full py-3 rounded-xl font-medium bg-[#1DA1F2] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {checkoutLoading ? "Opening checkout..." : "Renew verification"}
+                  </button>
+                )}
+                {missingVerificationProfile && (
+                  <p className="text-xs text-[#797c7b] mt-2">
+                    Add a username and phone number in your profile to renew verification.
+                  </p>
+                )}
+                {!renewalWindowOpen && (
+                  <p className="text-xs text-[#797c7b]">
+                    Renewal opens 7 days before expiry.
+                  </p>
+                )}
+              </>
             ) : (
               <>
+                {verificationStatus?.reviewStatus === "pending" && (
+                  <div className="mb-3 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+                    Payment received. Pending admin review.
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm text-[#797c7b]">
                     {pricing?.active ? (
@@ -258,14 +304,25 @@ export default function Settings() {
                   disabled={
                     checkoutLoading ||
                     !pricing?.active ||
-                    !eligibility?.eligible
+                    !eligibility?.eligible ||
+                    missingVerificationProfile ||
+                    verificationStatus?.reviewStatus === "pending"
                   }
                   className="w-full py-3 rounded-xl font-medium bg-[#1DA1F2] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {checkoutLoading ? "Opening checkout..." : "Buy verification"}
+                  {checkoutLoading
+                    ? "Opening checkout..."
+                    : verificationStatus?.reviewStatus === "pending"
+                      ? "Pending review"
+                      : "Buy verification"}
                 </button>
                 {verificationError && (
                   <p className="text-sm text-red-600 mt-2">{verificationError}</p>
+                )}
+                {missingVerificationProfile && (
+                  <p className="text-xs text-[#797c7b] mt-2">
+                    Add a username and phone number in your profile to buy verification.
+                  </p>
                 )}
                 {!eligibility?.eligible && (
                   <p className="text-xs text-[#797c7b] mt-2">
@@ -274,6 +331,68 @@ export default function Settings() {
                 )}
               </>
             )}
+          </div>
+        </div>
+
+        {showVerificationNotice &&
+          verificationStatus?.reviewStatus &&
+          verificationStatus.reviewStatus !== "pending" && (
+          <div className="px-6 mb-6">
+            <div
+              className={`rounded-2xl border p-4 ${
+                verificationStatus.reviewStatus === "approved"
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : verificationStatus.reviewStatus === "rejected"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-yellow-200 bg-yellow-50 text-yellow-800"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  {verificationStatus.reviewStatus === "approved" && (
+                    <p className="font-medium">Verification approved.</p>
+                  )}
+                  {verificationStatus.reviewStatus === "rejected" && (
+                    <>
+                      <p className="font-medium">Verification rejected.</p>
+                      {verificationStatus.rejectionReason && (
+                        <p className="text-sm mt-1">Reason: {verificationStatus.rejectionReason}</p>
+                      )}
+                    </>
+                  )}
+                  {verificationStatus.reviewStatus === "pending" && (
+                    <p className="font-medium">Verification is under review.</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowVerificationNotice(false)}
+                  className="text-sm underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Checkmark Legend */}
+        <div className="px-6 mb-6">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4">
+            <h4 className="text-sm font-semibold text-[#000e08] mb-2">Checkmark Legend</h4>
+            <div className="flex items-center gap-3 text-sm text-[#797c7b]">
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#1DA1F2]">
+                  <CheckCircle size={10} className="text-white" />
+                </span>
+                Verified user
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-black">
+                  <CheckCircle size={10} className="text-white" />
+                </span>
+                Staff (moderators/admins)
+              </span>
+            </div>
           </div>
         </div>
 

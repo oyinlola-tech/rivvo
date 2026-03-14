@@ -11,6 +11,7 @@ interface User {
   verified: boolean;
   isVerifiedBadge: boolean;
   verifiedBadgeExpiresAt?: string | null;
+  badgeStatus?: "none" | "active" | "expired";
   isModerator: boolean;
   isAdmin: boolean;
   avatar?: string | null;
@@ -19,12 +20,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
   signup: (
     email: string,
     password: string,
     name: string,
-    phone: string
+    phone?: string
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
@@ -93,8 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await api.login(email, password);
+  const login = async (identifier: string, password: string) => {
+    const response = await api.login(identifier, password);
     if (response.success && response.data) {
       api.setToken(response.data.token);
       api.setRefreshToken(response.data.refreshToken ?? null);

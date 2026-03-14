@@ -15,7 +15,10 @@ import {
   getModerators,
   createModerator,
   getVerificationPricing,
-  setVerificationPricing
+  setVerificationPricing,
+  getVerificationPayments,
+  reviewVerificationPayment,
+  updateVerificationBadge
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -35,5 +38,8 @@ router.post('/moderators', asyncHandler(createModerator));
 router.put('/users/:userId/status', asyncHandler(updateUserStatus));
 router.get('/verification/pricing', asyncHandler(getVerificationPricing));
 router.put('/verification/pricing', asyncHandler(setVerificationPricing));
+router.get('/verification/payments', asyncHandler(getVerificationPayments));
+router.post('/verification/payments/:paymentId/review', asyncHandler(reviewVerificationPayment));
+router.put('/users/:userId/verification-badge', asyncHandler(updateVerificationBadge));
 
 export default router;

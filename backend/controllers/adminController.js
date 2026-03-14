@@ -20,6 +20,7 @@ const mapUserRow = (row) => ({
   isAdmin: Boolean(row.is_admin),
   createdAt: new Date(row.created_at).toISOString(),
   status: row.status,
+  badgeStatus: isBadgeActive(row) ? 'active' : row.is_verified_badge ? 'expired' : 'none',
   verifiedBadgeExpiresAt: row.verified_badge_expires_at
     ? new Date(row.verified_badge_expires_at).toISOString()
     : null
@@ -340,6 +341,202 @@ export const createModerator = async (req, res) => {
   });
 };
 
+export const getVerificationPayments = async (req, res) => {
+  const page = Number(req.query.page || 1);
+  const limit = Number(req.query.limit || 20);
+  const offset = (page - 1) * limit;
+  const status = typeof req.query.status === 'string' ? req.query.status : null;
+  const reviewStatus = typeof req.query.reviewStatus === 'string' ? req.query.reviewStatus : null;
+
+  const whereParts = [];
+  const params = { limit, offset };
+  if (status) {
+    whereParts.push('vp.status = :status');
+    params.status = status;
+  }
+  if (reviewStatus) {
+    whereParts.push('vp.review_status = :review_status');
+    params.review_status = reviewStatus;
+  }
+  const whereClause = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+
+  const [[countRow]] = await pool.query(
+    `SELECT COUNT(*) AS total FROM verification_payments vp ${whereClause}`,
+    params
+  );
+
+  const [rows] = await pool.execute(
+    `SELECT
+        vp.id,
+        vp.user_id,
+        vp.amount,
+        vp.currency,
+        vp.status,
+        vp.review_status,
+        vp.reviewed_by,
+        vp.reviewed_at,
+        vp.rejection_reason,
+        vp.tx_ref,
+        vp.flw_transaction_id,
+        vp.flw_status,
+        vp.created_at,
+        u.name AS user_name,
+        u.email AS user_email,
+        u.phone AS user_phone,
+        u.username AS user_username
+     FROM verification_payments vp
+     JOIN users u ON u.id = vp.user_id
+     ${whereClause}
+     ORDER BY vp.created_at DESC
+     LIMIT :limit OFFSET :offset`,
+    params
+  );
+
+  const total = countRow.total || 0;
+  const totalPages = Math.ceil(total / limit);
+
+  const payments = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    user: {
+      name: row.user_name,
+      email: row.user_email,
+      phone: row.user_phone || null,
+      username: row.user_username || null
+    },
+    amount: Number(row.amount),
+    currency: row.currency,
+    status: row.status,
+    reviewStatus: row.review_status,
+    reviewedBy: row.reviewed_by,
+    reviewedAt: row.reviewed_at ? new Date(row.reviewed_at).toISOString() : null,
+    rejectionReason: row.rejection_reason || null,
+    txRef: row.tx_ref,
+    flwTransactionId: row.flw_transaction_id,
+    flwStatus: row.flw_status,
+    createdAt: new Date(row.created_at).toISOString()
+  }));
+
+  return res.json({ payments, total, page, totalPages });
+};
+
+export const reviewVerificationPayment = async (req, res) => {
+  const { paymentId } = req.params;
+  const { action, reason } = req.body || {};
+  if (!paymentId) {
+    return sendError(res, 400, 'paymentId is required');
+  }
+  if (action !== 'approve' && action !== 'reject') {
+    return sendError(res, 400, 'action must be approve or reject');
+  }
+  if (action === 'reject') {
+    if (typeof reason !== 'string' || reason.trim().length === 0) {
+      return sendError(res, 400, 'reason is required for rejection');
+    }
+    if (reason.trim().length > 255) {
+      return sendError(res, 400, 'reason must be 255 characters or less');
+    }
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.execute(
+      `SELECT * FROM verification_payments WHERE id = :id LIMIT 1 FOR UPDATE`,
+      { id: paymentId }
+    );
+    const payment = rows[0];
+    if (!payment) {
+      await connection.rollback();
+      return sendError(res, 404, 'Payment not found');
+    }
+    if (payment.status !== 'successful') {
+      await connection.rollback();
+      return sendError(res, 400, 'Only successful payments can be reviewed');
+    }
+    if (payment.review_status !== 'pending') {
+      await connection.rollback();
+      return sendError(res, 409, 'Payment already reviewed');
+    }
+
+    if (action === 'approve') {
+      const [userRows] = await connection.execute(
+        `SELECT phone, username FROM users WHERE id = :id LIMIT 1`,
+        { id: payment.user_id }
+      );
+      const user = userRows[0];
+      if (!user?.phone || !user?.username) {
+        await connection.rollback();
+        return sendError(res, 400, 'User must have a phone number and username to receive verification');
+      }
+
+      await connection.execute(
+        `UPDATE users
+         SET is_verified_badge = 1,
+             verified_badge_expires_at = DATE_ADD(
+               GREATEST(NOW(), COALESCE(verified_badge_expires_at, NOW())),
+               INTERVAL 1 MONTH
+             )
+         WHERE id = :id`,
+        { id: payment.user_id }
+      );
+    }
+
+    const [updateResult] = await connection.execute(
+      `UPDATE verification_payments
+       SET review_status = :review_status,
+           reviewed_by = :reviewed_by,
+           reviewed_at = NOW(),
+           rejection_reason = :rejection_reason
+       WHERE id = :id AND review_status = 'pending'`,
+      {
+        id: paymentId,
+        review_status: action === 'approve' ? 'approved' : 'rejected',
+        reviewed_by: req.user?.id || null,
+        rejection_reason: action === 'reject' ? reason.trim() : null
+      }
+    );
+
+    if (!updateResult.affectedRows) {
+      await connection.rollback();
+      return sendError(res, 409, 'Payment already reviewed');
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  await logAdminAction(req.user?.id, 'review_verification_payment', paymentId, {
+    action,
+    reason: action === 'reject' ? reason.trim() : null
+  });
+
+  return res.json({ message: `Payment ${action}d` });
+};
+
+export const updateVerificationBadge = async (req, res) => {
+  const { userId } = req.params;
+  const { active } = req.body || {};
+
+  if (active !== true && active !== false) {
+    return sendError(res, 400, 'active must be true or false');
+  }
+
+  await pool.execute(
+    `UPDATE users
+     SET is_verified_badge = :active,
+         verified_badge_expires_at = CASE WHEN :active = 1 THEN verified_badge_expires_at ELSE NULL END
+     WHERE id = :id`,
+    { id: userId, active: active ? 1 : 0 }
+  );
+
+  await logAdminAction(req.user?.id, 'update_verification_badge', userId, { active });
+  return res.json({ message: 'Verification badge updated' });
+};
 export const getVerificationPricing = async (req, res) => {
   const [rows] = await pool.execute(
     `SELECT amount, currency, active, updated_at

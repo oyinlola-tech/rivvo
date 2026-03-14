@@ -19,7 +19,7 @@ export default function Privacy() {
         <section className="space-y-4 text-white/90">
           <h2 className="text-xl font-semibold text-white">2. Data We Collect</h2>
           <p>
-            To operate the service we collect: your email address, a unique phone number, your
+            To operate the service we collect: your email address, an optional phone number, your
             display name, device keys, and basic usage metadata such as timestamps and delivery
             status.
           </p>
@@ -45,7 +45,7 @@ export default function Privacy() {
         <section className="space-y-4 text-white/90">
           <h2 className="text-xl font-semibold text-white">5. Why We Use Your Data</h2>
           <p>
-            We use your email for account verification, and your phone number to help others
+            We use your email for account verification, and your phone number (if provided) to help others
             find you. We use metadata to deliver messages reliably, prevent abuse, and keep
             the service secure.
           </p>

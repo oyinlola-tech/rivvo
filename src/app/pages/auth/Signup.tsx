@@ -30,11 +30,7 @@ export default function Signup() {
       return;
     }
 
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 7 || digits.length > 15) {
-      setError("Please enter a valid phone number");
-      return;
-    }
+    const normalizedPhone = phone.trim();
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -53,7 +49,7 @@ export default function Signup() {
 
     setLoading(true);
 
-    const result = await signup(email, password, name, phone);
+    const result = await signup(email, password, name, normalizedPhone || undefined);
     
     if (result.success) {
       navigate("/auth/verify-otp", { state: { email } });
@@ -115,7 +111,7 @@ export default function Signup() {
 
         <div>
           <label htmlFor="phone" className="block text-sm font-medium mb-2">
-            Phone Number
+            Phone Number (optional)
           </label>
           <input
             id="phone"
@@ -124,7 +120,6 @@ export default function Signup() {
             onChange={(e) => setPhone(e.target.value)}
             className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
             placeholder="Enter your phone number"
-            required
           />
         </div>
 

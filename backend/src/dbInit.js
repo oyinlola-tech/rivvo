@@ -353,6 +353,7 @@ export const initDb = async () => {
       review_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
       reviewed_by CHAR(36) NULL,
       reviewed_at DATETIME NULL,
+      rejection_reason VARCHAR(255) NULL,
       tx_ref VARCHAR(64) NOT NULL,
       flw_transaction_id VARCHAR(32) NULL,
       flw_status VARCHAR(32) NULL,
@@ -743,7 +744,25 @@ export const initDb = async () => {
   try {
     await pool.query(`
       ALTER TABLE verification_payments
+      ADD COLUMN rejection_reason VARCHAR(255) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payments
       ADD INDEX idx_verification_payments_review (review_status)
+    `);
+  } catch (error) {
+    // Index likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payments
+      ADD UNIQUE INDEX uq_verification_payments_flw_id (flw_transaction_id)
     `);
   } catch (error) {
     // Index likely exists already.

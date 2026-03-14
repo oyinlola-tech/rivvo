@@ -25,6 +25,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminReports from "./pages/admin/Reports";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminModerators from "./pages/admin/Moderators";
+import AdminVerificationPayments from "./pages/admin/VerificationPayments";
 import NotFound from "./pages/NotFound";
 import ModeratorLayout from "./layouts/ModeratorLayout";
 import ModeratorReports from "./pages/moderator/Reports";
@@ -79,6 +80,7 @@ export const router = createBrowserRouter([
       { path: "reports", Component: AdminReports },
       { path: "analytics", Component: AdminAnalytics },
       { path: "moderators", Component: AdminModerators },
+      { path: "verification-payments", Component: AdminVerificationPayments },
     ],
   },
   {

@@ -25,10 +25,24 @@ const buildUserPayload = (user) => ({
   verifiedBadgeExpiresAt: user.verified_badge_expires_at
     ? new Date(user.verified_badge_expires_at).toISOString()
     : null,
+  badgeStatus: isBadgeActive(user) ? 'active' : user.is_verified_badge ? 'expired' : 'none',
   isModerator: Boolean(user.is_moderator),
   isAdmin: Boolean(user.is_admin),
   avatar: user.avatar || null
 });
+
+const hasPendingVerificationReview = async (userId) => {
+  const [rows] = await pool.execute(
+    `SELECT id
+     FROM verification_payments
+     WHERE user_id = :user_id
+       AND status = 'successful'
+       AND review_status = 'pending'
+     LIMIT 1`,
+    { user_id: userId }
+  );
+  return rows.length > 0;
+};
 
 export const getProfile = async (req, res) => {
   const userId = req.user?.id;
@@ -67,6 +81,27 @@ export const updateProfile = async (req, res) => {
       400,
       'Username must be 3-32 characters and use letters, numbers, dots, or underscores'
     );
+  }
+
+  const [userRows] = await pool.execute(
+    `SELECT is_verified_badge, verified_badge_expires_at
+     FROM users WHERE id = :id LIMIT 1`,
+    { id: userId }
+  );
+  const currentUser = userRows[0];
+  if (!currentUser) {
+    return sendError(res, 404, 'User not found');
+  }
+
+  const activeBadge = isBadgeActive(currentUser);
+  const pendingReview = await hasPendingVerificationReview(userId);
+  if (activeBadge || pendingReview) {
+    if (phone !== undefined && !normalizedPhone) {
+      return sendError(res, 400, 'Cannot remove phone number while verification is active or pending');
+    }
+    if (username !== undefined && !normalizedUsername) {
+      return sendError(res, 400, 'Cannot remove username while verification is active or pending');
+    }
   }
 
   if (normalizedPhone) {
@@ -249,6 +284,11 @@ export const searchUsers = async (req, res) => {
               WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW()
               THEN 1 ELSE 0
             END AS is_verified_badge_active,
+            CASE
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW() THEN 'active'
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at <= NOW() THEN 'expired'
+              ELSE 'none'
+            END AS badge_status,
             is_moderator, is_admin
      FROM users
      WHERE ${where} AND id <> :user_id AND status = 'active'
@@ -265,6 +305,7 @@ export const searchUsers = async (req, res) => {
     avatar: row.avatar || null,
     verified: Boolean(row.verified),
     isVerifiedBadge: Boolean(row.is_verified_badge_active),
+    badgeStatus: row.badge_status,
     isModerator: Boolean(row.is_moderator),
     isAdmin: Boolean(row.is_admin)
   }));

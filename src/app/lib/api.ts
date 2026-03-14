@@ -18,6 +18,7 @@ export interface ApiUser {
   verified: boolean;
   isVerifiedBadge: boolean;
   verifiedBadgeExpiresAt?: string | null;
+  badgeStatus?: "none" | "active" | "expired";
   isModerator: boolean;
   isAdmin: boolean;
   avatar?: string | null;
@@ -38,6 +39,7 @@ export interface ConversationDto {
     online: boolean;
     verified: boolean;
     isVerifiedBadge: boolean;
+    badgeStatus?: "none" | "active" | "expired";
     isModerator: boolean;
     isAdmin: boolean;
   };
@@ -72,6 +74,7 @@ export interface PeerDto {
   avatar?: string | null;
   verified: boolean;
   isVerifiedBadge: boolean;
+  badgeStatus?: "none" | "active" | "expired";
   isModerator: boolean;
   isAdmin: boolean;
   publicKey?: string | null;
@@ -100,6 +103,7 @@ export interface StatusGroupDto {
     avatar?: string | null;
     verified?: boolean;
     isVerifiedBadge?: boolean;
+    badgeStatus?: "none" | "active" | "expired";
     isModerator?: boolean;
     isAdmin?: boolean;
   };
@@ -258,10 +262,10 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
+  async login(identifier: string, password: string): Promise<ApiResponse<AuthResponse>> {
     return this.request("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
   }
 
@@ -269,7 +273,7 @@ class ApiClient {
     email: string,
     password: string,
     name: string,
-    phone: string
+    phone?: string
   ): Promise<ApiResponse<{ message: string }>> {
     return this.request("/auth/signup", {
       method: "POST",
@@ -688,6 +692,23 @@ class ApiClient {
     });
   }
 
+  async getVerificationPayments(page: number = 1, limit: number = 20, filters?: { status?: string; reviewStatus?: string }) {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.reviewStatus) params.set("reviewStatus", filters.reviewStatus);
+    const query = params.toString();
+    return this.request(`/admin/verification/payments?${query}`);
+  }
+
+  async reviewVerificationPayment(paymentId: string, action: "approve" | "reject", reason?: string) {
+    return this.request(`/admin/verification/payments/${paymentId}/review`, {
+      method: "POST",
+      body: JSON.stringify({ action, reason }),
+    });
+  }
+
   async setPublicKey(publicKey: string): Promise<ApiResponse<{ message: string }>> {
     return this.request("/users/keys", {
       method: "PUT",
@@ -734,6 +755,10 @@ class ApiClient {
 
   async createVerificationCheckout(): Promise<ApiResponse<{ txRef: string; link: string; amount: number; currency: string }>> {
     return this.request("/verification/checkout", { method: "POST" });
+  }
+
+  async getVerificationStatus(): Promise<ApiResponse<{ status: string | null; reviewStatus: string | null; rejectionReason: string | null; createdAt: string | null }>> {
+    return this.request("/verification/status");
   }
 }
 

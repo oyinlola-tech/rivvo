@@ -19,7 +19,7 @@ export default function Terms() {
           <h2 className="text-xl font-semibold text-white">2. Eligibility</h2>
           <p>
             You must have the legal capacity to enter into this agreement. You are responsible
-            for providing accurate information, including a unique email and phone number.
+            for providing accurate information, including a unique email and an optional phone number.
           </p>
         </section>
 
