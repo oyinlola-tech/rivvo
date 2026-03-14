@@ -108,6 +108,29 @@ export default function Status() {
     }
   };
 
+  useEffect(() => {
+    if (!openGroup) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenGroup(null);
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        handleNext();
+      }
+      if (event.key === "ArrowLeft") {
+        handlePrev();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [openGroup, handleNext, handlePrev]);
+
   return (
     <>
       <div className="min-h-screen bg-[#000e08] md:ml-64">
@@ -366,7 +389,7 @@ export default function Status() {
           </div>
           <button
             onClick={() => setOpenGroup(null)}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20"
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 hidden sm:inline-flex"
             aria-label="Close status"
           >
             <X size={18} />
@@ -402,6 +425,15 @@ export default function Status() {
               </video>
             )}
           </div>
+        </div>
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center sm:hidden">
+          <button
+            onClick={() => setOpenGroup(null)}
+            className="w-12 h-12 rounded-full bg-white/15 text-white backdrop-blur border border-white/20 flex items-center justify-center"
+            aria-label="Close status"
+          >
+            <X size={20} />
+          </button>
         </div>
         </div>
       )}
