@@ -49,6 +49,25 @@ export const isNonEmptyString = (value) =>
 
 export const isOneOf = (value, options) => options.includes(value);
 
+export const normalizeUsername = (value) => {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return '';
+  return trimmed;
+};
+
+export const isUsername = (value) => {
+  const input = normalizeUsername(value);
+  if (!input) return false;
+  if (input.length < 3 || input.length > 32) return false;
+  if (!/^[a-z0-9._]+$/.test(input)) return false;
+  if (input.startsWith('.') || input.endsWith('.')) return false;
+  if (input.includes('..') || input.includes('__') || input.includes('._') || input.includes('_.')) {
+    return false;
+  }
+  return true;
+};
+
 export const normalizePhone = (value) => {
   if (typeof value !== 'string') return '';
   const trimmed = value.trim();

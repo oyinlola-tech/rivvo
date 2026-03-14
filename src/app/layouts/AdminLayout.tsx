@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router";
-import { LayoutDashboard, Users, Flag, BarChart3, Shield, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Flag, BarChart3, Shield, LogOut, MessageCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function AdminLayout() {
@@ -60,6 +60,13 @@ export default function AdminLayout() {
           })}
         </nav>
         <div className="p-4 border-t border-border">
+          <Link
+            to="/"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted text-foreground w-full mb-2"
+          >
+            <MessageCircle size={20} />
+            <span>User App</span>
+          </Link>
           <button
             onClick={logout}
             className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted text-foreground w-full"

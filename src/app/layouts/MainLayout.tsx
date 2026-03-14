@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router";
-import { MessageCircle, Phone, Users, Settings, CircleDot } from "lucide-react";
+import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MainLayout() {
@@ -29,6 +29,9 @@ export default function MainLayout() {
     { path: "/groups", icon: Users, label: "Groups" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
+  if (user.isAdmin) {
+    navItems.push({ path: "/admin", icon: LayoutDashboard, label: "Admin" });
+  }
 
   return (
     <div className="min-h-screen bg-background">

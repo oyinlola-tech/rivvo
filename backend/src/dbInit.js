@@ -8,9 +8,11 @@ export const initDb = async () => {
       phone VARCHAR(20) UNIQUE NULL,
       password_hash VARCHAR(255) NOT NULL,
       name VARCHAR(255) NOT NULL,
+      username VARCHAR(32) UNIQUE NULL,
       avatar VARCHAR(512) NULL,
       verified TINYINT(1) DEFAULT 0,
       is_verified_badge TINYINT(1) DEFAULT 0,
+      verified_badge_expires_at DATETIME NULL,
       is_moderator TINYINT(1) DEFAULT 0,
       is_admin TINYINT(1) DEFAULT 0,
       status ENUM('active', 'suspended') DEFAULT 'active',
@@ -382,6 +384,15 @@ export const initDb = async () => {
   try {
     await pool.query(`
       ALTER TABLE users
+      ADD COLUMN username VARCHAR(32) UNIQUE NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
       ADD COLUMN is_verified_badge TINYINT(1) DEFAULT 0
     `);
   } catch (error) {
@@ -391,7 +402,34 @@ export const initDb = async () => {
   try {
     await pool.query(`
       ALTER TABLE users
+      ADD COLUMN verified_badge_expires_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
       ADD UNIQUE INDEX uq_users_phone (phone)
+    `);
+  } catch (error) {
+    // Index likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
+      ADD UNIQUE INDEX uq_users_username (username)
+    `);
+  } catch (error) {
+    // Index likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
+      ADD INDEX idx_users_verified_badge_expires (verified_badge_expires_at)
     `);
   } catch (error) {
     // Index likely exists already.

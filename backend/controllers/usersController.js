@@ -1,12 +1,30 @@
 import pool from '../config/db.js';
-import { sendError, isNonEmptyString, isEmail, normalizePhone } from '../utils/validation.js';
+import {
+  sendError,
+  isNonEmptyString,
+  isEmail,
+  isUsername,
+  normalizePhone,
+  normalizeUsername
+} from '../utils/validation.js';
+
+const isBadgeActive = (user) => {
+  if (!user?.is_verified_badge) return false;
+  if (!user.verified_badge_expires_at) return false;
+  return new Date(user.verified_badge_expires_at) > new Date();
+};
 
 const buildUserPayload = (user) => ({
   id: user.id,
   email: user.email,
   phone: user.phone || null,
   name: user.name,
+  username: user.username || null,
   verified: Boolean(user.verified),
+  isVerifiedBadge: isBadgeActive(user),
+  verifiedBadgeExpiresAt: user.verified_badge_expires_at
+    ? new Date(user.verified_badge_expires_at).toISOString()
+    : null,
   isModerator: Boolean(user.is_moderator),
   isAdmin: Boolean(user.is_admin),
   avatar: user.avatar || null
@@ -26,15 +44,29 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   const userId = req.user?.id;
-  const { name, avatar, phone } = req.body || {};
+  const { name, avatar, phone, username } = req.body || {};
 
-  if (!isNonEmptyString(name) && avatar === undefined && phone === undefined) {
+  if (
+    !isNonEmptyString(name) &&
+    avatar === undefined &&
+    phone === undefined &&
+    username === undefined
+  ) {
     return sendError(res, 400, 'Nothing to update');
   }
 
   const normalizedPhone = phone ? normalizePhone(phone) : null;
   if (phone !== undefined && !normalizedPhone) {
     return sendError(res, 400, 'Phone number is invalid');
+  }
+
+  const normalizedUsername = username !== undefined ? normalizeUsername(username) : null;
+  if (username !== undefined && !isUsername(username)) {
+    return sendError(
+      res,
+      400,
+      'Username must be 3-32 characters and use letters, numbers, dots, or underscores'
+    );
   }
 
   if (normalizedPhone) {
@@ -47,17 +79,29 @@ export const updateProfile = async (req, res) => {
     }
   }
 
+  if (normalizedUsername) {
+    const [rows] = await pool.execute(
+      'SELECT id FROM users WHERE username = :username AND id <> :id LIMIT 1',
+      { username: normalizedUsername, id: userId }
+    );
+    if (rows.length) {
+      return sendError(res, 400, 'Username already in use');
+    }
+  }
+
   await pool.execute(
     `UPDATE users
      SET name = COALESCE(:name, name),
          avatar = COALESCE(:avatar, avatar),
-         phone = COALESCE(:phone, phone)
+         phone = COALESCE(:phone, phone),
+         username = COALESCE(:username, username)
      WHERE id = :id`,
     {
       id: userId,
       name: name || null,
       avatar: avatar || null,
-      phone: normalizedPhone
+      phone: normalizedPhone,
+      username: normalizedUsername
     }
   );
 
@@ -188,15 +232,24 @@ export const searchUsers = async (req, res) => {
     params.email = query.toLowerCase();
   } else {
     const normalizedPhone = normalizePhone(query);
-    if (!normalizedPhone) {
-      return sendError(res, 400, 'Search query must be a valid email or phone number');
+    if (normalizedPhone) {
+      where = 'phone = :phone';
+      params.phone = normalizedPhone;
+    } else if (isUsername(query)) {
+      where = 'username = :username';
+      params.username = normalizeUsername(query);
+    } else {
+      return sendError(res, 400, 'Search query must be a valid email, phone number, or username');
     }
-    where = 'phone = :phone';
-    params.phone = normalizedPhone;
   }
 
   const [rows] = await pool.execute(
-    `SELECT id, name, email, phone, avatar, verified, is_moderator
+    `SELECT id, name, email, phone, username, avatar, verified,
+            CASE
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW()
+              THEN 1 ELSE 0
+            END AS is_verified_badge_active,
+            is_moderator, is_admin
      FROM users
      WHERE ${where} AND id <> :user_id AND status = 'active'
      LIMIT 10`,
@@ -208,10 +261,12 @@ export const searchUsers = async (req, res) => {
     name: row.name,
     email: row.email,
     phone: row.phone || null,
+    username: row.username || null,
     avatar: row.avatar || null,
     verified: Boolean(row.verified),
+    isVerifiedBadge: Boolean(row.is_verified_badge_active),
     isModerator: Boolean(row.is_moderator),
-    isAdmin: false
+    isAdmin: Boolean(row.is_admin)
   }));
 
   return res.json(results);

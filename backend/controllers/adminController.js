@@ -3,14 +3,26 @@ import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
 import { sendError, requireFields, isEmail, isNonEmptyString } from '../utils/validation.js';
 
+const isBadgeActive = (row) => {
+  if (!row?.is_verified_badge) return false;
+  if (!row.verified_badge_expires_at) return false;
+  return new Date(row.verified_badge_expires_at) > new Date();
+};
+
 const mapUserRow = (row) => ({
   id: row.id,
   name: row.name,
   email: row.email,
+  username: row.username || null,
   verified: Boolean(row.verified),
+  isVerifiedBadge: isBadgeActive(row),
   isModerator: Boolean(row.is_moderator),
+  isAdmin: Boolean(row.is_admin),
   createdAt: new Date(row.created_at).toISOString(),
-  status: row.status
+  status: row.status,
+  verifiedBadgeExpiresAt: row.verified_badge_expires_at
+    ? new Date(row.verified_badge_expires_at).toISOString()
+    : null
 });
 
 const logAdminAction = async (adminId, action, targetId, metadata) => {
@@ -38,7 +50,8 @@ export const getUsers = async (req, res) => {
 
   const [[countRow]] = await pool.query('SELECT COUNT(*) AS total FROM users');
   const [rows] = await pool.execute(
-    `SELECT id, name, email, verified, is_moderator, created_at, status
+    `SELECT id, name, email, username, verified, is_verified_badge, verified_badge_expires_at,
+            is_moderator, is_admin, created_at, status
      FROM users
      ORDER BY created_at DESC
      LIMIT :limit OFFSET :offset`,

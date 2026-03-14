@@ -14,7 +14,9 @@ interface Conversation {
     avatar?: string | null;
     online: boolean;
     verified: boolean;
+    isVerifiedBadge: boolean;
     isModerator: boolean;
+    isAdmin: boolean;
   };
   lastMessage: {
     text: string;
@@ -174,8 +176,13 @@ export default function Home() {
                         <h3 className="font-semibold text-[#000e08] truncate">
                           {conversation.user.name}
                         </h3>
-                        {conversation.user.verified && (
-                          <VerificationBadge type={conversation.user.isModerator ? "mod" : "user"} size="sm" />
+                        {(conversation.user.isVerifiedBadge ||
+                          conversation.user.isModerator ||
+                          conversation.user.isAdmin) && (
+                          <VerificationBadge
+                            type={conversation.user.isModerator || conversation.user.isAdmin ? "staff" : "user"}
+                            size="sm"
+                          />
                         )}
                       </div>
                       {conversation.lastMessage.timestamp && (

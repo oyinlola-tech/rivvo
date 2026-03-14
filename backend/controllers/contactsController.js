@@ -5,7 +5,12 @@ import { sendError, requireFields } from '../utils/validation.js';
 export const getContacts = async (req, res) => {
   const userId = req.user?.id;
   const [rows] = await pool.execute(
-    `SELECT u.id, u.name, u.email, u.phone, u.avatar, u.verified, u.is_moderator
+    `SELECT u.id, u.name, u.email, u.phone, u.avatar, u.verified,
+            CASE
+              WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
+              THEN 1 ELSE 0
+            END AS is_verified_badge_active,
+            u.is_moderator, u.is_admin
      FROM contacts c
      JOIN users u ON u.id = c.contact_id
      WHERE c.user_id = :user_id
@@ -21,7 +26,9 @@ export const getContacts = async (req, res) => {
     avatar: row.avatar || null,
     online: isUserOnline(row.id),
     verified: Boolean(row.verified),
-    isModerator: Boolean(row.is_moderator)
+    isVerifiedBadge: Boolean(row.is_verified_badge_active),
+    isModerator: Boolean(row.is_moderator),
+    isAdmin: Boolean(row.is_admin)
   }));
 
   return res.json(contacts);

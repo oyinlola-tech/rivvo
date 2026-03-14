@@ -9,7 +9,9 @@ interface CallLog {
     name: string;
     avatar?: string;
     verified: boolean;
+    isVerifiedBadge: boolean;
     isModerator: boolean;
+    isAdmin: boolean;
   };
   type: "video" | "audio";
   direction: "incoming" | "outgoing" | "missed";
@@ -181,8 +183,11 @@ export default function Calls() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-[#000e08]">{call.user.name}</h3>
-                      {call.user.verified && (
-                        <VerificationBadge type={call.user.isModerator ? "mod" : "user"} size="sm" />
+                      {(call.user.isVerifiedBadge || call.user.isModerator || call.user.isAdmin) && (
+                        <VerificationBadge
+                          type={call.user.isModerator || call.user.isAdmin ? "staff" : "user"}
+                          size="sm"
+                        />
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-[#797c7b]">

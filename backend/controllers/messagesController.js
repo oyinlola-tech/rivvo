@@ -40,7 +40,12 @@ export const getConversations = async (req, res) => {
         u.name,
         u.avatar,
         u.verified,
+        CASE
+          WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
+          THEN 1 ELSE 0
+        END AS is_verified_badge_active,
         u.is_moderator,
+        u.is_admin,
         lm.body AS last_text,
         lm.created_at AS last_timestamp,
         lm.is_encrypted AS last_encrypted,
@@ -84,7 +89,9 @@ export const getConversations = async (req, res) => {
       avatar: row.avatar || null,
       online: isUserOnline(row.user_id),
       verified: Boolean(row.verified),
-      isModerator: Boolean(row.is_moderator)
+      isVerifiedBadge: Boolean(row.is_verified_badge_active),
+      isModerator: Boolean(row.is_moderator),
+      isAdmin: Boolean(row.is_admin)
     },
     lastMessage: {
       text: row.last_view_once
@@ -389,7 +396,12 @@ export const getConversationPeer = async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    `SELECT u.id, u.name, u.avatar, u.verified, u.is_moderator, uk.public_key
+    `SELECT u.id, u.name, u.avatar, u.verified,
+            CASE
+              WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
+              THEN 1 ELSE 0
+            END AS is_verified_badge_active,
+            u.is_moderator, u.is_admin, uk.public_key
      FROM conversation_participants cp
      JOIN users u ON u.id = cp.user_id
      LEFT JOIN user_keys uk ON uk.user_id = u.id
@@ -408,7 +420,9 @@ export const getConversationPeer = async (req, res) => {
     name: peer.name,
     avatar: peer.avatar || null,
     verified: Boolean(peer.verified),
+    isVerifiedBadge: Boolean(peer.is_verified_badge_active),
     isModerator: Boolean(peer.is_moderator),
+    isAdmin: Boolean(peer.is_admin),
     publicKey: peer.public_key || null
   });
 };

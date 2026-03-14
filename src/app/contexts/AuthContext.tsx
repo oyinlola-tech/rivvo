@@ -7,7 +7,10 @@ interface User {
   email: string;
   phone?: string | null;
   name: string;
+  username?: string | null;
   verified: boolean;
+  isVerifiedBadge: boolean;
+  verifiedBadgeExpiresAt?: string | null;
   isModerator: boolean;
   isAdmin: boolean;
   avatar?: string | null;

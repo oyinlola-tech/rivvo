@@ -85,6 +85,12 @@ const runCleanup = async () => {
               WHERE u.id IS NULL`
       },
       {
+        label: 'verification_payments -> users',
+        sql: `DELETE vp FROM verification_payments vp
+              LEFT JOIN users u ON u.id = vp.user_id
+              WHERE u.id IS NULL`
+      },
+      {
         label: 'user_keys -> users',
         sql: `DELETE uk FROM user_keys uk
               LEFT JOIN users u ON u.id = uk.user_id

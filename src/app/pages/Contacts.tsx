@@ -11,7 +11,9 @@ interface Contact {
   avatar?: string;
   online: boolean;
   verified: boolean;
+  isVerifiedBadge: boolean;
   isModerator: boolean;
+  isAdmin: boolean;
 }
 
 interface SearchResult {
@@ -21,7 +23,9 @@ interface SearchResult {
   phone?: string | null;
   avatar?: string;
   verified: boolean;
+  isVerifiedBadge: boolean;
   isModerator: boolean;
+  isAdmin: boolean;
 }
 
 export default function Contacts() {
@@ -32,16 +36,21 @@ export default function Contacts() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const normalizedQuery = searchQuery.trim();
-  const queryIsEmail = normalizedQuery.includes("@");
+  const usernameQuery = normalizedQuery.startsWith("@")
+    ? normalizedQuery.slice(1)
+    : normalizedQuery;
+  const queryIsEmail = normalizedQuery.includes("@") && !normalizedQuery.startsWith("@");
   const queryIsPhone = normalizedQuery.replace(/\D/g, "").length >= 7;
-  const showSearchResults = normalizedQuery.length > 0 && (queryIsEmail || queryIsPhone);
+  const queryIsUsername = /^[a-zA-Z0-9._]{3,32}$/.test(usernameQuery);
+  const showSearchResults =
+    normalizedQuery.length > 0 && (queryIsEmail || queryIsPhone || queryIsUsername);
 
   useEffect(() => {
     loadContacts();
   }, []);
 
   useEffect(() => {
-    const query = normalizedQuery;
+    const query = queryIsUsername ? usernameQuery : normalizedQuery;
     if (!query || !showSearchResults) {
       setResults([]);
       return;
@@ -138,8 +147,11 @@ export default function Contacts() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-[#000e08]">{user.name}</h3>
-                        {user.verified && (
-                          <VerificationBadge type={user.isModerator ? "mod" : "user"} size="sm" />
+                        {(user.isVerifiedBadge || user.isModerator || user.isAdmin) && (
+                          <VerificationBadge
+                            type={user.isModerator || user.isAdmin ? "staff" : "user"}
+                            size="sm"
+                          />
                         )}
                       </div>
                       <p className="text-sm text-[#797c7b]">{user.email}</p>
@@ -198,8 +210,11 @@ export default function Contacts() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-[#000e08]">{contact.name}</h3>
-                      {contact.verified && (
-                        <VerificationBadge type={contact.isModerator ? "mod" : "user"} size="sm" />
+                      {(contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
+                        <VerificationBadge
+                          type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
+                          size="sm"
+                        />
                       )}
                     </div>
                     <p className="text-sm text-[#797c7b]">{contact.email}</p>

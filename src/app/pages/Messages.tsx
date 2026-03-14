@@ -42,7 +42,9 @@ interface PeerInfo {
   name: string;
   avatar?: string | null;
   verified: boolean;
+  isVerifiedBadge: boolean;
   isModerator: boolean;
+  isAdmin: boolean;
 }
 
 interface Attachment {
@@ -84,7 +86,9 @@ export default function Messages() {
     avatar: null,
     online: true,
     verified: true,
+    isVerifiedBadge: true,
     isModerator: false,
+    isAdmin: false,
   };
 
   useEffect(() => {
@@ -227,7 +231,9 @@ export default function Messages() {
         name: peerResponse.data.name,
         avatar: peerResponse.data.avatar,
         verified: peerResponse.data.verified,
-        isModerator: peerResponse.data.isModerator
+        isVerifiedBadge: peerResponse.data.isVerifiedBadge,
+        isModerator: peerResponse.data.isModerator,
+        isAdmin: peerResponse.data.isAdmin
       });
       const keyPair = await getOrCreateKeyPair();
       const privateKey = await importPrivateKey(keyPair.privateKey);
@@ -240,7 +246,9 @@ export default function Messages() {
         name: peerResponse.data.name,
         avatar: peerResponse.data.avatar,
         verified: peerResponse.data.verified,
-        isModerator: peerResponse.data.isModerator
+        isVerifiedBadge: peerResponse.data.isVerifiedBadge,
+        isModerator: peerResponse.data.isModerator,
+        isAdmin: peerResponse.data.isAdmin
       });
     } else if (!peerResponse.success) {
       setError(peerResponse.error || "Failed to load conversation details");
@@ -647,8 +655,11 @@ export default function Messages() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">{contact.name}</h2>
-            {contact.verified && (
-              <VerificationBadge type={contact.isModerator ? "mod" : "user"} size="sm" />
+            {(contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
+              <VerificationBadge
+                type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
+                size="sm"
+              />
             )}
           </div>
           <p className="text-xs text-gray-500">

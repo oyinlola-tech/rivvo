@@ -18,6 +18,11 @@ export const getCallHistory = async (req, res) => {
         u.avatar,
         u.verified,
         u.is_moderator,
+        u.is_admin,
+        CASE
+          WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
+          THEN 1 ELSE 0
+        END AS is_verified_badge_active,
         CASE WHEN c.caller_id = :user_id THEN 'outgoing' ELSE 'incoming' END AS direction_calc
      FROM calls c
      JOIN users u
@@ -35,7 +40,9 @@ export const getCallHistory = async (req, res) => {
         name: row.name,
         avatar: row.avatar || null,
         verified: Boolean(row.verified),
+        isVerifiedBadge: Boolean(row.is_verified_badge_active),
         isModerator: Boolean(row.is_moderator),
+        isAdmin: Boolean(row.is_admin),
         online: isUserOnline(row.user_id)
       },
       type: row.type,

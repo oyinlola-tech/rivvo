@@ -150,7 +150,7 @@ export default function AdminModerators() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-lg">{moderator.name}</h3>
-                      <VerificationBadge type="mod" size="sm" />
+                      <VerificationBadge type="staff" size="sm" />
                     </div>
                     <p className="text-sm text-gray-600">{moderator.email}</p>
                   </div>

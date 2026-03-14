@@ -8,7 +8,9 @@ interface User {
   name: string;
   email: string;
   verified: boolean;
+  isVerifiedBadge: boolean;
   isModerator: boolean;
+  isAdmin: boolean;
   createdAt: string;
   status: "active" | "suspended";
 }
@@ -130,9 +132,9 @@ export default function AdminUsers() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{user.name}</span>
-                            {user.verified && (
+                            {(user.isVerifiedBadge || user.isModerator || user.isAdmin) && (
                               <VerificationBadge
-                                type={user.isModerator ? "mod" : "user"}
+                                type={user.isModerator || user.isAdmin ? "staff" : "user"}
                                 size="sm"
                               />
                             )}

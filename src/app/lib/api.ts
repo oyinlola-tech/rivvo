@@ -14,7 +14,10 @@ export interface ApiUser {
   email: string;
   phone?: string | null;
   name: string;
+  username?: string | null;
   verified: boolean;
+  isVerifiedBadge: boolean;
+  verifiedBadgeExpiresAt?: string | null;
   isModerator: boolean;
   isAdmin: boolean;
   avatar?: string | null;
@@ -34,7 +37,9 @@ export interface ConversationDto {
     avatar?: string | null;
     online: boolean;
     verified: boolean;
+    isVerifiedBadge: boolean;
     isModerator: boolean;
+    isAdmin: boolean;
   };
   lastMessage: {
     text: string;
@@ -66,7 +71,9 @@ export interface PeerDto {
   name: string;
   avatar?: string | null;
   verified: boolean;
+  isVerifiedBadge: boolean;
   isModerator: boolean;
+  isAdmin: boolean;
   publicKey?: string | null;
 }
 
@@ -92,7 +99,9 @@ export interface StatusGroupDto {
     name: string;
     avatar?: string | null;
     verified?: boolean;
+    isVerifiedBadge?: boolean;
     isModerator?: boolean;
+    isAdmin?: boolean;
   };
   statuses: StatusDto[];
 }
@@ -712,6 +721,19 @@ class ApiClient {
 
   async getStatuses(): Promise<ApiResponse<StatusGroupDto[]>> {
     return this.request("/status");
+  }
+
+  // Verification
+  async getVerificationPricing(): Promise<ApiResponse<{ amount: number | null; currency: string | null; active: boolean }>> {
+    return this.request("/verification/pricing");
+  }
+
+  async getVerificationEligibility(): Promise<ApiResponse<{ eligible: boolean; eligibleAt: string | null }>> {
+    return this.request("/verification/eligibility");
+  }
+
+  async createVerificationCheckout(): Promise<ApiResponse<{ txRef: string; link: string; amount: number; currency: string }>> {
+    return this.request("/verification/checkout", { method: "POST" });
   }
 }
 

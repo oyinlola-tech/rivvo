@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 
 interface VerificationBadgeProps {
-  type: "user" | "mod";
+  type: "user" | "staff";
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -24,7 +24,7 @@ export function VerificationBadge({ type, size = "md", className = "" }: Verific
   return (
     <div
       className={`inline-flex items-center justify-center rounded-full ${bgColor} ${sizeClasses[size]} ${className}`}
-      title={type === "user" ? "Verified User" : "Moderator"}
+      title={type === "user" ? "Verified User" : "Staff"}
     >
       <Check className="text-white" size={iconSize[size]} strokeWidth={3} />
     </div>

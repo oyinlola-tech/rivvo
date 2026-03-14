@@ -7,12 +7,23 @@ import { createToken } from '../services/tokenService.js';
 import { sendOtpEmail } from '../services/emailService.js';
 import { sendError, requireFields, isEmail, isNonEmptyString, isPhone, normalizePhone } from '../utils/validation.js';
 
+const isBadgeActive = (user) => {
+  if (!user?.is_verified_badge) return false;
+  if (!user.verified_badge_expires_at) return false;
+  return new Date(user.verified_badge_expires_at) > new Date();
+};
+
 const buildUserPayload = (user) => ({
   id: user.id,
   email: user.email,
   phone: user.phone || null,
   name: user.name,
+  username: user.username || null,
   verified: Boolean(user.verified),
+  isVerifiedBadge: isBadgeActive(user),
+  verifiedBadgeExpiresAt: user.verified_badge_expires_at
+    ? new Date(user.verified_badge_expires_at).toISOString()
+    : null,
   isModerator: Boolean(user.is_moderator),
   isAdmin: Boolean(user.is_admin),
   avatar: user.avatar || null

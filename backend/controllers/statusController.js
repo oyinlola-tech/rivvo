@@ -15,7 +15,12 @@ export const getStatuses = async (req, res) => {
         u.name,
         u.avatar,
         u.verified,
-        u.is_moderator
+        CASE
+          WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
+          THEN 1 ELSE 0
+        END AS is_verified_badge_active,
+        u.is_moderator,
+        u.is_admin
      FROM statuses s
      JOIN users u ON u.id = s.user_id
      WHERE s.expires_at > NOW()
@@ -36,7 +41,9 @@ export const getStatuses = async (req, res) => {
           name: row.name,
           avatar: row.avatar || null,
           verified: Boolean(row.verified),
-          isModerator: Boolean(row.is_moderator)
+          isVerifiedBadge: Boolean(row.is_verified_badge_active),
+          isModerator: Boolean(row.is_moderator),
+          isAdmin: Boolean(row.is_admin)
         },
         statuses: []
       });

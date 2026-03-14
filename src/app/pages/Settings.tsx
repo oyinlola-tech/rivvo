@@ -13,6 +13,8 @@ import {
   Moon,
   Sun,
   LogOut,
+  CheckCircle,
+  Sparkles,
 } from "lucide-react";
 
 export default function Settings() {
@@ -24,6 +26,10 @@ export default function Settings() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
   const [inviteLink, setInviteLink] = useState("");
+  const [pricing, setPricing] = useState<{ amount: number | null; currency: string | null; active: boolean } | null>(null);
+  const [eligibility, setEligibility] = useState<{ eligible: boolean; eligibleAt: string | null } | null>(null);
+  const [verificationError, setVerificationError] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const apiBase = import.meta.env.VITE_API_URL;
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const avatarSrc = avatarUrl ? `${mediaBase}${avatarUrl}` : "";
@@ -31,6 +37,22 @@ export default function Settings() {
   useEffect(() => {
     setAvatarUrl(user?.avatar || "");
   }, [user?.avatar]);
+
+  useEffect(() => {
+    const loadVerification = async () => {
+      const [pricingResponse, eligibilityResponse] = await Promise.all([
+        api.getVerificationPricing(),
+        api.getVerificationEligibility(),
+      ]);
+      if (pricingResponse.success && pricingResponse.data) {
+        setPricing(pricingResponse.data);
+      }
+      if (eligibilityResponse.success && eligibilityResponse.data) {
+        setEligibility(eligibilityResponse.data);
+      }
+    };
+    loadVerification();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -56,6 +78,18 @@ export default function Settings() {
       setInviteLink(link);
       await navigator.clipboard.writeText(link);
     }
+  };
+
+  const handleVerificationCheckout = async () => {
+    setVerificationError("");
+    setCheckoutLoading(true);
+    const response = await api.createVerificationCheckout();
+    if (response.success && response.data?.link) {
+      window.open(response.data.link, "_blank", "noopener,noreferrer");
+    } else {
+      setVerificationError(response.error || "Unable to start verification checkout");
+    }
+    setCheckoutLoading(false);
   };
 
   const settingsGroups = [
@@ -159,6 +193,86 @@ export default function Settings() {
             </button>
             {inviteLink && (
               <p className="mt-2 text-xs text-gray-600 break-all">{inviteLink}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Verification */}
+        <div className="px-6 mb-6">
+          <div className="rounded-2xl border border-gray-100 bg-[#F8FBFA] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-full bg-[#1DA1F2] flex items-center justify-center">
+                <CheckCircle size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#000e08]">Get Verified</h3>
+                <p className="text-sm text-[#797c7b]">Stand out with a verified checkmark</p>
+              </div>
+            </div>
+
+            <div className="grid gap-2 text-sm text-[#4A4F4E] mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-[#20A090]" />
+                <span>Boost trust with new connections</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-[#20A090]" />
+                <span>Increase message response rates</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-[#20A090]" />
+                <span>Monthly renewal keeps your badge active</span>
+              </div>
+            </div>
+
+            {user?.isVerifiedBadge ? (
+              <div className="text-sm text-[#1a8c7a] font-medium">
+                Active badge{user.verifiedBadgeExpiresAt
+                  ? ` • Renews on ${new Date(user.verifiedBadgeExpiresAt).toLocaleDateString()}`
+                  : ""}
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm text-[#797c7b]">
+                    {pricing?.active ? (
+                      <>
+                        Price:{" "}
+                        <span className="font-semibold text-[#000e08]">
+                          {pricing.amount?.toLocaleString()} {pricing.currency}
+                        </span>
+                        <span className="text-xs text-[#797c7b]"> / month</span>
+                      </>
+                    ) : (
+                      "Verification pricing unavailable"
+                    )}
+                  </div>
+                  {eligibility?.eligibleAt && !eligibility?.eligible && (
+                    <div className="text-xs text-[#797c7b]">
+                      Available on {new Date(eligibility.eligibleAt).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleVerificationCheckout}
+                  disabled={
+                    checkoutLoading ||
+                    !pricing?.active ||
+                    !eligibility?.eligible
+                  }
+                  className="w-full py-3 rounded-xl font-medium bg-[#1DA1F2] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {checkoutLoading ? "Opening checkout..." : "Buy verification"}
+                </button>
+                {verificationError && (
+                  <p className="text-sm text-red-600 mt-2">{verificationError}</p>
+                )}
+                {!eligibility?.eligible && (
+                  <p className="text-xs text-[#797c7b] mt-2">
+                    Checkmark becomes available after 3 months on Rivvo.
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

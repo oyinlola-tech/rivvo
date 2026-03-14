@@ -37,6 +37,13 @@ const env = {
     windowMinutes: Number(process.env.RATE_LIMIT_WINDOW_MINUTES ),
     authMax: Number(process.env.RATE_LIMIT_AUTH_MAX),
     apiMax: Number(process.env.RATE_LIMIT_API_MAX)
+  },
+  flutterwave: {
+    baseUrl: process.env.FLW_BASE_URL || 'https://api.flutterwave.com',
+    publicKey: process.env.FLW_PUBLIC_KEY,
+    secretKey: process.env.FLW_SECRET_KEY,
+    webhookSecret: process.env.FLW_WEBHOOK_SECRET,
+    redirectUrl: process.env.FLW_REDIRECT_URL
   }
 };
 
