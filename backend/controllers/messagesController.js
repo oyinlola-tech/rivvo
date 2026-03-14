@@ -5,6 +5,18 @@ import { sendError, isNonEmptyString } from '../utils/validation.js';
 import fs from 'fs';
 import path from 'path';
 
+const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+const safeUnlink = (targetPath) => {
+  if (!targetPath || typeof targetPath !== 'string') return;
+  try {
+    const resolved = path.resolve(targetPath);
+    if (!resolved.startsWith(uploadsRoot)) return;
+    fs.unlink(resolved, () => {});
+  } catch (error) {
+    // Best-effort cleanup only.
+  }
+};
+
 const ensureParticipant = async (userId, conversationId) => {
   const [rows] = await pool.execute(
     `SELECT 1 FROM conversation_participants
@@ -479,12 +491,12 @@ export const uploadAttachment = async (req, res) => {
   }
 
   if (!normalizedType || !allowedAttachmentMimes.has(normalizedType)) {
-    fs.unlink(req.file.path, () => {});
+    safeUnlink(req.file.path);
     return sendError(res, 400, 'Unsupported file type');
   }
 
   if (kind && !allowedAttachmentKinds.has(kind)) {
-    fs.unlink(req.file.path, () => {});
+    safeUnlink(req.file.path);
     return sendError(res, 400, 'Unsupported attachment kind');
   }
 
