@@ -9,6 +9,7 @@ export const initDb = async () => {
       password_hash VARCHAR(255) NOT NULL,
       name VARCHAR(255) NOT NULL,
       username VARCHAR(32) UNIQUE NULL,
+      username_updated_at DATETIME NULL,
       avatar VARCHAR(512) NULL,
       verified TINYINT(1) DEFAULT 0,
       is_verified_badge TINYINT(1) DEFAULT 0,
@@ -197,6 +198,30 @@ export const initDb = async () => {
       expires_at DATETIME NOT NULL,
       INDEX idx_status_user (user_id),
       INDEX idx_status_expires (expires_at)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS status_views (
+      id CHAR(36) PRIMARY KEY,
+      status_id CHAR(36) NOT NULL,
+      viewer_id CHAR(36) NOT NULL,
+      viewed_at DATETIME NOT NULL,
+      UNIQUE KEY uq_status_views (status_id, viewer_id),
+      INDEX idx_status_views_viewer (viewer_id),
+      INDEX idx_status_views_status (status_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS status_mutes (
+      id CHAR(36) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      muted_user_id CHAR(36) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_status_mutes (user_id, muted_user_id),
+      INDEX idx_status_mutes_user (user_id),
+      INDEX idx_status_mutes_muted (muted_user_id)
     )
   `);
 
@@ -397,6 +422,15 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE users
       ADD COLUMN username VARCHAR(32) UNIQUE NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN username_updated_at DATETIME NULL
     `);
   } catch (error) {
     // Column likely exists already.
@@ -802,6 +836,50 @@ export const initDb = async () => {
       ALTER TABLE statuses
       ADD CONSTRAINT fk_statuses_user
       FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE status_views
+      ADD CONSTRAINT fk_status_views_status
+      FOREIGN KEY (status_id) REFERENCES statuses(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE status_views
+      ADD CONSTRAINT fk_status_views_viewer
+      FOREIGN KEY (viewer_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE status_mutes
+      ADD CONSTRAINT fk_status_mutes_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE status_mutes
+      ADD CONSTRAINT fk_status_mutes_muted
+      FOREIGN KEY (muted_user_id) REFERENCES users(id)
       ON DELETE CASCADE
     `);
   } catch (error) {

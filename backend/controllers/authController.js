@@ -33,6 +33,9 @@ const buildUserPayload = (user) => ({
   verifiedBadgeExpiresAt: user.verified_badge_expires_at
     ? new Date(user.verified_badge_expires_at).toISOString()
     : null,
+  usernameUpdatedAt: user.username_updated_at
+    ? new Date(user.username_updated_at).toISOString()
+    : null,
   isModerator: Boolean(user.is_moderator),
   isAdmin: Boolean(user.is_admin),
   avatar: user.avatar || null

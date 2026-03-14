@@ -101,6 +101,14 @@ const runCleanup = async () => {
                 AND created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)`
       },
       {
+        label: 'verification_payment_locks non-pending review',
+        sql: `DELETE vpl FROM verification_payment_locks vpl
+              JOIN verification_payments vp
+                ON vp.user_id = vpl.user_id
+              WHERE vp.review_status IS NOT NULL
+                AND vp.review_status <> 'pending'`
+      },
+      {
         label: 'verification_payment_locks stale',
         sql: `DELETE vpl FROM verification_payment_locks vpl
               LEFT JOIN verification_payments vp

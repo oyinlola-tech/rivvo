@@ -25,6 +25,9 @@ const buildUserPayload = (user) => ({
   verifiedBadgeExpiresAt: user.verified_badge_expires_at
     ? new Date(user.verified_badge_expires_at).toISOString()
     : null,
+  usernameUpdatedAt: user.username_updated_at
+    ? new Date(user.username_updated_at).toISOString()
+    : null,
   badgeStatus: isBadgeActive(user) ? 'active' : user.is_verified_badge ? 'expired' : 'none',
   isModerator: Boolean(user.is_moderator),
   isAdmin: Boolean(user.is_admin),
@@ -84,7 +87,7 @@ export const updateProfile = async (req, res) => {
   }
 
   const [userRows] = await pool.execute(
-    `SELECT is_verified_badge, verified_badge_expires_at
+    `SELECT is_verified_badge, verified_badge_expires_at, username, username_updated_at
      FROM users WHERE id = :id LIMIT 1`,
     { id: userId }
   );
@@ -124,19 +127,33 @@ export const updateProfile = async (req, res) => {
     }
   }
 
+  const usernameChanged =
+    username !== undefined &&
+    normalizeUsername(currentUser.username || '') !== (normalizedUsername || '');
+  if (usernameChanged && currentUser.username_updated_at) {
+    const last = new Date(currentUser.username_updated_at);
+    const nextAllowed = new Date(last);
+    nextAllowed.setDate(nextAllowed.getDate() + 15);
+    if (nextAllowed > new Date()) {
+      return sendError(res, 400, `Username can be changed after ${nextAllowed.toISOString()}`);
+    }
+  }
+
   await pool.execute(
     `UPDATE users
      SET name = COALESCE(:name, name),
          avatar = COALESCE(:avatar, avatar),
          phone = COALESCE(:phone, phone),
-         username = COALESCE(:username, username)
+         username = COALESCE(:username, username),
+         username_updated_at = CASE WHEN :username_changed = 1 THEN NOW() ELSE username_updated_at END
      WHERE id = :id`,
     {
       id: userId,
       name: name || null,
       avatar: avatar || null,
       phone: normalizedPhone,
-      username: normalizedUsername
+      username: normalizedUsername,
+      username_changed: usernameChanged ? 1 : 0
     }
   );
 

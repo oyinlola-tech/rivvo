@@ -15,6 +15,7 @@ export interface ApiUser {
   phone?: string | null;
   name: string;
   username?: string | null;
+  usernameUpdatedAt?: string | null;
   verified: boolean;
   isVerifiedBadge: boolean;
   verifiedBadgeExpiresAt?: string | null;
@@ -94,6 +95,7 @@ export interface StatusDto {
   mediaType?: string | null;
   createdAt: string;
   expiresAt: string;
+  viewedAt?: string | null;
 }
 
 export interface StatusGroupDto {
@@ -108,6 +110,12 @@ export interface StatusGroupDto {
     isAdmin?: boolean;
   };
   statuses: StatusDto[];
+}
+
+export interface StatusResponseDto {
+  unviewed: StatusGroupDto[];
+  viewed: StatusGroupDto[];
+  muted: { id: string; name: string; avatar?: string | null }[];
 }
 
 class ApiClient {
@@ -740,8 +748,23 @@ class ApiClient {
     return this.requestForm("/status", form);
   }
 
-  async getStatuses(): Promise<ApiResponse<StatusGroupDto[]>> {
+  async getStatuses(): Promise<ApiResponse<StatusResponseDto>> {
     return this.request("/status");
+  }
+
+  async markStatusViewed(statusId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/status/${statusId}/view`, { method: "POST" });
+  }
+
+  async muteStatusUser(mutedUserId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request("/status/mute", {
+      method: "POST",
+      body: JSON.stringify({ mutedUserId }),
+    });
+  }
+
+  async unmuteStatusUser(mutedUserId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/status/mute/${mutedUserId}`, { method: "DELETE" });
   }
 
   // Verification
@@ -760,6 +783,7 @@ class ApiClient {
   async getVerificationStatus(): Promise<ApiResponse<{
     latestPending: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
     latestDecision: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
+    currentStatus?: "pending" | "approved" | "rejected" | "none";
   }>> {
     return this.request("/verification/status");
   }

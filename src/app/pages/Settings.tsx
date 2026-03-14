@@ -38,6 +38,7 @@ export default function Settings() {
   const [verificationStatus, setVerificationStatus] = useState<{
     latestPending: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
     latestDecision: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
+    currentStatus?: "pending" | "approved" | "rejected" | "none";
   } | null>(null);
   const [showVerificationNotice, setShowVerificationNotice] = useState(true);
   const [verificationError, setVerificationError] = useState("");
@@ -55,6 +56,13 @@ export default function Settings() {
     return now >= windowStart && now <= expiresAt;
   })();
   const verificationLocked = Boolean(user?.isVerifiedBadge || verificationStatus?.latestPending);
+  const usernameCooldownUntil = (() => {
+    if (!user?.usernameUpdatedAt) return null;
+    const last = new Date(user.usernameUpdatedAt);
+    const next = new Date(last);
+    next.setDate(next.getDate() + 15);
+    return next > new Date() ? next : null;
+  })();
 
   useEffect(() => {
     setAvatarUrl(user?.avatar || "");
@@ -137,10 +145,25 @@ export default function Settings() {
       setProfileError("Full name is required");
       return;
     }
+    const rawUsername = profileUsername.trim().replace(/^@/, "");
+    if (rawUsername && !/^[a-zA-Z0-9._]{3,32}$/.test(rawUsername)) {
+      setProfileError("Username must be 3-32 characters and use letters, numbers, dots, or underscores");
+      return;
+    }
+    if (
+      usernameCooldownUntil &&
+      user?.username !== undefined &&
+      rawUsername !== (user.username || "")
+    ) {
+      setProfileError(
+        `Username can be changed again on ${usernameCooldownUntil.toLocaleDateString()}`
+      );
+      return;
+    }
     setProfileSaving(true);
     const payload: Record<string, string | null> = {
       name: profileName.trim(),
-      username: profileUsername.trim() ? profileUsername.trim() : null,
+      username: rawUsername ? rawUsername : null,
       phone: profilePhone.trim() ? profilePhone.trim() : null,
     };
     if (user?.username && !payload.username) {
@@ -163,6 +186,9 @@ export default function Settings() {
     }
     const response = await api.updateProfile(payload);
     if (response.success) {
+      setProfileName(payload.name || "");
+      setProfileUsername(payload.username || "");
+      setProfilePhone(payload.phone || "");
       await refreshProfile();
       toast("Profile updated");
     } else {
@@ -314,11 +340,17 @@ export default function Settings() {
                 onChange={(e) => setProfileUsername(e.target.value)}
                 className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
                 placeholder="@username"
-                disabled={verificationLocked}
+                disabled={verificationLocked || Boolean(usernameCooldownUntil)}
               />
               {verificationLocked && (
                 <p className="text-xs text-[#797c7b] mt-1">
-                  Username can’t be removed while verification is active or pending review.
+                  Username can't be removed while verification is active or pending review.
+                </p>
+              )}
+              {usernameCooldownUntil && (
+                <p className="text-xs text-[#797c7b] mt-1">
+                  Username can be changed again on{" "}
+                  {usernameCooldownUntil.toLocaleDateString()}.
                 </p>
               )}
             </div>
@@ -334,7 +366,7 @@ export default function Settings() {
               />
               {verificationLocked && (
                 <p className="text-xs text-[#797c7b] mt-1">
-                  Phone number can’t be removed while verification is active or pending review.
+                  Phone number can't be removed while verification is active or pending review.
                 </p>
               )}
             </div>

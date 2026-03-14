@@ -9,6 +9,7 @@ interface User {
   phone?: string | null;
   name: string;
   username?: string | null;
+  usernameUpdatedAt?: string | null;
   verified: boolean;
   isVerifiedBadge: boolean;
   verifiedBadgeExpiresAt?: string | null;

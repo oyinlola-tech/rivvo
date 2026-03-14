@@ -35,6 +35,7 @@ export default function Contacts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [mutedIds, setMutedIds] = useState<Set<string>>(new Set());
   const normalizedQuery = searchQuery.trim();
   const usernameQuery = normalizedQuery.startsWith("@")
     ? normalizedQuery.slice(1)
@@ -48,6 +49,7 @@ export default function Contacts() {
 
   useEffect(() => {
     loadContacts();
+    loadMuted();
   }, []);
 
   useEffect(() => {
@@ -82,6 +84,22 @@ export default function Contacts() {
     setLoading(false);
   };
 
+  const loadMuted = async () => {
+    const response = await api.getStatuses();
+    if (response.success && response.data?.muted) {
+      setMutedIds(new Set(response.data.muted.map((user) => user.id)));
+    }
+  };
+
+  const handleToggleMute = async (userId: string) => {
+    if (mutedIds.has(userId)) {
+      await api.unmuteStatusUser(userId);
+    } else {
+      await api.muteStatusUser(userId);
+    }
+    await loadMuted();
+  };
+
   const filteredContacts = contacts.filter((contact) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -107,7 +125,7 @@ export default function Contacts() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search contacts..."
+              placeholder="Search by name, @username, email, phone"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#20A090]"
@@ -220,6 +238,16 @@ export default function Contacts() {
                     </div>
                     <p className="text-sm text-[#797c7b]">{contact.email}</p>
                   </div>
+                  <button
+                    onClick={() => handleToggleMute(contact.id)}
+                    className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                      mutedIds.has(contact.id)
+                        ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        : "bg-[#20A090] text-white hover:bg-[#1a8c7a]"
+                    }`}
+                  >
+                    {mutedIds.has(contact.id) ? "Unmute" : "Mute"}
+                  </button>
                 </div>
               </div>
             ))}

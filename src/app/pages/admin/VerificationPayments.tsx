@@ -44,6 +44,7 @@ export default function VerificationPayments() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectPaymentId, setRejectPaymentId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectError, setRejectError] = useState("");
   const [rejectSaving, setRejectSaving] = useState(false);
 
   const loadPayments = async () => {
@@ -81,13 +82,14 @@ export default function VerificationPayments() {
   const openRejectModal = (paymentId: string) => {
     setRejectPaymentId(paymentId);
     setRejectReason("");
+    setRejectError("");
     setRejectOpen(true);
   };
 
   const submitRejection = async () => {
     if (!rejectPaymentId) return;
     if (!rejectReason.trim()) {
-      setError("Rejection reason is required");
+      setRejectError("Rejection reason is required");
       return;
     }
     setRejectSaving(true);
@@ -97,7 +99,7 @@ export default function VerificationPayments() {
       setRejectOpen(false);
       await loadPayments();
     } else {
-      setError(response.error || "Failed to reject payment");
+      setRejectError(response.error || "Failed to reject payment");
     }
   };
 
@@ -174,7 +176,7 @@ export default function VerificationPayments() {
                       {(payment.user.username || payment.user.phone) && (
                         <div className="text-xs text-gray-500">
                           {payment.user.username ? `@${payment.user.username}` : ""}
-                          {payment.user.username && payment.user.phone ? " • " : ""}
+                          {payment.user.username && payment.user.phone ? " - " : ""}
                           {payment.user.phone || ""}
                         </div>
                       )}
@@ -190,7 +192,7 @@ export default function VerificationPayments() {
                     <td className="px-6 py-4 text-xs text-gray-500">
                       {payment.reviewStatus === "rejected"
                         ? payment.rejectionReason || "No reason provided"
-                        : "—"}
+                        : "--"}
                     </td>
                     <td className="px-6 py-4 text-xs text-gray-500 break-all">{payment.txRef}</td>
                     <td className="px-6 py-4 text-xs text-gray-500">
@@ -208,7 +210,7 @@ export default function VerificationPayments() {
                           {dayDiff(payment.createdAt)}d
                         </span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-400">--</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -247,11 +249,15 @@ export default function VerificationPayments() {
             <label className="text-sm font-medium">Rejection reason</label>
             <textarea
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                if (rejectError) setRejectError("");
+              }}
               className="min-h-[100px] w-full rounded-md border px-3 py-2 text-sm"
               maxLength={255}
               placeholder="e.g., Payment flagged by provider, mismatched details..."
             />
+            {rejectError && <p className="text-xs text-red-600">{rejectError}</p>}
             <div className="text-xs text-gray-500">{rejectReason.length}/255</div>
           </div>
           <DialogFooter>

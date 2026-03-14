@@ -62,8 +62,7 @@ const hasPendingPayment = async (userId) => {
      LIMIT 1`,
     { user_id: userId }
   );
-  if (lockRows.length) return true;
-
+  let hasLock = lockRows.length > 0;
   const [rows] = await pool.execute(
     `SELECT id
      FROM verification_payments
@@ -75,7 +74,11 @@ const hasPendingPayment = async (userId) => {
      LIMIT 1`,
     { user_id: userId }
   );
-  return rows.length > 0;
+  if (hasLock && rows.length === 0) {
+    await releasePaymentLock(userId);
+    hasLock = false;
+  }
+  return rows.length > 0 || hasLock;
 };
 
 const acquirePaymentLock = async (userId) => {
@@ -214,6 +217,7 @@ export const getVerificationStatus = async (req, res) => {
 
   const pending = pendingRows[0] || null;
   const decision = decisionRows[0] || null;
+  const currentStatus = pending ? 'pending' : decision?.review_status || 'none';
 
   return res.json({
     latestPending: pending
@@ -231,7 +235,8 @@ export const getVerificationStatus = async (req, res) => {
           rejectionReason: decision.rejection_reason || null,
           createdAt: decision.created_at ? new Date(decision.created_at).toISOString() : null
         }
-      : null
+      : null,
+    currentStatus
   });
 };
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import asyncHandler from '../utils/asyncHandler.js';
 import auth from '../middleware/auth.js';
-import { createStatus, getStatuses } from '../controllers/statusController.js';
+import { createStatus, getStatuses, markStatusViewed, muteStatusUser, unmuteStatusUser } from '../controllers/statusController.js';
 import { upload } from '../utils/upload.js';
 
 const router = Router();
@@ -11,5 +11,8 @@ router.post('/', auth, (req, res, next) => {
   req.uploadFolder = 'uploads/status';
   next();
 }, upload.single('media'), asyncHandler(createStatus));
+router.post('/:statusId/view', auth, asyncHandler(markStatusViewed));
+router.post('/mute', auth, asyncHandler(muteStatusUser));
+router.delete('/mute/:mutedUserId', auth, asyncHandler(unmuteStatusUser));
 
 export default router;
