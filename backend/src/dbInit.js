@@ -350,6 +350,9 @@ export const initDb = async () => {
       amount DECIMAL(12,2) NOT NULL,
       currency CHAR(3) NOT NULL,
       status ENUM('pending', 'successful', 'failed', 'cancelled') DEFAULT 'pending',
+      review_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+      reviewed_by CHAR(36) NULL,
+      reviewed_at DATETIME NULL,
       tx_ref VARCHAR(64) NOT NULL,
       flw_transaction_id VARCHAR(32) NULL,
       flw_status VARCHAR(32) NULL,
@@ -359,7 +362,8 @@ export const initDb = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uq_verification_payments_tx_ref (tx_ref),
       INDEX idx_verification_payments_user (user_id),
-      INDEX idx_verification_payments_status (status)
+      INDEX idx_verification_payments_status (status),
+      INDEX idx_verification_payments_review (review_status)
     )
   `);
 
@@ -707,6 +711,42 @@ export const initDb = async () => {
     `);
   } catch (error) {
     // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payments
+      ADD COLUMN review_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending'
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payments
+      ADD COLUMN reviewed_by CHAR(36) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payments
+      ADD COLUMN reviewed_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payments
+      ADD INDEX idx_verification_payments_review (review_status)
+    `);
+  } catch (error) {
+    // Index likely exists already.
   }
 
   try {
