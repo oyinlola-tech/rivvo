@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../../lib/api";
+import { api, VerificationPaymentDto } from "../../lib/api";
 import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import {
   Dialog,
@@ -10,24 +10,7 @@ import {
   DialogTitle,
 } from "../../components/ui/dialog";
 
-interface VerificationPayment {
-  id: string;
-  userId: string;
-  user: {
-    name: string;
-    email: string;
-    phone?: string | null;
-    username?: string | null;
-  };
-  amount: number;
-  currency: string;
-  status: string;
-  reviewStatus: string;
-  rejectionReason?: string | null;
-  txRef: string;
-  flwStatus?: string | null;
-  createdAt: string;
-}
+type VerificationPayment = VerificationPaymentDto;
 
 const dayDiff = (iso: string) => {
   const created = new Date(iso).getTime();

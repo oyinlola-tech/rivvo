@@ -109,7 +109,8 @@ export default function Status() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000e08] md:ml-64">
+    <>
+      <div className="min-h-screen bg-[#000e08] md:ml-64">
       <div className="bg-[#000e08] sticky top-0 z-10 px-6 py-4">
         <h1 className="text-2xl font-bold text-white">Status</h1>
       </div>
@@ -316,8 +317,8 @@ export default function Status() {
         </div>
       </div>
     </div>
-    {openGroup && (
-      <div className="fixed inset-0 z-50 bg-black text-white">
+      {openGroup && (
+        <div className="fixed inset-0 z-50 bg-black text-white">
         <style>
           {`@keyframes status-progress { from { width: 0%; } to { width: 100%; } }`}
         </style>
@@ -402,7 +403,8 @@ export default function Status() {
             )}
           </div>
         </div>
-      </div>
-    )}
+        </div>
+      )}
+    </>
   );
 }

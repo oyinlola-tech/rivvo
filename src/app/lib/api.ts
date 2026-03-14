@@ -118,6 +118,25 @@ export interface StatusResponseDto {
   muted: { id: string; name: string; avatar?: string | null }[];
 }
 
+export interface VerificationPaymentDto {
+  id: string;
+  userId: string;
+  user: {
+    name: string;
+    email: string;
+    phone?: string | null;
+    username?: string | null;
+  };
+  amount: number;
+  currency: string;
+  status: string;
+  reviewStatus: string;
+  rejectionReason?: string | null;
+  txRef: string;
+  flwStatus?: string | null;
+  createdAt: string;
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null;
@@ -700,7 +719,11 @@ class ApiClient {
     });
   }
 
-  async getVerificationPayments(page: number = 1, limit: number = 20, filters?: { status?: string; reviewStatus?: string }) {
+  async getVerificationPayments(
+    page: number = 1,
+    limit: number = 20,
+    filters?: { status?: string; reviewStatus?: string }
+  ): Promise<ApiResponse<{ payments: VerificationPaymentDto[]; total: number; page: number; limit: number }>> {
     const params = new URLSearchParams();
     params.set("page", String(page));
     params.set("limit", String(limit));

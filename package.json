@@ -4,11 +4,14 @@
   "version": "3.0.1",
   "type": "module",
   "scripts": {
+    "dev:frontend": "vite",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev": "concurrently -k \"npm run dev:frontend\" \"npm run dev:backend\"",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\"",
     "typecheck": "tsc --noEmit",
-    "build": "vite build",
-    "dev": "vite"
+    "build": "vite build"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -84,7 +87,9 @@
     "tailwindcss": "4.1.12",
     "typescript": "5.8.3",
     "vite": "^6.4.1",
-    "vitest": "2.1.9"
+    "@vitest/coverage-v8": "2.1.9",
+    "vitest": "2.1.9",
+    "concurrently": "9.1.2"
   },
   "peerDependencies": {
     "react": "18.3.1",

@@ -1,6 +1,19 @@
+import mysql from 'mysql2/promise';
 import pool from '../config/db.js';
+import env from '../config/env.js';
 
 export const initDb = async () => {
+  if (env.db?.database) {
+    const connection = await mysql.createConnection({
+      host: env.db.host,
+      port: env.db.port,
+      user: env.db.user,
+      password: env.db.password
+    });
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${env.db.database}\``);
+    await connection.end();
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id CHAR(36) PRIMARY KEY,

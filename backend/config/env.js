@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
-const clientUrls = (process.env.CLIENT_URLS || process.env.CLIENT_URL)
+const clientUrls = (process.env.CLIENT_URLS || process.env.CLIENT_URL || '')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
