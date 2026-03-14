@@ -87,8 +87,8 @@
     "tailwindcss": "4.1.12",
     "typescript": "5.8.3",
     "vite": "^6.4.1",
-    "@vitest/coverage-v8": "2.1.9",
-    "vitest": "2.1.9",
+    "@vitest/coverage-v8": "4.1.0",
+    "vitest": "4.1.0",
     "concurrently": "9.1.2"
   },
   "peerDependencies": {
