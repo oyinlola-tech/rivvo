@@ -1,4 +1,6 @@
 import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
+import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
 import env from '../config/env.js';
 
@@ -33,6 +35,23 @@ export const initDb = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  if (env.admin?.email && env.admin?.password) {
+    const [adminRows] = await pool.query(
+      `SELECT id FROM users WHERE email = ? LIMIT 1`,
+      [env.admin.email]
+    );
+    if (!adminRows.length) {
+      const passwordHash = await bcrypt.hash(env.admin.password, 10);
+      await pool.query(
+        `INSERT INTO users
+          (id, email, phone, password_hash, name, username, avatar, verified, is_verified_badge, is_moderator, is_admin, status)
+         VALUES (?, ?, NULL, ?, ?, NULL, NULL, 1, 0, 1, 1, 'active')`,
+        [uuid(), env.admin.email, passwordHash, env.admin.name]
+      );
+      console.log('Main admin account created');
+    }
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS otps (

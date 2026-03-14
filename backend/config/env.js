@@ -44,6 +44,11 @@ const env = {
     secretKey: process.env.FLW_SECRET_KEY,
     webhookSecret: process.env.FLW_WEBHOOK_SECRET,
     redirectUrl: process.env.FLW_REDIRECT_URL
+  },
+  admin: {
+    email: process.env.ADMIN_EMAIL,
+    password: process.env.ADMIN_PASSWORD,
+    name: process.env.ADMIN_NAME || 'Main Admin'
   }
 };
 
