@@ -16,13 +16,14 @@ import {
   LogOut,
   CheckCircle,
   Sparkles,
+  ShieldAlert,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 
 export default function Settings() {
   const { user, logout, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
@@ -41,7 +42,7 @@ export default function Settings() {
   const [showVerificationNotice, setShowVerificationNotice] = useState(true);
   const [verificationError, setVerificationError] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const apiBase = import.meta.env.VITE_API_URL;
+  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const avatarSrc = avatarUrl ? `${mediaBase}${avatarUrl}` : "";
   const missingVerificationProfile = !user?.phone || !user?.username;
@@ -132,6 +133,10 @@ export default function Settings() {
 
   const handleProfileSave = async () => {
     setProfileError("");
+    if (!profileName.trim()) {
+      setProfileError("Full name is required");
+      return;
+    }
     setProfileSaving(true);
     const payload: Record<string, string | null> = {
       name: profileName.trim(),
@@ -271,6 +276,27 @@ export default function Settings() {
           </div>
           {avatarError && <p className="text-sm text-red-600 mt-2">{avatarError}</p>}
           <div className="mt-6 grid gap-3">
+            {verificationLocked && (
+              <div className="flex items-center gap-2 text-xs text-[#8B6B00] bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+                <ShieldAlert size={14} />
+                <span>Profile fields are locked while verification is active or pending.</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="ml-auto text-[11px] underline"
+                      aria-label="Why are fields locked?"
+                    >
+                      Why?
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    Username and phone are required to keep your verification valid. They can be changed
+                    again after review is completed or verification expires.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium mb-2">Full Name</label>
               <input

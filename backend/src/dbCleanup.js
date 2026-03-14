@@ -92,6 +92,15 @@ const runCleanup = async () => {
                 AND created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)`
       },
       {
+        label: 'verification_payments stale review',
+        sql: `UPDATE verification_payments
+              SET review_status = 'rejected',
+                  rejection_reason = 'Review expired'
+              WHERE status = 'successful'
+                AND review_status = 'pending'
+                AND created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)`
+      },
+      {
         label: 'verification_payment_locks stale',
         sql: `DELETE vpl FROM verification_payment_locks vpl
               LEFT JOIN verification_payments vp

@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 interface VerificationPayment {
   id: string;
@@ -21,12 +29,22 @@ interface VerificationPayment {
   createdAt: string;
 }
 
+const dayDiff = (iso: string) => {
+  const created = new Date(iso).getTime();
+  const now = Date.now();
+  return Math.floor((now - created) / (1000 * 60 * 60 * 24));
+};
+
 export default function VerificationPayments() {
   const [payments, setPayments] = useState<VerificationPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [reviewFilter, setReviewFilter] = useState("all");
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectPaymentId, setRejectPaymentId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectSaving, setRejectSaving] = useState(false);
 
   const loadPayments = async () => {
     setError("");
@@ -52,17 +70,34 @@ export default function VerificationPayments() {
       action === "approve" ? "Approve this verification payment?" : "Reject this verification payment?"
     );
     if (!confirmAction) return;
-    let reason: string | undefined;
-    if (action === "reject") {
-      const input = window.prompt("Reason for rejection (required):");
-      if (!input || !input.trim()) return;
-      reason = input.trim();
-    }
-    const response = await api.reviewVerificationPayment(paymentId, action, reason);
+    const response = await api.reviewVerificationPayment(paymentId, action);
     if (response.success) {
       await loadPayments();
     } else {
       setError(response.error || "Failed to update payment");
+    }
+  };
+
+  const openRejectModal = (paymentId: string) => {
+    setRejectPaymentId(paymentId);
+    setRejectReason("");
+    setRejectOpen(true);
+  };
+
+  const submitRejection = async () => {
+    if (!rejectPaymentId) return;
+    if (!rejectReason.trim()) {
+      setError("Rejection reason is required");
+      return;
+    }
+    setRejectSaving(true);
+    const response = await api.reviewVerificationPayment(rejectPaymentId, "reject", rejectReason.trim());
+    setRejectSaving(false);
+    if (response.success) {
+      setRejectOpen(false);
+      await loadPayments();
+    } else {
+      setError(response.error || "Failed to reject payment");
     }
   };
 
@@ -126,6 +161,7 @@ export default function VerificationPayments() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Reason</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Tx Ref</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Created</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Age</th>
                   <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">Actions</th>
                 </tr>
               </thead>
@@ -160,6 +196,21 @@ export default function VerificationPayments() {
                     <td className="px-6 py-4 text-xs text-gray-500">
                       {new Date(payment.createdAt).toLocaleString()}
                     </td>
+                    <td className="px-6 py-4 text-xs">
+                      {payment.reviewStatus === "pending" ? (
+                        <span
+                          className={`px-2 py-0.5 rounded-full ${
+                            dayDiff(payment.createdAt) >= 7
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {dayDiff(payment.createdAt)}d
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => handleReview(payment.id, "approve")}
@@ -169,7 +220,7 @@ export default function VerificationPayments() {
                         <CheckCircle size={18} /> Approve
                       </button>
                       <button
-                        onClick={() => handleReview(payment.id, "reject")}
+                        onClick={() => openRejectModal(payment.id)}
                         disabled={payment.reviewStatus !== "pending" || payment.status !== "successful"}
                         className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -183,6 +234,44 @@ export default function VerificationPayments() {
           </div>
         )}
       </div>
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject verification payment</DialogTitle>
+            <DialogDescription>
+              Provide a short reason that the user will see.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Rejection reason</label>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="min-h-[100px] w-full rounded-md border px-3 py-2 text-sm"
+              maxLength={255}
+              placeholder="e.g., Payment flagged by provider, mismatched details..."
+            />
+            <div className="text-xs text-gray-500">{rejectReason.length}/255</div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setRejectOpen(false)}
+              className="px-4 py-2 rounded-lg border text-gray-700"
+              disabled={rejectSaving}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitRejection}
+              className="px-4 py-2 rounded-lg bg-red-600 text-white disabled:opacity-50"
+              disabled={rejectSaving}
+            >
+              {rejectSaving ? "Rejecting..." : "Reject payment"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

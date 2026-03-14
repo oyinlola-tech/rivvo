@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function MainLayout() {
   const location = useLocation();
-  const { user, loading } = useAuth();
+  const { user, loading, verificationPending } = useAuth();
 
   if (loading) {
     return (
@@ -27,7 +27,7 @@ export default function MainLayout() {
     { path: "/calls", icon: Phone, label: "Calls" },
     { path: "/contacts", icon: Users, label: "Contacts" },
     { path: "/groups", icon: Users, label: "Groups" },
-    { path: "/settings", icon: Settings, label: "Settings" },
+    { path: "/settings", icon: Settings, label: "Settings", badge: verificationPending ? "Pending" : null },
   ];
   if (user.isAdmin) {
     navItems.push({ path: "/admin", icon: LayoutDashboard, label: "Admin" });
@@ -67,6 +67,11 @@ export default function MainLayout() {
                   >
                     {item.label}
                   </span>
+                  {item.badge && (
+                    <span className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -98,6 +103,11 @@ export default function MainLayout() {
                 >
                   <Icon size={20} />
                   <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

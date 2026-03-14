@@ -31,6 +31,7 @@ interface AuthContextType {
   logout: () => void;
   verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
   refreshProfile: () => Promise<void>;
+  verificationPending: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const logoutOnExitRef = useRef(false);
+  const [verificationPending, setVerificationPending] = useState(false);
 
   useEffect(() => {
     api.setAuthErrorHandler(() => {
@@ -74,12 +76,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user?.id) return;
       const response = await api.getVerificationStatus();
       if (response.success && response.data?.latestPending) {
+        setVerificationPending(true);
         const shownKey = "rivvo_verification_pending_toast";
         if (!sessionStorage.getItem(shownKey)) {
           toast("Verification pending review", {
             description: "Payment received. Admin review in progress.",
           });
           sessionStorage.setItem(shownKey, "1");
+        }
+      } else if (response.success) {
+        setVerificationPending(false);
+        const decision = response.data?.latestDecision;
+        if (decision?.reviewStatus === "approved") {
+          const key = "rivvo_verification_approved_toast";
+          if (!sessionStorage.getItem(key)) {
+            toast("Verification approved", {
+              description: "Your verification badge is now active.",
+            });
+            sessionStorage.setItem(key, "1");
+          }
+        }
+        if (decision?.reviewStatus === "rejected") {
+          const key = "rivvo_verification_rejected_toast";
+          if (!sessionStorage.getItem(key)) {
+            toast("Verification rejected", {
+              description: decision.rejectionReason || "Please review your submission and try again.",
+            });
+            sessionStorage.setItem(key, "1");
+          }
         }
       }
     };
@@ -179,7 +203,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, verifyOTP, refreshProfile }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, signup, logout, verifyOTP, refreshProfile, verificationPending }}
+    >
       {children}
     </AuthContext.Provider>
   );

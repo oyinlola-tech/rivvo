@@ -368,9 +368,12 @@ export const getVerificationPayments = async (req, res) => {
   }
   const whereClause = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
+  const countParams = {};
+  if (status) countParams.status = status;
+  if (reviewStatus) countParams.review_status = reviewStatus;
   const [[countRow]] = await pool.execute(
     `SELECT COUNT(*) AS total FROM verification_payments vp ${whereClause}`,
-    params
+    countParams
   );
 
   const [rows] = await pool.execute(
