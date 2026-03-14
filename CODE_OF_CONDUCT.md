@@ -1,4 +1,4 @@
-# Code of Conduct — Rivvo
+# Code of Conduct - Rivvo
 
 This Code of Conduct applies to all project spaces, including issues, pull requests, discussions, and direct collaboration.
 
@@ -35,10 +35,10 @@ This Code of Conduct applies to all project spaces, including issues, pull reque
 This project prioritizes a safe, respectful environment for all contributors and community members.
 
 ## Moderation Examples
-- **Acceptable:** Disagreeing with a decision and providing evidence.
-- **Unacceptable:** Personal attacks or insulting language.
-- **Acceptable:** Private reporting of a sensitive issue.
-- **Unacceptable:** Publicly sharing private data.
+- Acceptable: Disagreeing with a decision and providing evidence.
+- Unacceptable: Personal attacks or insulting language.
+- Acceptable: Private reporting of a sensitive issue.
+- Unacceptable: Publicly sharing private data.
 
 ## Resolution Outcomes
 - Guidance and correction
