@@ -92,6 +92,17 @@ const runCleanup = async () => {
                 AND created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)`
       },
       {
+        label: 'verification_payment_locks stale',
+        sql: `DELETE vpl FROM verification_payment_locks vpl
+              LEFT JOIN verification_payments vp
+                ON vp.user_id = vpl.user_id
+               AND (
+                 vp.status = 'pending'
+                 OR (vp.status = 'successful' AND vp.review_status = 'pending')
+               )
+              WHERE vp.user_id IS NULL`
+      },
+      {
         label: 'verification_payments -> users',
         sql: `DELETE vp FROM verification_payments vp
               LEFT JOIN users u ON u.id = vp.user_id

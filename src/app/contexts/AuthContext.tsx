@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
 import { api } from "../lib/api";
+import { toast } from "sonner";
 import { getDeviceId, getOrCreateDeviceKeyPair, getOrCreateKeyPair } from "../lib/crypto";
 
 interface User {
@@ -29,6 +30,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,6 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("pagehide", handler);
     };
   }, []);
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      if (!user?.id) return;
+      const response = await api.getVerificationStatus();
+      if (response.success && response.data?.latestPending) {
+        const shownKey = "rivvo_verification_pending_toast";
+        if (!sessionStorage.getItem(shownKey)) {
+          toast("Verification pending review", {
+            description: "Payment received. Admin review in progress.",
+          });
+          sessionStorage.setItem(shownKey, "1");
+        }
+      }
+    };
+    checkVerification();
+  }, [user?.id]);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -152,8 +171,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("refreshToken");
   };
 
+  const refreshProfile = async () => {
+    const response = await api.getProfile();
+    if (response.success && response.data) {
+      setUser(response.data);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, verifyOTP }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, verifyOTP, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router";
 import { useTheme } from "next-themes";
 import { api } from "../lib/api";
+import { toast } from "sonner";
 import {
   User,
   Bell,
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -26,13 +27,16 @@ export default function Settings() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
   const [inviteLink, setInviteLink] = useState("");
+  const [profileName, setProfileName] = useState(user?.name || "");
+  const [profileUsername, setProfileUsername] = useState(user?.username || "");
+  const [profilePhone, setProfilePhone] = useState(user?.phone || "");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState("");
   const [pricing, setPricing] = useState<{ amount: number | null; currency: string | null; active: boolean } | null>(null);
   const [eligibility, setEligibility] = useState<{ eligible: boolean; eligibleAt: string | null } | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<{
-    status: string | null;
-    reviewStatus: string | null;
-    rejectionReason: string | null;
-    createdAt: string | null;
+    latestPending: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
+    latestDecision: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
   } | null>(null);
   const [showVerificationNotice, setShowVerificationNotice] = useState(true);
   const [verificationError, setVerificationError] = useState("");
@@ -49,18 +53,24 @@ export default function Settings() {
     const now = new Date();
     return now >= windowStart && now <= expiresAt;
   })();
+  const verificationLocked = Boolean(user?.isVerifiedBadge || verificationStatus?.latestPending);
 
   useEffect(() => {
     setAvatarUrl(user?.avatar || "");
-  }, [user?.avatar]);
+    setProfileName(user?.name || "");
+    setProfileUsername(user?.username || "");
+    setProfilePhone(user?.phone || "");
+  }, [user?.avatar, user?.name, user?.username, user?.phone]);
 
   useEffect(() => {
+    let mounted = true;
     const loadVerification = async () => {
       const [pricingResponse, eligibilityResponse, statusResponse] = await Promise.all([
         api.getVerificationPricing(),
         api.getVerificationEligibility(),
         api.getVerificationStatus(),
       ]);
+      if (!mounted) return;
       if (pricingResponse.success && pricingResponse.data) {
         setPricing(pricingResponse.data);
       }
@@ -69,10 +79,30 @@ export default function Settings() {
       }
       if (statusResponse.success && statusResponse.data) {
         setVerificationStatus(statusResponse.data);
+        if (statusResponse.data.latestDecision?.reviewStatus === "approved" && !user?.isVerifiedBadge) {
+          await refreshProfile();
+        }
       }
     };
     loadVerification();
-  }, []);
+    const interval = window.setInterval(loadVerification, 60000);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+    };
+  }, [refreshProfile, user?.isVerifiedBadge]);
+
+  useEffect(() => {
+    if (verificationStatus?.latestPending) {
+      const shownKey = "rivvo_verification_pending_toast";
+      if (!sessionStorage.getItem(shownKey)) {
+        toast("Verification pending review", {
+          description: "Payment received. Admin review in progress.",
+        });
+        sessionStorage.setItem(shownKey, "1");
+      }
+    }
+  }, [verificationStatus?.latestPending]);
 
   const handleLogout = () => {
     logout();
@@ -98,6 +128,42 @@ export default function Settings() {
       setInviteLink(link);
       await navigator.clipboard.writeText(link);
     }
+  };
+
+  const handleProfileSave = async () => {
+    setProfileError("");
+    setProfileSaving(true);
+    const payload: Record<string, string | null> = {
+      name: profileName.trim(),
+      username: profileUsername.trim() ? profileUsername.trim() : null,
+      phone: profilePhone.trim() ? profilePhone.trim() : null,
+    };
+    if (user?.username && !payload.username) {
+      const confirmUnset = window.confirm(
+        "Remove your username? This may affect verification eligibility."
+      );
+      if (!confirmUnset) {
+        setProfileSaving(false);
+        return;
+      }
+    }
+    if (user?.phone && !payload.phone) {
+      const confirmUnset = window.confirm(
+        "Remove your phone number? This may affect verification eligibility."
+      );
+      if (!confirmUnset) {
+        setProfileSaving(false);
+        return;
+      }
+    }
+    const response = await api.updateProfile(payload);
+    if (response.success) {
+      await refreshProfile();
+      toast("Profile updated");
+    } else {
+      setProfileError(response.error || "Failed to update profile");
+    }
+    setProfileSaving(false);
   };
 
   const handleVerificationCheckout = async () => {
@@ -204,6 +270,57 @@ export default function Settings() {
             </button>
           </div>
           {avatarError && <p className="text-sm text-red-600 mt-2">{avatarError}</p>}
+          <div className="mt-6 grid gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-2">Full Name</label>
+              <input
+                type="text"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Username</label>
+              <input
+                type="text"
+                value={profileUsername}
+                onChange={(e) => setProfileUsername(e.target.value)}
+                className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                placeholder="@username"
+                disabled={verificationLocked}
+              />
+              {verificationLocked && (
+                <p className="text-xs text-[#797c7b] mt-1">
+                  Username can’t be removed while verification is active or pending review.
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Phone Number</label>
+              <input
+                type="tel"
+                value={profilePhone}
+                onChange={(e) => setProfilePhone(e.target.value)}
+                className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                placeholder="+234..."
+                disabled={verificationLocked}
+              />
+              {verificationLocked && (
+                <p className="text-xs text-[#797c7b] mt-1">
+                  Phone number can’t be removed while verification is active or pending review.
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleProfileSave}
+              disabled={profileSaving}
+              className="px-4 py-3 rounded-xl bg-[#20A090] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {profileSaving ? "Saving..." : "Save Profile"}
+            </button>
+            {profileError && <p className="text-sm text-red-600">{profileError}</p>}
+          </div>
           <div className="mt-4">
             <button
               onClick={handleCreateInvite}
@@ -249,7 +366,7 @@ export default function Settings() {
               <>
                 <div className="text-sm text-[#1a8c7a] font-medium mb-3">
                   Active badge{user.verifiedBadgeExpiresAt
-                    ? ` • Renews on ${new Date(user.verifiedBadgeExpiresAt).toLocaleDateString()}`
+                    ? ` - Renews on ${new Date(user.verifiedBadgeExpiresAt).toLocaleDateString()}`
                     : ""}
                 </div>
                 {renewalWindowOpen && (
@@ -274,11 +391,6 @@ export default function Settings() {
               </>
             ) : (
               <>
-                {verificationStatus?.reviewStatus === "pending" && (
-                  <div className="mb-3 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-                    Payment received. Pending admin review.
-                  </div>
-                )}
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm text-[#797c7b]">
                     {pricing?.active ? (
@@ -306,13 +418,13 @@ export default function Settings() {
                     !pricing?.active ||
                     !eligibility?.eligible ||
                     missingVerificationProfile ||
-                    verificationStatus?.reviewStatus === "pending"
+                    Boolean(verificationStatus?.latestPending)
                   }
                   className="w-full py-3 rounded-xl font-medium bg-[#1DA1F2] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {checkoutLoading
                     ? "Opening checkout..."
-                    : verificationStatus?.reviewStatus === "pending"
+                    : verificationStatus?.latestPending
                       ? "Pending review"
                       : "Buy verification"}
                 </button>
@@ -335,32 +447,34 @@ export default function Settings() {
         </div>
 
         {showVerificationNotice &&
-          verificationStatus?.reviewStatus &&
-          verificationStatus.reviewStatus !== "pending" && (
+          verificationStatus?.latestDecision &&
+          verificationStatus.latestDecision.reviewStatus !== "pending" && (
           <div className="px-6 mb-6">
             <div
               className={`rounded-2xl border p-4 ${
-                verificationStatus.reviewStatus === "approved"
+                verificationStatus.latestDecision.reviewStatus === "approved"
                   ? "border-green-200 bg-green-50 text-green-800"
-                  : verificationStatus.reviewStatus === "rejected"
+                  : verificationStatus.latestDecision.reviewStatus === "rejected"
                     ? "border-red-200 bg-red-50 text-red-700"
                     : "border-yellow-200 bg-yellow-50 text-yellow-800"
               }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  {verificationStatus.reviewStatus === "approved" && (
+                  {verificationStatus.latestDecision.reviewStatus === "approved" && (
                     <p className="font-medium">Verification approved.</p>
                   )}
-                  {verificationStatus.reviewStatus === "rejected" && (
+                  {verificationStatus.latestDecision.reviewStatus === "rejected" && (
                     <>
                       <p className="font-medium">Verification rejected.</p>
-                      {verificationStatus.rejectionReason && (
-                        <p className="text-sm mt-1">Reason: {verificationStatus.rejectionReason}</p>
+                      {verificationStatus.latestDecision.rejectionReason && (
+                        <p className="text-sm mt-1">
+                          Reason: {verificationStatus.latestDecision.rejectionReason}
+                        </p>
                       )}
                     </>
                   )}
-                  {verificationStatus.reviewStatus === "pending" && (
+                  {verificationStatus.latestDecision.reviewStatus === "pending" && (
                     <p className="font-medium">Verification is under review.</p>
                   )}
                 </div>
@@ -447,3 +561,4 @@ export default function Settings() {
     </div>
   );
 }
+

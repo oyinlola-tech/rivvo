@@ -3,6 +3,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { router } from "./routes";
 import { useEffect, useState } from "react";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -27,6 +28,7 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="light">
       <AuthProvider>
         <RouterProvider router={router} />
+        <Toaster />
       </AuthProvider>
     </ThemeProvider>
   );

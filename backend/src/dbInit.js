@@ -368,6 +368,13 @@ export const initDb = async () => {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS verification_payment_locks (
+      user_id CHAR(36) PRIMARY KEY,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   try {
     await pool.query(`
       ALTER TABLE users
@@ -766,6 +773,17 @@ export const initDb = async () => {
     `);
   } catch (error) {
     // Index likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE verification_payment_locks
+      ADD CONSTRAINT fk_verification_payment_locks_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
   }
 
   try {

@@ -273,8 +273,11 @@ export const searchUsers = async (req, res) => {
     } else if (isUsername(query)) {
       where = 'username = :username';
       params.username = normalizeUsername(query);
+    } else if (query.length >= 2) {
+      where = 'LOWER(name) LIKE :name';
+      params.name = `%${query.toLowerCase()}%`;
     } else {
-      return sendError(res, 400, 'Search query must be a valid email, phone number, or username');
+      return sendError(res, 400, 'Search query must be at least 2 characters or a valid email, phone number, or username');
     }
   }
 

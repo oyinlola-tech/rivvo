@@ -757,7 +757,10 @@ class ApiClient {
     return this.request("/verification/checkout", { method: "POST" });
   }
 
-  async getVerificationStatus(): Promise<ApiResponse<{ status: string | null; reviewStatus: string | null; rejectionReason: string | null; createdAt: string | null }>> {
+  async getVerificationStatus(): Promise<ApiResponse<{
+    latestPending: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
+    latestDecision: { status: string; reviewStatus: string; rejectionReason: string | null; createdAt: string | null } | null;
+  }>> {
     return this.request("/verification/status");
   }
 }

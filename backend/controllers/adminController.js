@@ -347,6 +347,14 @@ export const getVerificationPayments = async (req, res) => {
   const offset = (page - 1) * limit;
   const status = typeof req.query.status === 'string' ? req.query.status : null;
   const reviewStatus = typeof req.query.reviewStatus === 'string' ? req.query.reviewStatus : null;
+  const allowedStatus = new Set(['pending', 'successful', 'failed', 'cancelled']);
+  const allowedReview = new Set(['pending', 'approved', 'rejected']);
+  if (status && !allowedStatus.has(status)) {
+    return sendError(res, 400, 'status must be pending, successful, failed, or cancelled');
+  }
+  if (reviewStatus && !allowedReview.has(reviewStatus)) {
+    return sendError(res, 400, 'reviewStatus must be pending, approved, or rejected');
+  }
 
   const whereParts = [];
   const params = { limit, offset };
@@ -360,7 +368,7 @@ export const getVerificationPayments = async (req, res) => {
   }
   const whereClause = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
-  const [[countRow]] = await pool.query(
+  const [[countRow]] = await pool.execute(
     `SELECT COUNT(*) AS total FROM verification_payments vp ${whereClause}`,
     params
   );
@@ -423,6 +431,7 @@ export const getVerificationPayments = async (req, res) => {
 export const reviewVerificationPayment = async (req, res) => {
   const { paymentId } = req.params;
   const { action, reason } = req.body || {};
+  let paymentUserId = null;
   if (!paymentId) {
     return sendError(res, 400, 'paymentId is required');
   }
@@ -450,6 +459,7 @@ export const reviewVerificationPayment = async (req, res) => {
       await connection.rollback();
       return sendError(res, 404, 'Payment not found');
     }
+    paymentUserId = payment.user_id;
     if (payment.status !== 'successful') {
       await connection.rollback();
       return sendError(res, 400, 'Only successful payments can be reviewed');
@@ -514,6 +524,12 @@ export const reviewVerificationPayment = async (req, res) => {
     action,
     reason: action === 'reject' ? reason.trim() : null
   });
+
+  if (paymentUserId) {
+    await pool.execute(`DELETE FROM verification_payment_locks WHERE user_id = :user_id`, {
+      user_id: paymentUserId
+    });
+  }
 
   return res.json({ message: `Payment ${action}d` });
 };

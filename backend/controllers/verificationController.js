@@ -55,6 +55,15 @@ const getEligibility = (user) => {
 };
 
 const hasPendingPayment = async (userId) => {
+  const [lockRows] = await pool.execute(
+    `SELECT user_id
+     FROM verification_payment_locks
+     WHERE user_id = :user_id
+     LIMIT 1`,
+    { user_id: userId }
+  );
+  if (lockRows.length) return true;
+
   const [rows] = await pool.execute(
     `SELECT id
      FROM verification_payments
@@ -67,6 +76,47 @@ const hasPendingPayment = async (userId) => {
     { user_id: userId }
   );
   return rows.length > 0;
+};
+
+const acquirePaymentLock = async (userId) => {
+  try {
+    await pool.execute(
+      `INSERT INTO verification_payment_locks (user_id)
+       VALUES (:user_id)`,
+      { user_id: userId }
+    );
+    return true;
+  } catch (error) {
+    if (error?.code === 'ER_DUP_ENTRY') {
+      return false;
+    }
+    throw error;
+  }
+};
+
+const releasePaymentLock = async (userId) => {
+  await pool.execute(`DELETE FROM verification_payment_locks WHERE user_id = :user_id`, {
+    user_id: userId
+  });
+};
+
+const sanitizeVerificationResponse = (payload) => {
+  const data = payload?.data || {};
+  return {
+    status: payload?.status || null,
+    message: payload?.message || null,
+    data: {
+      id: data.id || null,
+      tx_ref: data.tx_ref || null,
+      status: data.status || null,
+      amount: data.amount || null,
+      currency: data.currency || null,
+      charged_amount: data.charged_amount || null,
+      app_fee: data.app_fee || null,
+      merchant_fee: data.merchant_fee || null,
+      processor_response: data.processor_response || null
+    }
+  };
 };
 
 const flutterwaveRequest = async (path, options = {}) => {
@@ -145,49 +195,43 @@ export const getVerificationEligibility = async (req, res) => {
 
 export const getVerificationStatus = async (req, res) => {
   const userId = req.user?.id;
-  const reviewStatus = typeof req.query.reviewStatus === 'string' ? req.query.reviewStatus : null;
-  let row = null;
-  if (reviewStatus) {
-    const [rows] = await pool.execute(
-      `SELECT status, review_status, rejection_reason, created_at
-       FROM verification_payments
-       WHERE user_id = :user_id AND review_status = :review_status
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      { user_id: userId, review_status: reviewStatus }
-    );
-    row = rows[0] || null;
-  } else {
-    const [pendingRows] = await pool.execute(
-      `SELECT status, review_status, rejection_reason, created_at
-       FROM verification_payments
-       WHERE user_id = :user_id AND review_status = 'pending'
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      { user_id: userId }
-    );
-    row = pendingRows[0] || null;
-    if (!row) {
-      const [rows] = await pool.execute(
-        `SELECT status, review_status, rejection_reason, created_at
-         FROM verification_payments
-         WHERE user_id = :user_id
-         ORDER BY created_at DESC
-         LIMIT 1`,
-        { user_id: userId }
-      );
-      row = rows[0] || null;
-    }
-  }
+  const [pendingRows] = await pool.execute(
+    `SELECT status, review_status, rejection_reason, created_at
+     FROM verification_payments
+     WHERE user_id = :user_id AND review_status = 'pending'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    { user_id: userId }
+  );
+  const [decisionRows] = await pool.execute(
+    `SELECT status, review_status, rejection_reason, created_at
+     FROM verification_payments
+     WHERE user_id = :user_id AND review_status IN ('approved', 'rejected')
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    { user_id: userId }
+  );
 
-  if (!row) {
-    return res.json({ status: null, reviewStatus: null, rejectionReason: null, createdAt: null });
-  }
+  const pending = pendingRows[0] || null;
+  const decision = decisionRows[0] || null;
+
   return res.json({
-    status: row.status,
-    reviewStatus: row.review_status,
-    rejectionReason: row.rejection_reason || null,
-    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
+    latestPending: pending
+      ? {
+          status: pending.status,
+          reviewStatus: pending.review_status,
+          rejectionReason: pending.rejection_reason || null,
+          createdAt: pending.created_at ? new Date(pending.created_at).toISOString() : null
+        }
+      : null,
+    latestDecision: decision
+      ? {
+          status: decision.status,
+          reviewStatus: decision.review_status,
+          rejectionReason: decision.rejection_reason || null,
+          createdAt: decision.created_at ? new Date(decision.created_at).toISOString() : null
+        }
+      : null
   });
 };
 
@@ -215,6 +259,11 @@ export const createVerificationCheckout = async (req, res) => {
   }
 
   if (await hasPendingPayment(userId)) {
+    return sendError(res, 409, 'You already have a payment pending review');
+  }
+
+  const lockAcquired = await acquirePaymentLock(userId);
+  if (!lockAcquired) {
     return sendError(res, 409, 'You already have a payment pending review');
   }
 
@@ -249,29 +298,40 @@ export const createVerificationCheckout = async (req, res) => {
     }
   };
 
-  const response = await flutterwaveRequest('/v3/payments', {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  });
+  let response;
+  try {
+    response = await flutterwaveRequest('/v3/payments', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    await releasePaymentLock(userId);
+    throw error;
+  }
 
   const link = response?.data?.link;
   if (!link) {
     return sendError(res, 502, 'Failed to create payment link');
   }
 
-  await pool.execute(
-    `INSERT INTO verification_payments
-      (id, user_id, amount, currency, status, tx_ref, payment_link)
-     VALUES (:id, :user_id, :amount, :currency, 'pending', :tx_ref, :payment_link)`,
-    {
-      id: uuid(),
-      user_id: userId,
-      amount: Number(pricing.amount),
-      currency: pricing.currency,
-      tx_ref: txRef,
-      payment_link: link
-    }
-  );
+  try {
+    await pool.execute(
+      `INSERT INTO verification_payments
+        (id, user_id, amount, currency, status, tx_ref, payment_link)
+       VALUES (:id, :user_id, :amount, :currency, 'pending', :tx_ref, :payment_link)`,
+      {
+        id: uuid(),
+        user_id: userId,
+        amount: Number(pricing.amount),
+        currency: pricing.currency,
+        tx_ref: txRef,
+        payment_link: link
+      }
+    );
+  } catch (error) {
+    await releasePaymentLock(userId);
+    throw error;
+  }
 
   return res.json({
     txRef,
@@ -353,9 +413,13 @@ export const confirmVerificationPayment = async (req, res) => {
       status: nextStatus,
       flw_transaction_id: data.id ? String(data.id) : null,
       flw_status: status || null,
-      raw_response: JSON.stringify(verified)
+      raw_response: JSON.stringify(sanitizeVerificationResponse(verified))
     }
   );
+
+  if (nextStatus !== 'successful') {
+    await releasePaymentLock(paymentRow.user_id);
+  }
 
   return res.json({
     status: nextStatus,
@@ -424,9 +488,13 @@ export const handleVerificationWebhook = async (req, res) => {
       status: nextStatus,
       flw_transaction_id: verifiedData.id ? String(verifiedData.id) : null,
       flw_status: status || null,
-      raw_response: JSON.stringify(verified)
+      raw_response: JSON.stringify(sanitizeVerificationResponse(verified))
     }
   );
+
+  if (nextStatus !== 'successful') {
+    await releasePaymentLock(paymentRow.user_id);
+  }
 
   return res.status(200).json({ received: true });
 };

@@ -15,6 +15,7 @@ interface VerificationPayment {
   currency: string;
   status: string;
   reviewStatus: string;
+  rejectionReason?: string | null;
   txRef: string;
   flwStatus?: string | null;
   createdAt: string;
@@ -122,6 +123,7 @@ export default function VerificationPayments() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Amount</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Review</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Reason</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Tx Ref</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Created</th>
                   <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">Actions</th>
@@ -149,6 +151,11 @@ export default function VerificationPayments() {
                       {payment.flwStatus ? ` (${payment.flwStatus})` : ""}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{payment.reviewStatus}</td>
+                    <td className="px-6 py-4 text-xs text-gray-500">
+                      {payment.reviewStatus === "rejected"
+                        ? payment.rejectionReason || "No reason provided"
+                        : "—"}
+                    </td>
                     <td className="px-6 py-4 text-xs text-gray-500 break-all">{payment.txRef}</td>
                     <td className="px-6 py-4 text-xs text-gray-500">
                       {new Date(payment.createdAt).toLocaleString()}

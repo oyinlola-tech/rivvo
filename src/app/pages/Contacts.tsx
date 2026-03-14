@@ -42,8 +42,9 @@ export default function Contacts() {
   const queryIsEmail = normalizedQuery.includes("@") && !normalizedQuery.startsWith("@");
   const queryIsPhone = normalizedQuery.replace(/\D/g, "").length >= 7;
   const queryIsUsername = /^[a-zA-Z0-9._]{3,32}$/.test(usernameQuery);
+  const queryIsName = normalizedQuery.length >= 2;
   const showSearchResults =
-    normalizedQuery.length > 0 && (queryIsEmail || queryIsPhone || queryIsUsername);
+    normalizedQuery.length > 0 && (queryIsEmail || queryIsPhone || queryIsUsername || queryIsName);
 
   useEffect(() => {
     loadContacts();
