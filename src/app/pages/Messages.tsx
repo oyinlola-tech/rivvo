@@ -62,6 +62,8 @@ export default function Messages() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
+  const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -204,7 +206,13 @@ export default function Messages() {
         parsed.mime &&
         parsed.name
       ) {
-        return parsed;
+        const normalizedUrl =
+          parsed.url.startsWith("http://") || parsed.url.startsWith("https://")
+            ? parsed.url
+            : parsed.url.startsWith("/")
+              ? `${mediaBase}${parsed.url}`
+              : parsed.url;
+        return { ...parsed, url: normalizedUrl };
       }
     } catch {
       return null;

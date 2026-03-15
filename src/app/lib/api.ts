@@ -1,6 +1,14 @@
 // API configuration and utilities
 // Replace with your actual backend API URL
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
+const MEDIA_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
+
+const withMediaBase = (url?: string | null) => {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/")) return `${MEDIA_BASE_URL}${url}`;
+  return url;
+};
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -349,7 +357,11 @@ class ApiClient {
 
   // User endpoints
   async getProfile(): Promise<ApiResponse<ApiUser>> {
-    return this.request("/users/profile");
+    const response = await this.request<ApiUser>("/users/profile");
+    if (response.success && response.data) {
+      response.data.avatar = withMediaBase(response.data.avatar);
+    }
+    return response;
   }
 
   async updateProfile(data: any): Promise<ApiResponse<{ message: string }>> {
@@ -362,12 +374,26 @@ class ApiClient {
   async uploadAvatar(file: File): Promise<ApiResponse<{ message: string; avatar: string }>> {
     const form = new FormData();
     form.append("avatar", file);
-    return this.requestForm("/users/avatar", form);
+    const response = await this.requestForm<{ message: string; avatar: string }>("/users/avatar", form);
+    if (response.success && response.data?.avatar) {
+      response.data.avatar = withMediaBase(response.data.avatar) || response.data.avatar;
+    }
+    return response;
   }
 
   // Messages endpoints
   async getConversations(): Promise<ApiResponse<ConversationDto[]>> {
-    return this.request("/messages/conversations");
+    const response = await this.request<ConversationDto[]>("/messages/conversations");
+    if (response.success && response.data) {
+      response.data = response.data.map((conv) => ({
+        ...conv,
+        user: {
+          ...conv.user,
+          avatar: withMediaBase(conv.user.avatar),
+        },
+      }));
+    }
+    return response;
   }
 
   async getMessages(
@@ -424,7 +450,11 @@ class ApiClient {
   }
 
   async getConversationPeer(conversationId: string): Promise<ApiResponse<PeerDto>> {
-    return this.request(`/messages/conversations/${conversationId}/peer`);
+    const response = await this.request<PeerDto>(`/messages/conversations/${conversationId}/peer`);
+    if (response.success && response.data) {
+      response.data.avatar = withMediaBase(response.data.avatar);
+    }
+    return response;
   }
 
   // Calls endpoints
@@ -447,7 +477,14 @@ class ApiClient {
 
   // Contacts endpoints
   async getContacts(): Promise<ApiResponse<any[]>> {
-    return this.request("/contacts");
+    const response = await this.request<any[]>("/contacts");
+    if (response.success && response.data) {
+      response.data = response.data.map((contact) => ({
+        ...contact,
+        avatar: withMediaBase(contact.avatar),
+      }));
+    }
+    return response;
   }
 
   async addContact(userId: string): Promise<ApiResponse<{ message: string }>> {
@@ -459,7 +496,14 @@ class ApiClient {
 
   async searchUsers(query: string): Promise<ApiResponse<ApiUser[]>> {
     const q = encodeURIComponent(query);
-    return this.request(`/users/search?q=${q}`);
+    const response = await this.request<ApiUser[]>(`/users/search?q=${q}`);
+    if (response.success && response.data) {
+      response.data = response.data.map((user) => ({
+        ...user,
+        avatar: withMediaBase(user.avatar),
+      }));
+    }
+    return response;
   }
 
   async uploadAttachment(

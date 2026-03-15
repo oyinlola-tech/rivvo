@@ -143,31 +143,43 @@ export default function Settings() {
 
   const handleProfileSave = async () => {
     setProfileError("");
-    if (!profileName.trim()) {
-      setProfileError("Full name is required");
+    const rawUsername = profileUsername.trim().replace(/^@/, "");
+    const nameValue = profileName.trim();
+    const phoneValue = profilePhone.trim();
+
+    const payload: Record<string, string | null> = {};
+    if (nameValue && nameValue !== (user?.name || "")) {
+      payload.name = nameValue;
+    }
+    if (rawUsername !== (user?.username || "")) {
+      payload.username = rawUsername ? rawUsername : null;
+    }
+    if (phoneValue !== (user?.phone || "")) {
+      payload.phone = phoneValue ? phoneValue : null;
+    }
+
+    if (!Object.keys(payload).length) {
+      setProfileError("No changes to save");
       return;
     }
-    const rawUsername = profileUsername.trim().replace(/^@/, "");
-    if (rawUsername && !/^[a-zA-Z0-9._]{3,32}$/.test(rawUsername)) {
+
+    if (payload.username && !/^[a-zA-Z0-9._]{3,32}$/.test(payload.username)) {
       setProfileError("Username must be 3-32 characters and use letters, numbers, dots, or underscores");
       return;
     }
     if (
       usernameCooldownUntil &&
       user?.username !== undefined &&
-      rawUsername !== (user.username || "")
+      payload.username !== undefined &&
+      payload.username !== (user.username || "")
     ) {
       setProfileError(
         `Username can be changed again on ${usernameCooldownUntil.toLocaleDateString()}`
       );
       return;
     }
+
     setProfileSaving(true);
-    const payload: Record<string, string | null> = {
-      name: profileName.trim(),
-      username: rawUsername ? rawUsername : null,
-      phone: profilePhone.trim() ? profilePhone.trim() : null,
-    };
     if (user?.username && !payload.username) {
       const confirmUnset = window.confirm(
         "Remove your username? This may affect verification eligibility."
