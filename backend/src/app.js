@@ -15,7 +15,12 @@ const __dirname = path.dirname(__filename);
 const uploadsPath = path.join(__dirname, '..', 'uploads');
 const frontendDistPath = path.join(__dirname, '..', '..', 'dist');
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false
+  })
+);
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -44,7 +49,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/uploads', express.static(uploadsPath));
+app.use(
+  '/uploads',
+  express.static(uploadsPath, {
+    setHeaders: (res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  })
+);
 
 app.use('/api', apiRateLimiter, routes);
 
