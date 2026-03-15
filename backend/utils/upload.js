@@ -4,7 +4,9 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 
 const rootDir = path.dirname(fileURLToPath(new URL('..', import.meta.url)));
-const uploadsRoot = path.join(rootDir, 'uploads');
+const uploadsRoot = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(rootDir, 'uploads');
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {
@@ -20,7 +22,8 @@ ensureDir(path.join(uploadsRoot, 'messages'));
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const folder = req.uploadFolder || 'uploads';
-    const dest = path.join(rootDir, folder);
+    const normalizedFolder = folder.replace(/^uploads[\\/]/, '');
+    const dest = path.join(uploadsRoot, normalizedFolder);
     ensureDir(dest);
     cb(null, dest);
   },
