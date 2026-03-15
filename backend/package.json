@@ -9,7 +9,7 @@
     "start": "node src/server.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-    "lint": "eslint . --ext .js",
+    "lint": "eslint . --ext .js --config eslint.config.js",
     "db:cleanup": "node src/dbCleanup.js"
   },
   "dependencies": {
