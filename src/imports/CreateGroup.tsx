@@ -329,7 +329,7 @@ function GroupWork() {
 export default function CreateGroup() {
   return (
     <div className="bg-white relative size-full" data-name="Create group">
-      <div className="absolute bg-[#25D366] h-[48px] left-[24px] rounded-[16px] top-[734px] w-[327px]" />
+      <div className="absolute bg-[#1a8c7a] h-[48px] left-[24px] rounded-[16px] top-[734px] w-[327px]" />
       <StatusBar />
       <Back />
       <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[141px] not-italic text-[#111b21] text-[16px] top-[64px] whitespace-nowrap">Create Group</p>
@@ -343,3 +343,4 @@ export default function CreateGroup() {
     </div>
   );
 }
+

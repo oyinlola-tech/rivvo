@@ -54,7 +54,7 @@ export default function Login() {
             type="text"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
             placeholder="Enter email, phone, or @username"
             required
           />
@@ -70,7 +70,7 @@ export default function Login() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366] pr-12"
+              className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a] pr-12"
               placeholder="Enter your password"
               required
             />
@@ -87,7 +87,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#25D366] text-white py-3 rounded-xl font-medium hover:bg-[#128C7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#1a8c7a] text-white py-3 rounded-xl font-medium hover:bg-[#1a8c7a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
@@ -96,7 +96,7 @@ export default function Login() {
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-600">
           Don't have an account?{" "}
-          <Link to="/auth/signup" className="text-[#25D366] font-medium hover:underline">
+          <Link to="/auth/signup" className="text-[#1a8c7a] font-medium hover:underline">
             Sign Up
           </Link>
         </p>
@@ -104,4 +104,5 @@ export default function Login() {
     </div>
   );
 }
+
 

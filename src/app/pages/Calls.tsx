@@ -140,7 +140,7 @@ export default function Calls() {
             )}
             <button
               onClick={handleCreateCallLink}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#25D366] text-white text-sm"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm"
             >
               <LinkIcon size={16} /> Create link
             </button>
@@ -153,7 +153,7 @@ export default function Calls() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -168,7 +168,7 @@ export default function Calls() {
             {calls.map((call) => (
               <div key={call.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
                     {call.user.avatar ? (
                       <img
                         src={call.user.avatar}
@@ -213,6 +213,7 @@ export default function Calls() {
     </div>
   );
 }
+
 
 
 

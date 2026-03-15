@@ -4,8 +4,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { Eye, EyeOff, VolumeX, X, Plus, Image as ImageIcon, SendHorizontal } from "lucide-react";
 
 export default function Status() {
-  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
-  const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const { user } = useAuth();
   const [unviewed, setUnviewed] = useState<StatusGroupDto[]>([]);
   const [viewed, setViewed] = useState<StatusGroupDto[]>([]);
@@ -178,11 +176,11 @@ export default function Status() {
           <div className="rounded-2xl border border-gray-100 bg-[#f7f9f9] p-4 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#25D366] to-[#1DA1F2]">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white text-xl font-bold overflow-hidden">
+                <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1DA1F2]">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold overflow-hidden">
                     {user?.avatar ? (
                       <img
-                        src={`${mediaBase}${user.avatar}`}
+                        src={user.avatar}
                         alt={user.name}
                         className="w-full h-full object-cover"
                       />
@@ -191,7 +189,7 @@ export default function Status() {
                     )}
                   </div>
                 </div>
-                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#25D366] text-white flex items-center justify-center border-2 border-white">
+                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#1a8c7a] text-white flex items-center justify-center border-2 border-white">
                   <Plus size={14} />
                 </span>
               </div>
@@ -205,12 +203,12 @@ export default function Status() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Type a status"
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
                 rows={3}
               />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-2 rounded-full border border-[#25D366] px-4 py-2 text-sm text-[#25D366] hover:bg-[#25D366]/10 cursor-pointer">
+              <label className="inline-flex items-center gap-2 rounded-full border border-[#1a8c7a] px-4 py-2 text-sm text-[#1a8c7a] hover:bg-[#1a8c7a]/10 cursor-pointer">
                 <ImageIcon size={16} />
                 Add media
                 <input
@@ -225,7 +223,7 @@ export default function Status() {
                   <span className="max-w-[180px] truncate">{file.name}</span>
                   <button
                     onClick={() => setFile(null)}
-                    className="text-[#25D366] hover:underline"
+                    className="text-[#1a8c7a] hover:underline"
                     type="button"
                   >
                     Remove
@@ -234,7 +232,7 @@ export default function Status() {
               )}
               <button
                 onClick={handleCreate}
-                className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-white text-sm font-medium shadow-sm hover:bg-[#128C7E]"
+                className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#1a8c7a] px-5 py-2.5 text-white text-sm font-medium shadow-sm hover:bg-[#1a8c7a]"
               >
                 <SendHorizontal size={16} />
                 Post
@@ -253,7 +251,7 @@ export default function Status() {
             <div className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Eye size={16} className="text-[#25D366]" />
+                  <Eye size={16} className="text-[#1a8c7a]" />
                   <h3 className="text-sm font-semibold text-[#111b21]">Recent</h3>
                 </div>
                 {unviewed.length === 0 ? (
@@ -265,11 +263,11 @@ export default function Status() {
                         key={group.user.id}
                         className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-white hover:bg-[#f7f9f9] shadow-sm"
                       >
-                        <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#25D366] to-[#1DA1F2]">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                        <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1DA1F2]">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                             {group.user.avatar ? (
                               <img
-                                src={`${mediaBase}${group.user.avatar}`}
+                                src={group.user.avatar}
                                 alt={group.user.name}
                                 className="w-full h-full object-cover"
                               />
@@ -294,7 +292,7 @@ export default function Status() {
                         )}
                         <button
                           onClick={() => handleOpenGroup(group)}
-                          className="text-xs px-3 py-1.5 rounded-full bg-[#25D366] text-white"
+                          className="text-xs px-3 py-1.5 rounded-full bg-[#1a8c7a] text-white"
                         >
                           View
                         </button>
@@ -322,7 +320,7 @@ export default function Status() {
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                             {group.user.avatar ? (
                               <img
-                                src={`${mediaBase}${group.user.avatar}`}
+                                src={group.user.avatar}
                                 alt={group.user.name}
                                 className="w-full h-full object-cover"
                               />
@@ -372,7 +370,7 @@ export default function Status() {
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-sm font-bold">
                           {m.avatar ? (
                             <img
-                              src={`${mediaBase}${m.avatar}`}
+                              src={m.avatar}
                               alt={m.name}
                               className="w-full h-full rounded-full object-cover"
                             />
@@ -386,7 +384,7 @@ export default function Status() {
                         </div>
                         <button
                           onClick={() => handleUnmute(m.id)}
-                          className="text-xs px-3 py-1.5 rounded-full bg-[#25D366] text-white"
+                          className="text-xs px-3 py-1.5 rounded-full bg-[#1a8c7a] text-white"
                         >
                           Unmute
                         </button>
@@ -428,11 +426,11 @@ export default function Status() {
 
           <div className="absolute top-6 left-4 right-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#25D366] to-[#1DA1F2]">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] overflow-hidden flex items-center justify-center text-xs font-bold">
+              <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1DA1F2]">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] overflow-hidden flex items-center justify-center text-xs font-bold">
                   {openGroup.user.avatar ? (
                     <img
-                      src={`${mediaBase}${openGroup.user.avatar}`}
+                      src={openGroup.user.avatar}
                       alt={openGroup.user.name}
                       className="w-full h-full object-cover"
                     />
@@ -477,14 +475,14 @@ export default function Status() {
               )}
               {activeStatus?.mediaUrl && activeStatus.mediaType?.startsWith("image/") && (
                 <img
-                  src={`${mediaBase}${activeStatus.mediaUrl}`}
+                  src={activeStatus.mediaUrl}
                   alt="status"
                   className="w-full rounded-2xl object-cover max-h-[70vh]"
                 />
               )}
               {activeStatus?.mediaUrl && activeStatus.mediaType?.startsWith("video/") && (
                 <video className="w-full rounded-2xl max-h-[70vh]" controls>
-                  <source src={`${mediaBase}${activeStatus.mediaUrl}`} />
+                  <source src={activeStatus.mediaUrl} />
                 </video>
               )}
             </div>
@@ -499,7 +497,7 @@ export default function Status() {
                   openGroup.user.id === user?.id ? "You're viewing your status" : "Reply privately"
                 }
                 disabled={openGroup.user.id === user?.id}
-                className="flex-1 bg-white/10 border border-white/15 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                className="flex-1 bg-white/10 border border-white/15 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
               />
               <button
                 className="w-10 h-10 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white disabled:opacity-50"
@@ -519,6 +517,7 @@ export default function Status() {
     </>
   );
 }
+
 
 
 

@@ -119,7 +119,7 @@ export default function GroupDetail() {
           <div className="px-6 mb-6">
             <button
               onClick={handleCreateInvite}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#25D366] text-white"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
             >
               <Copy size={16} /> Generate invite link
             </button>
@@ -145,7 +145,7 @@ export default function GroupDetail() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleApprove(req.id)}
-                        className="px-3 py-1 rounded-lg bg-[#25D366] text-white text-sm"
+                        className="px-3 py-1 rounded-lg bg-[#1a8c7a] text-white text-sm"
                       >
                         Approve
                       </button>
@@ -201,6 +201,7 @@ export default function GroupDetail() {
     </div>
   );
 }
+
 
 
 

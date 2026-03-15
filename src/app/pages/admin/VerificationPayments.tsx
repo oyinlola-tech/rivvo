@@ -124,7 +124,7 @@ export default function VerificationPayments() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -264,4 +264,5 @@ export default function VerificationPayments() {
     </div>
   );
 }
+
 

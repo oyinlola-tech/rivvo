@@ -10,7 +10,7 @@ export default function ModeratorLayout() {
     return (
       <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -43,7 +43,7 @@ export default function ModeratorLayout() {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive ? "bg-[#25D366] text-white" : "hover:bg-muted text-foreground"
+                  isActive ? "bg-[#1a8c7a] text-white" : "hover:bg-muted text-foreground"
                 }`}
               >
                 <Icon size={20} />
@@ -69,5 +69,6 @@ export default function ModeratorLayout() {
     </div>
   );
 }
+
 
 

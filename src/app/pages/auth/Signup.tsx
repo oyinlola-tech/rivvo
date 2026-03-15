@@ -88,7 +88,7 @@ export default function Signup() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
             placeholder="Enter your full name"
             required
           />
@@ -103,7 +103,7 @@ export default function Signup() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
             placeholder="Enter your email"
             required
           />
@@ -118,7 +118,7 @@ export default function Signup() {
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
             placeholder="Enter your phone number"
           />
         </div>
@@ -133,7 +133,7 @@ export default function Signup() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366] pr-12"
+              className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a] pr-12"
               placeholder="Create a password"
               required
             />
@@ -156,7 +156,7 @@ export default function Signup() {
             type={showPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
             placeholder="Confirm your password"
             required
           />
@@ -167,15 +167,15 @@ export default function Signup() {
             type="checkbox"
             checked={acceptedTerms}
             onChange={(e) => setAcceptedTerms(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-[#25D366] focus:ring-[#25D366]"
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-[#1a8c7a] focus:ring-[#1a8c7a]"
           />
           <span>
             By signing up, you agree to the{" "}
-            <Link to="/terms" className="text-[#25D366] font-medium hover:underline">
+            <Link to="/terms" className="text-[#1a8c7a] font-medium hover:underline">
               Terms
             </Link>{" "}
             and{" "}
-            <Link to="/privacy" className="text-[#25D366] font-medium hover:underline">
+            <Link to="/privacy" className="text-[#1a8c7a] font-medium hover:underline">
               Privacy Policy
             </Link>
             .
@@ -185,7 +185,7 @@ export default function Signup() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#25D366] text-white py-3 rounded-xl font-medium hover:bg-[#128C7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#1a8c7a] text-white py-3 rounded-xl font-medium hover:bg-[#1a8c7a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Creating Account..." : "Sign Up"}
         </button>
@@ -194,7 +194,7 @@ export default function Signup() {
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-600">
           Already have an account?{" "}
-          <Link to="/auth/login" className="text-[#25D366] font-medium hover:underline">
+          <Link to="/auth/login" className="text-[#1a8c7a] font-medium hover:underline">
             Login
           </Link>
         </p>
@@ -202,4 +202,5 @@ export default function Signup() {
     </div>
   );
 }
+
 

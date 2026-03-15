@@ -653,7 +653,7 @@ export default function Messages() {
         <button onClick={() => navigate("/")} className="md:hidden text-[#667781]">
           <ArrowLeft size={22} />
         </button>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-bold">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
           {contact.avatar ? (
             <img
               src={contact.avatar}
@@ -674,7 +674,7 @@ export default function Messages() {
               />
             )}
             {contact.streakCount && contact.streakCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs text-[#25D366]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs text-[#1a8c7a]">
                 <Flame size={12} />
                 {contact.streakCount}
               </span>
@@ -716,7 +716,7 @@ export default function Messages() {
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3 bg-[#efeae2]">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
           </div>
         ) : (
           <>
@@ -733,7 +733,7 @@ export default function Messages() {
                 <div
                   className={`max-w-[78%] rounded-2xl px-4 py-2 shadow-sm ${
                     message.sender === "me"
-                      ? "bg-[#25D366] text-white rounded-br-sm"
+                      ? "bg-[#1a8c7a] text-white rounded-br-sm"
                       : "bg-white text-gray-900 rounded-bl-sm"
                   }`}
                 >
@@ -856,7 +856,7 @@ export default function Messages() {
           <button
             onClick={() => setViewOnceMode((prev) => !prev)}
             className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              viewOnceMode ? "bg-[#25D366] text-white" : "hover:bg-black/5 text-[#667781]"
+              viewOnceMode ? "bg-[#1a8c7a] text-white" : "hover:bg-black/5 text-[#667781]"
             }`}
             title="Send view-once message"
           >
@@ -868,12 +868,12 @@ export default function Messages() {
             onChange={(e) => handleTypingInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
             placeholder="Write your message"
-            className="flex-1 px-4 py-2.5 bg-[#f0f2f5] rounded-full focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="flex-1 px-4 py-2.5 bg-[#f0f2f5] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
           />
           {newMessage.trim() ? (
             <button
               onClick={handleSend}
-              className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center shadow-sm"
+              className="w-10 h-10 rounded-full bg-[#1a8c7a] flex items-center justify-center shadow-sm"
             >
               <Send size={20} className="text-white" />
             </button>
@@ -895,6 +895,7 @@ export default function Messages() {
     </div>
   );
 }
+
 
 
 

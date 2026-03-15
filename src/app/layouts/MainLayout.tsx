@@ -12,7 +12,7 @@ export default function MainLayout() {
     return (
       <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -59,16 +59,16 @@ export default function MainLayout() {
                   key={item.path}
                   to={item.path}
                   className={`flex flex-col items-center gap-1 flex-1 py-2 rounded-xl transition-colors ${
-                    isActive ? "text-[#25D366]" : "text-[#667781]"
+                    isActive ? "text-[#1a8c7a]" : "text-[#667781]"
                   }`}
                 >
                   <Icon
                     size={24}
-                    className={isActive ? "text-[#25D366]" : "text-[#667781]"}
+                    className={isActive ? "text-[#1a8c7a]" : "text-[#667781]"}
                   />
                   <span
                     className={`text-xs ${
-                      isActive ? "text-[#25D366] font-medium" : "text-[#667781]"
+                      isActive ? "text-[#1a8c7a] font-medium" : "text-[#667781]"
                     }`}
                   >
                     {item.label}
@@ -147,7 +147,7 @@ export default function MainLayout() {
                   to={item.path}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
-                      ? "bg-[#25D366] text-white"
+                      ? "bg-[#1a8c7a] text-white"
                       : "hover:bg-muted text-foreground"
                   }`}
                 >
@@ -167,6 +167,7 @@ export default function MainLayout() {
     </div>
   );
 }
+
 
 
 

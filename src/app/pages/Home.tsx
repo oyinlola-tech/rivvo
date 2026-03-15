@@ -183,7 +183,7 @@ export default function Home() {
               placeholder="Search messages..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
             />
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function Home() {
       <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-160px)] pt-6">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -214,7 +214,7 @@ export default function Home() {
                 <div className="flex items-center gap-4">
                   {/* Avatar */}
                   <div className="relative">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white text-xl font-bold">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold">
                       {conversation.user.avatar ? (
                         <img
                           src={conversation.user.avatar}
@@ -260,7 +260,7 @@ export default function Home() {
                       </p>
                       <div className="flex items-center gap-2">
                         {conversation.streakCount && conversation.streakCount > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-[#25D366]">
+                          <div className="flex items-center gap-1 text-xs text-[#1a8c7a]">
                             <Flame size={12} />
                             {conversation.streakCount}
                           </div>
@@ -306,7 +306,7 @@ export default function Home() {
                 onChange={(e) => setUserQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleUserSearch()}
                 placeholder="Search by name, email, phone, or username"
-                className="w-full pl-11 pr-4 py-3 bg-[#f0f2f5] rounded-full focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                className="w-full pl-11 pr-4 py-3 bg-[#f0f2f5] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
               />
             </div>
             {userError && <p className="text-sm text-red-600 mb-3">{userError}</p>}
@@ -326,7 +326,7 @@ export default function Home() {
                           onClick={() => navigate(`/messages/${conversation.id}`)}
                           className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-left hover:bg-[#f7f9f9]"
                         >
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-semibold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-semibold">
                             {conversation.user.avatar ? (
                               <img
                                 src={conversation.user.avatar}
@@ -345,7 +345,7 @@ export default function Home() {
                               {conversation.lastMessage.text || "No messages yet"}
                             </p>
                           </div>
-                          <span className="text-xs text-[#25D366] font-medium">Open</span>
+                          <span className="text-xs text-[#1a8c7a] font-medium">Open</span>
                         </button>
                       ))}
                     </div>
@@ -357,7 +357,7 @@ export default function Home() {
                   </div>
                   {contactsLoading ? (
                     <div className="py-4 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#25D366]"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1a8c7a]"></div>
                     </div>
                   ) : contacts.length === 0 ? (
                     <p className="text-sm text-[#667781]">No contacts found.</p>
@@ -369,7 +369,7 @@ export default function Home() {
                           onClick={() => handleStartChat(contact.id)}
                           className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-left hover:bg-[#f7f9f9]"
                         >
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-semibold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-semibold">
                             {contact.avatar ? (
                               <img
                                 src={contact.avatar}
@@ -386,7 +386,7 @@ export default function Home() {
                               {contact.username ? `@${contact.username}` : contact.email}
                             </p>
                           </div>
-                          <span className="text-xs text-[#25D366] font-medium">Chat</span>
+                          <span className="text-xs text-[#1a8c7a] font-medium">Chat</span>
                         </button>
                       ))}
                     </div>
@@ -396,7 +396,7 @@ export default function Home() {
             )}
             {userLoading ? (
               <div className="py-6 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
               </div>
             ) : userResults.length === 0 ? (
               userQuery.trim() ? (
@@ -410,7 +410,7 @@ export default function Home() {
                     onClick={() => handleStartChat(result.id)}
                     className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-left hover:bg-[#f7f9f9]"
                   >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-semibold">
                       {result.avatar ? (
                         <img
                           src={result.avatar}
@@ -427,7 +427,7 @@ export default function Home() {
                         {result.username ? `@${result.username}` : result.email}
                       </p>
                     </div>
-                    <span className="text-xs text-[#25D366] font-medium">Chat</span>
+                    <span className="text-xs text-[#1a8c7a] font-medium">Chat</span>
                   </button>
                 ))}
               </div>
@@ -438,6 +438,7 @@ export default function Home() {
     </div>
   );
 }
+
 
 
 

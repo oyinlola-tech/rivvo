@@ -94,7 +94,7 @@ export default function DeviceKeys() {
           <div className="mt-4">
             <button
               onClick={rotateKey}
-              className="px-4 py-2 rounded-lg bg-[#25D366] text-white"
+              className="px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
             >
               Rotate Device Key
             </button>
@@ -149,6 +149,7 @@ export default function DeviceKeys() {
     </div>
   );
 }
+
 
 
 

@@ -53,14 +53,14 @@ export default function InviteGroup() {
             {!user ? (
               <Link
                 to="/auth/login"
-                className="inline-flex px-4 py-2 rounded-lg bg-[#25D366] text-white"
+                className="inline-flex px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
               >
                 Login to join
               </Link>
             ) : (
               <button
                 onClick={handleJoin}
-                className="px-4 py-2 rounded-lg bg-[#25D366] text-white"
+                className="px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
               >
                 {group.isPrivate ? "Request to join" : "Join group"}
               </button>
@@ -71,5 +71,6 @@ export default function InviteGroup() {
     </div>
   );
 }
+
 
 

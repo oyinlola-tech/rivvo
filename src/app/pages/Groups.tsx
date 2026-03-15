@@ -100,7 +100,7 @@ export default function Groups() {
               key={value}
               onClick={() => setTab(value)}
               className={`px-4 py-2 rounded-full text-sm ${
-                tab === value ? "bg-[#25D366] text-white" : "bg-white/10 text-white"
+                tab === value ? "bg-[#1a8c7a] text-white" : "bg-white/10 text-white"
               }`}
             >
               {value === "my" ? "My groups" : "Discover"}
@@ -137,7 +137,7 @@ export default function Groups() {
             </label>
             <button
               onClick={handleCreate}
-              className="mt-3 px-4 py-2 rounded-lg bg-[#25D366] text-white"
+              className="mt-3 px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
             >
               Create
             </button>
@@ -161,7 +161,7 @@ export default function Groups() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
           </div>
         ) : tab === "my" ? (
           groups.length === 0 ? (
@@ -194,7 +194,7 @@ export default function Groups() {
                 </div>
                 <button
                   onClick={() => handleJoinPublic(group.id)}
-                  className="px-4 py-2 rounded-lg bg-[#25D366] text-white"
+                  className="px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
                 >
                   Join
                 </button>
@@ -206,6 +206,7 @@ export default function Groups() {
     </div>
   );
 }
+
 
 
 

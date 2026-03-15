@@ -208,7 +208,7 @@ function Group10() {
         <div className="-scale-y-100 flex-none rotate-180">
           <div className="h-[36px] relative w-[141px]">
             <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 141 36">
-              <path d={svgPaths.p224ee980} fill="var(--fill-0, #25D366)" id="Rectangle 1131" />
+              <path d={svgPaths.p224ee980} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1131" />
             </svg>
           </div>
         </div>
@@ -242,7 +242,7 @@ function Group13() {
         <div className="-scale-y-100 flex-none rotate-180">
           <div className="h-[36px] relative w-[145px]">
             <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 145 36">
-              <path d={svgPaths.p2c535800} fill="var(--fill-0, #25D366)" id="Rectangle 1131" />
+              <path d={svgPaths.p2c535800} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1131" />
             </svg>
           </div>
         </div>
@@ -335,7 +335,7 @@ function Play1() {
     <div className="absolute bottom-[16.67%] left-1/4 right-[16.67%] top-[16.67%]" data-name="play">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 11.6667 13.3333">
         <g id="play">
-          <path d={svgPaths.pf7b2680} fill="var(--fill-0, #25D366)" id="Vector 896" />
+          <path d={svgPaths.pf7b2680} fill="var(--fill-0, #1a8c7a)" id="Vector 896" />
         </g>
       </svg>
     </div>
@@ -370,7 +370,7 @@ function Voice() {
         <div className="-scale-y-100 flex-none rotate-180">
           <div className="h-[38px] relative w-[222px]">
             <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 222 38">
-              <path d={svgPaths.p128872a0} fill="var(--fill-0, #25D366)" id="Rectangle 1131" />
+              <path d={svgPaths.p128872a0} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1131" />
             </svg>
           </div>
         </div>
@@ -487,3 +487,4 @@ export default function Message() {
     </div>
   );
 }
+

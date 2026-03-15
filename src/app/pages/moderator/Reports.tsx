@@ -100,7 +100,7 @@ export default function ModeratorReports() {
               key={value}
               onClick={() => setTab(value)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                tab === value ? "bg-[#25D366] text-white" : "bg-gray-100 text-gray-600"
+                tab === value ? "bg-[#1a8c7a] text-white" : "bg-gray-100 text-gray-600"
               }`}
             >
               {value.charAt(0).toUpperCase() + value.slice(1)}
@@ -112,7 +112,7 @@ export default function ModeratorReports() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -231,4 +231,5 @@ export default function ModeratorReports() {
     </div>
   );
 }
+
 

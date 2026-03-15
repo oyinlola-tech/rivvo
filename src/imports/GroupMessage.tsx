@@ -276,18 +276,18 @@ function Group2() {
     <div className="absolute h-[13.462px] left-[130px] top-[552.54px] w-[68px]">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 68 13.4615">
         <g id="Group 69">
-          <path d={svgPaths.p2cd96a00} fill="var(--fill-0, #25D366)" id="Rectangle 1043" />
-          <path d={svgPaths.p3d68fa00} fill="var(--fill-0, #25D366)" id="Rectangle 1044" />
-          <path d={svgPaths.p364f7400} fill="var(--fill-0, #25D366)" id="Rectangle 1045" />
-          <path d={svgPaths.p286e4100} fill="var(--fill-0, #25D366)" id="Rectangle 1046" />
-          <path d={svgPaths.p2109aa00} fill="var(--fill-0, #25D366)" id="Rectangle 1047" />
-          <path d={svgPaths.p2bf90500} fill="var(--fill-0, #25D366)" id="Rectangle 1048" />
-          <path d={svgPaths.p29fb70} fill="var(--fill-0, #25D366)" id="Rectangle 1049" />
-          <path d={svgPaths.p2f13d080} fill="var(--fill-0, #25D366)" id="Rectangle 1050" />
-          <path d={svgPaths.pba3f800} fill="var(--fill-0, #25D366)" id="Rectangle 1051" />
-          <path d={svgPaths.p14c15600} fill="var(--fill-0, #25D366)" id="Rectangle 1052" />
-          <path d={svgPaths.p1a600300} fill="var(--fill-0, #25D366)" id="Rectangle 1053" />
-          <path d={svgPaths.p3443680} fill="var(--fill-0, #25D366)" id="Rectangle 1054" />
+          <path d={svgPaths.p2cd96a00} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1043" />
+          <path d={svgPaths.p3d68fa00} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1044" />
+          <path d={svgPaths.p364f7400} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1045" />
+          <path d={svgPaths.p286e4100} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1046" />
+          <path d={svgPaths.p2109aa00} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1047" />
+          <path d={svgPaths.p2bf90500} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1048" />
+          <path d={svgPaths.p29fb70} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1049" />
+          <path d={svgPaths.p2f13d080} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1050" />
+          <path d={svgPaths.pba3f800} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1051" />
+          <path d={svgPaths.p14c15600} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1052" />
+          <path d={svgPaths.p1a600300} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1053" />
+          <path d={svgPaths.p3443680} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1054" />
         </g>
       </svg>
     </div>
@@ -328,7 +328,7 @@ function Play() {
     <div className="absolute bottom-[16.67%] left-1/4 right-[16.67%] top-[16.67%]" data-name="play">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 11.6667 13.3333">
         <g id="play">
-          <path d={svgPaths.pf7b2680} fill="var(--fill-0, #25D366)" id="Vector 896" />
+          <path d={svgPaths.pf7b2680} fill="var(--fill-0, #1a8c7a)" id="Vector 896" />
         </g>
       </svg>
     </div>
@@ -406,7 +406,7 @@ function Group7() {
         <div className="-scale-y-100 flex-none rotate-180">
           <div className="h-[37px] relative w-[141px]">
             <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 141 37">
-              <path d={svgPaths.p20a07800} fill="var(--fill-0, #25D366)" id="Rectangle 1131" />
+              <path d={svgPaths.p20a07800} fill="var(--fill-0, #1a8c7a)" id="Rectangle 1131" />
             </svg>
           </div>
         </div>
@@ -442,3 +442,4 @@ export default function GroupMessage() {
     </div>
   );
 }
+

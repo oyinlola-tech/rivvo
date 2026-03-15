@@ -45,14 +45,14 @@ export default function InviteUser() {
             {!user ? (
               <Link
                 to="/auth/login"
-                className="inline-flex px-4 py-2 rounded-lg bg-[#25D366] text-white"
+                className="inline-flex px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
               >
                 Login to message
               </Link>
             ) : (
               <button
                 onClick={handleMessage}
-                className="px-4 py-2 rounded-lg bg-[#25D366] text-white"
+                className="px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
               >
                 Message
               </button>
@@ -63,5 +63,6 @@ export default function InviteUser() {
     </div>
   );
 }
+
 
 

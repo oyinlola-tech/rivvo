@@ -45,9 +45,7 @@ export default function Settings() {
   const [showVerificationNotice, setShowVerificationNotice] = useState(true);
   const [verificationError, setVerificationError] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
-  const mediaBase = apiBase.replace(/\/api\/?$/, "");
-  const avatarSrc = avatarUrl ? `${mediaBase}${avatarUrl}` : "";
+  const avatarSrc = avatarUrl || "";
   const missingVerificationProfile = !user?.phone || !user?.username;
   const renewalWindowOpen = (() => {
     if (!user?.verifiedBadgeExpiresAt) return false;
@@ -290,12 +288,12 @@ export default function Settings() {
         <div className="px-6 mb-6">
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                {avatarUrl ? (
-                  <img src={avatarSrc} alt={user?.name} className="w-full h-full object-cover" />
-                ) : (
-                  user?.name[0].toUpperCase()
-                )}
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+              {avatarUrl ? (
+                <img src={avatarSrc} alt={user?.name} className="w-full h-full object-cover" />
+              ) : (
+                user?.name[0].toUpperCase()
+              )}
               </div>
               <div>
                 <h2 className="text-xl font-bold text-[#111b21]">{user?.name}</h2>
@@ -303,7 +301,7 @@ export default function Settings() {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-2 rounded-full border border-[#25D366] px-4 py-2 text-sm text-[#25D366] hover:bg-[#25D366]/10 cursor-pointer">
+              <label className="inline-flex items-center gap-2 rounded-full border border-[#1a8c7a] px-4 py-2 text-sm text-[#1a8c7a] hover:bg-[#1a8c7a]/10 cursor-pointer">
                 <Camera size={16} />
                 Change photo
                 <input
@@ -318,7 +316,7 @@ export default function Settings() {
                   <span className="max-w-[180px] truncate">{avatarFile.name}</span>
                   <button
                     onClick={() => setAvatarFile(null)}
-                    className="text-[#25D366] hover:underline"
+                    className="text-[#1a8c7a] hover:underline"
                     type="button"
                   >
                     Remove
@@ -328,7 +326,7 @@ export default function Settings() {
               <button
                 onClick={handleAvatarUpload}
                 disabled={!avatarFile}
-                className="ml-auto px-4 py-2 rounded-full bg-[#25D366] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-auto px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload
               </button>
@@ -363,7 +361,7 @@ export default function Settings() {
                 type="text"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
-                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
               />
             </div>
             <div>
@@ -372,7 +370,7 @@ export default function Settings() {
                 type="text"
                 value={profileUsername}
                 onChange={(e) => setProfileUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
                 placeholder="@username"
                 disabled={verificationLocked || Boolean(usernameCooldownUntil)}
               />
@@ -394,7 +392,7 @@ export default function Settings() {
                 type="tel"
                 value={profilePhone}
                 onChange={(e) => setProfilePhone(e.target.value)}
-                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
                 placeholder="+234..."
                 disabled={verificationLocked}
               />
@@ -407,7 +405,7 @@ export default function Settings() {
             <button
               onClick={handleProfileSave}
               disabled={profileSaving}
-              className="px-4 py-3 rounded-full bg-[#25D366] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-3 rounded-full bg-[#1a8c7a] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {profileSaving ? "Saving..." : "Save Profile"}
             </button>
@@ -416,7 +414,7 @@ export default function Settings() {
           <div className="mt-4">
             <button
               onClick={handleCreateInvite}
-              className="px-4 py-2 rounded-full bg-[#25D366] text-white text-sm font-medium"
+              className="px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm font-medium"
             >
               Create profile link
             </button>
@@ -441,22 +439,22 @@ export default function Settings() {
 
             <div className="grid gap-2 text-sm text-[#54656f] mb-4">
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#25D366]" />
+                <Sparkles size={14} className="text-[#1a8c7a]" />
                 <span>Boost trust with new connections</span>
               </div>
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#25D366]" />
+                <Sparkles size={14} className="text-[#1a8c7a]" />
                 <span>Increase message response rates</span>
               </div>
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#25D366]" />
+                <Sparkles size={14} className="text-[#1a8c7a]" />
                 <span>Monthly renewal keeps your badge active</span>
               </div>
             </div>
 
             {user?.isVerifiedBadge ? (
               <>
-                <div className="text-sm text-[#128C7E] font-medium mb-3">
+                <div className="text-sm text-[#1a8c7a] font-medium mb-3">
                   Active badge{user.verifiedBadgeExpiresAt
                     ? ` - Renews on ${new Date(user.verifiedBadgeExpiresAt).toLocaleDateString()}`
                     : ""}
@@ -624,7 +622,7 @@ export default function Settings() {
                 {item.hasToggle ? (
                   <div
                     className={`w-12 h-6 rounded-full transition-colors ${
-                      theme === "dark" ? "bg-[#25D366]" : "bg-gray-300"
+                      theme === "dark" ? "bg-[#1a8c7a]" : "bg-gray-300"
                     }`}
                   >
                     <div
@@ -657,6 +655,7 @@ export default function Settings() {
     </div>
   );
 }
+
 
 
 

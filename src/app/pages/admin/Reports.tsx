@@ -122,7 +122,7 @@ export default function AdminReports() {
               onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === status
-                  ? "bg-[#25D366] text-white"
+                  ? "bg-[#1a8c7a] text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -135,7 +135,7 @@ export default function AdminReports() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -255,4 +255,5 @@ export default function AdminReports() {
     </div>
   );
 }
+
 

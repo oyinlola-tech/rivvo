@@ -814,11 +814,47 @@ class ApiClient {
     const form = new FormData();
     if (payload.text) form.append("text", payload.text);
     if (payload.media) form.append("media", payload.media);
-    return this.requestForm("/status", form);
+    const response = await this.requestForm<StatusDto>("/status", form);
+    if (response.success && response.data) {
+      response.data.mediaUrl = withMediaBase(response.data.mediaUrl);
+    }
+    return response;
   }
 
   async getStatuses(): Promise<ApiResponse<StatusResponseDto>> {
-    return this.request("/status");
+    const response = await this.request<StatusResponseDto>("/status");
+    if (response.success && response.data) {
+      response.data = {
+        ...response.data,
+        unviewed: response.data.unviewed.map((group) => ({
+          ...group,
+          user: {
+            ...group.user,
+            avatar: withMediaBase(group.user.avatar),
+          },
+          statuses: group.statuses.map((status) => ({
+            ...status,
+            mediaUrl: withMediaBase(status.mediaUrl),
+          })),
+        })),
+        viewed: response.data.viewed.map((group) => ({
+          ...group,
+          user: {
+            ...group.user,
+            avatar: withMediaBase(group.user.avatar),
+          },
+          statuses: group.statuses.map((status) => ({
+            ...status,
+            mediaUrl: withMediaBase(status.mediaUrl),
+          })),
+        })),
+        muted: response.data.muted.map((muted) => ({
+          ...muted,
+          avatar: withMediaBase(muted.avatar),
+        })),
+      };
+    }
+    return response;
   }
 
   async markStatusViewed(statusId: string): Promise<ApiResponse<{ message: string }>> {
