@@ -1,10 +1,12 @@
-﻿import { Outlet, Link, useLocation, Navigate } from "react-router";
-import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard } from "lucide-react";
+﻿import { useState } from "react";
+import { Outlet, Link, useLocation, Navigate } from "react-router";
+import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard, MoreHorizontal } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MainLayout() {
   const location = useLocation();
   const { user, loading, verificationPending } = useAuth();
+  const [showMoreSheet, setShowMoreSheet] = useState(false);
 
   if (loading) {
     return (
@@ -25,9 +27,11 @@ export default function MainLayout() {
     { path: "/", icon: MessageCircle, label: "Message" },
     { path: "/status", icon: CircleDot, label: "Status" },
     { path: "/calls", icon: Phone, label: "Calls" },
+    { path: "/settings", icon: Settings, label: "Settings", badge: verificationPending ? "Pending" : null },
+  ];
+  const moreItems = [
     { path: "/contacts", icon: Users, label: "Contacts" },
     { path: "/groups", icon: Users, label: "Groups" },
-    { path: "/settings", icon: Settings, label: "Settings", badge: verificationPending ? "Pending" : null },
   ];
   if (user.isAdmin) {
     navItems.push({ path: "/admin", icon: LayoutDashboard, label: "Admin" });
@@ -77,8 +81,52 @@ export default function MainLayout() {
                 </Link>
               );
             })}
+            <button
+              onClick={() => setShowMoreSheet(true)}
+              className="flex flex-col items-center gap-1 flex-1 py-2 rounded-xl text-[#667781]"
+              aria-label="More"
+            >
+              <MoreHorizontal size={24} />
+              <span className="text-xs">More</span>
+            </button>
           </div>
         </div>
+
+        {showMoreSheet && (
+          <div className="fixed inset-0 z-50 bg-black/40 md:hidden">
+            <div className="absolute inset-x-0 bottom-0 bg-background rounded-t-3xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-[#111b21]">More</h2>
+                <button
+                  onClick={() => setShowMoreSheet(false)}
+                  className="text-sm text-[#667781]"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="space-y-2">
+                {moreItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setShowMoreSheet(false)}
+                      className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-left hover:bg-[#f7f9f9]"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-[#e9edef] flex items-center justify-center">
+                        <Icon size={18} className="text-[#54656f]" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-[#111b21]">{item.label}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Desktop Side Navigation */}
         <div className="hidden md:flex md:fixed md:left-0 md:top-0 md:h-full md:w-64 md:bg-background md:border-r md:border-border md:flex-col md:p-6">
@@ -119,5 +167,6 @@ export default function MainLayout() {
     </div>
   );
 }
+
 
 
