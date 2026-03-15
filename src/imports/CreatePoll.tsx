@@ -1,4 +1,4 @@
-import svgPaths from "./svg-dso3m1nfpj";
+﻿import svgPaths from "./svg-dso3m1nfpj";
 import imgEllipse428 from "figma:asset/232da61f1965b908c5657386cd343465934b3627.png";
 import imgRectangle1093 from "figma:asset/4e39ef06c74d6ae337f4d1c0eb498e23bbce4997.png";
 import imgEllipse435 from "figma:asset/d8eb2fd0f7218e274e31c15edc4873fd9514707b.png";
@@ -52,8 +52,8 @@ function StatusBar() {
 function Group7() {
   return (
     <div className="absolute contents leading-[16px] left-[79px] not-italic text-[16px] top-[320px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Regular',sans-serif] left-[79px] text-[#797c7b] top-[320px]">Thought</p>
-      <p className="absolute font-['Circular_Std:Medium',sans-serif] left-[79px] text-[#000e08] top-[340px]">Make something unique and stylist</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] left-[79px] text-[#667781] top-[320px]">Thought</p>
+      <p className="absolute font-['Circular_Std:Medium',sans-serif] left-[79px] text-[#111b21] top-[340px]">Make something unique and stylist</p>
     </div>
   );
 }
@@ -89,7 +89,7 @@ function Group6() {
   return (
     <div className="absolute contents leading-[16px] left-[79px] not-italic text-[16px] top-[404px] whitespace-nowrap">
       <p className="absolute font-['Caros:Regular',sans-serif] left-[79px] text-[#62928c] top-[404px]">UI/UX priority</p>
-      <p className="absolute font-['Circular_Std:Medium',sans-serif] left-[79px] text-[#000e08] top-[424px]">Design is intelligence made visible</p>
+      <p className="absolute font-['Circular_Std:Medium',sans-serif] left-[79px] text-[#111b21] top-[424px]">Design is intelligence made visible</p>
     </div>
   );
 }
@@ -100,7 +100,7 @@ function Group1() {
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 28 28">
         <g id="Group">
           <g id="Path" />
-          <path clipRule="evenodd" d={svgPaths.p75b9d00} fill="var(--fill-0, #000E08)" fillRule="evenodd" id="Path_2" />
+          <path clipRule="evenodd" d={svgPaths.p75b9d00} fill="var(--fill-0, #111b21)" fillRule="evenodd" id="Path_2" />
           <path d={svgPaths.p33096204} id="Path_3" stroke="var(--stroke-0, white)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
         </g>
       </svg>
@@ -128,8 +128,8 @@ function Pill2Uihut() {
 function Group5() {
   return (
     <div className="absolute contents leading-[16px] left-[79px] not-italic text-[16px] top-[488px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Regular',sans-serif] left-[79px] text-[#797c7b] top-[488px]">Design</p>
-      <p className="absolute font-['Circular_Std:Medium',sans-serif] left-[79px] text-[#000e08] top-[508px]">Everything is designed for you</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] left-[79px] text-[#667781] top-[488px]">Design</p>
+      <p className="absolute font-['Circular_Std:Medium',sans-serif] left-[79px] text-[#111b21] top-[508px]">Everything is designed for you</p>
     </div>
   );
 }
@@ -194,7 +194,7 @@ function VotedMemberUihut() {
   return (
     <div className="absolute contents left-[24px] top-[588px]" data-name="Voted member-uihut">
       <Group4 />
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#797c7b] text-[16px] top-[588px] whitespace-nowrap">Voted member</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#667781] text-[16px] top-[588px] whitespace-nowrap">Voted member</p>
     </div>
   );
 }
@@ -206,7 +206,7 @@ function Group2() {
         <g id="Group 274">
           <circle cx="22" cy="22" fill="var(--fill-0, white)" id="Ellipse 299" r="22" />
           <g id="outline/remove">
-            <path d={svgPaths.p333e2080} id="Vector" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p333e2080} id="Vector" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
         </g>
       </svg>
@@ -218,7 +218,7 @@ function TopBarUihut() {
   return (
     <div className="absolute contents left-[24px] top-[60px]" data-name="top bar-uihut">
       <Group2 />
-      <p className="absolute font-['Caros:Bold',sans-serif] leading-[22px] left-[24px] not-italic text-[#000e08] text-[22px] top-[71px] whitespace-nowrap">Create Poll</p>
+      <p className="absolute font-['Caros:Bold',sans-serif] leading-[22px] left-[24px] not-italic text-[#111b21] text-[22px] top-[71px] whitespace-nowrap">Create Poll</p>
     </div>
   );
 }
@@ -227,7 +227,7 @@ export default function CreatePoll() {
   return (
     <div className="bg-[#f1faf9] relative size-full" data-name="Create poll">
       <StatusBar />
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[52px] left-[24px] not-italic text-[#000e08] text-[40px] top-[146px] w-[327px] whitespace-pre-wrap">{`What would you like to  work?`}</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[52px] left-[24px] not-italic text-[#111b21] text-[40px] top-[146px] w-[327px] whitespace-pre-wrap">{`What would you like to  work?`}</p>
       <Poll1Uihut />
       <Pill2Uihut />
       <Poll3Uihut />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router";
 import { useTheme } from "next-themes";
@@ -17,6 +17,8 @@ import {
   CheckCircle,
   Sparkles,
   ShieldAlert,
+  Camera,
+  ChevronRight,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 
@@ -264,43 +266,63 @@ export default function Settings() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#000e08] md:ml-64">
+    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
       {/* Header */}
-      <div className="bg-[#000e08] sticky top-0 z-10 px-6 py-4">
+      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
       </div>
 
       {/* Settings Content */}
-      <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-100px)] pt-6">
+      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6">
         {/* Profile Section */}
         <div className="px-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarSrc} alt={user?.name} className="w-full h-full object-cover" />
-              ) : (
-                user?.name[0].toUpperCase()
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarSrc} alt={user?.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.name[0].toUpperCase()
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-[#111b21]">{user?.name}</h2>
+                <p className="text-sm text-[#667781]">{user?.email}</p>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-2 rounded-full border border-[#25D366] px-4 py-2 text-sm text-[#25D366] hover:bg-[#25D366]/10 cursor-pointer">
+                <Camera size={16} />
+                Change photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+              </label>
+              {avatarFile && (
+                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs text-[#54656f] border border-gray-200">
+                  <span className="max-w-[180px] truncate">{avatarFile.name}</span>
+                  <button
+                    onClick={() => setAvatarFile(null)}
+                    className="text-[#25D366] hover:underline"
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
               )}
+              <button
+                onClick={handleAvatarUpload}
+                disabled={!avatarFile}
+                className="ml-auto px-4 py-2 rounded-full bg-[#25D366] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Upload
+              </button>
             </div>
-            <div>
-              <h2 className="text-xl font-bold">{user?.name}</h2>
-              <p className="text-sm text-gray-600">{user?.email}</p>
-            </div>
+            {avatarError && <p className="text-sm text-red-600 mt-3">{avatarError}</p>}
           </div>
-          <div className="mt-4 flex items-center gap-3">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
-            />
-            <button
-              onClick={handleAvatarUpload}
-              className="px-4 py-2 rounded-lg bg-[#20A090] text-white"
-            >
-              Upload Photo
-            </button>
-          </div>
-          {avatarError && <p className="text-sm text-red-600 mt-2">{avatarError}</p>}
           <div className="mt-6 grid gap-3">
             {verificationLocked && (
               <div className="flex items-center gap-2 text-xs text-[#8B6B00] bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
@@ -329,7 +351,7 @@ export default function Settings() {
                 type="text"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
-                className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
               />
             </div>
             <div>
@@ -338,17 +360,17 @@ export default function Settings() {
                 type="text"
                 value={profileUsername}
                 onChange={(e) => setProfileUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
                 placeholder="@username"
                 disabled={verificationLocked || Boolean(usernameCooldownUntil)}
               />
               {verificationLocked && (
-                <p className="text-xs text-[#797c7b] mt-1">
+                <p className="text-xs text-[#667781] mt-1">
                   Username can't be removed while verification is active or pending review.
                 </p>
               )}
               {usernameCooldownUntil && (
-                <p className="text-xs text-[#797c7b] mt-1">
+                <p className="text-xs text-[#667781] mt-1">
                   Username can be changed again on{" "}
                   {usernameCooldownUntil.toLocaleDateString()}.
                 </p>
@@ -360,12 +382,12 @@ export default function Settings() {
                 type="tel"
                 value={profilePhone}
                 onChange={(e) => setProfilePhone(e.target.value)}
-                className="w-full px-4 py-3 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                className="w-full px-4 py-3 bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
                 placeholder="+234..."
                 disabled={verificationLocked}
               />
               {verificationLocked && (
-                <p className="text-xs text-[#797c7b] mt-1">
+                <p className="text-xs text-[#667781] mt-1">
                   Phone number can't be removed while verification is active or pending review.
                 </p>
               )}
@@ -373,7 +395,7 @@ export default function Settings() {
             <button
               onClick={handleProfileSave}
               disabled={profileSaving}
-              className="px-4 py-3 rounded-xl bg-[#20A090] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-3 rounded-full bg-[#25D366] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {profileSaving ? "Saving..." : "Save Profile"}
             </button>
@@ -382,47 +404,47 @@ export default function Settings() {
           <div className="mt-4">
             <button
               onClick={handleCreateInvite}
-              className="px-4 py-2 rounded-lg bg-[#20A090] text-white"
+              className="px-4 py-2 rounded-full bg-[#25D366] text-white text-sm font-medium"
             >
               Create profile link
             </button>
             {inviteLink && (
-              <p className="mt-2 text-xs text-gray-600 break-all">{inviteLink}</p>
+              <p className="mt-2 text-xs text-[#667781] break-all">{inviteLink}</p>
             )}
           </div>
         </div>
 
         {/* Verification */}
         <div className="px-6 mb-6">
-          <div className="rounded-2xl border border-gray-100 bg-[#F8FBFA] p-5">
+          <div className="rounded-2xl border border-gray-100 bg-[#f7f9f9] p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-11 h-11 rounded-full bg-[#1DA1F2] flex items-center justify-center">
                 <CheckCircle size={20} className="text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#000e08]">Get Verified</h3>
-                <p className="text-sm text-[#797c7b]">Stand out with a verified checkmark</p>
+                <h3 className="font-semibold text-[#111b21]">Get Verified</h3>
+                <p className="text-sm text-[#667781]">Stand out with a verified checkmark</p>
               </div>
             </div>
 
-            <div className="grid gap-2 text-sm text-[#4A4F4E] mb-4">
+            <div className="grid gap-2 text-sm text-[#54656f] mb-4">
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#20A090]" />
+                <Sparkles size={14} className="text-[#25D366]" />
                 <span>Boost trust with new connections</span>
               </div>
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#20A090]" />
+                <Sparkles size={14} className="text-[#25D366]" />
                 <span>Increase message response rates</span>
               </div>
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#20A090]" />
+                <Sparkles size={14} className="text-[#25D366]" />
                 <span>Monthly renewal keeps your badge active</span>
               </div>
             </div>
 
             {user?.isVerifiedBadge ? (
               <>
-                <div className="text-sm text-[#1a8c7a] font-medium mb-3">
+                <div className="text-sm text-[#128C7E] font-medium mb-3">
                   Active badge{user.verifiedBadgeExpiresAt
                     ? ` - Renews on ${new Date(user.verifiedBadgeExpiresAt).toLocaleDateString()}`
                     : ""}
@@ -437,12 +459,12 @@ export default function Settings() {
                   </button>
                 )}
                 {missingVerificationProfile && (
-                  <p className="text-xs text-[#797c7b] mt-2">
+                  <p className="text-xs text-[#667781] mt-2">
                     Add a username and phone number in your profile to renew verification.
                   </p>
                 )}
                 {!renewalWindowOpen && (
-                  <p className="text-xs text-[#797c7b]">
+                  <p className="text-xs text-[#667781]">
                     Renewal opens 7 days before expiry.
                   </p>
                 )}
@@ -450,21 +472,21 @@ export default function Settings() {
             ) : (
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm text-[#797c7b]">
+                  <div className="text-sm text-[#667781]">
                     {pricing?.active ? (
                       <>
                         Price:{" "}
-                        <span className="font-semibold text-[#000e08]">
+                        <span className="font-semibold text-[#111b21]">
                           {pricing.amount?.toLocaleString()} {pricing.currency}
                         </span>
-                        <span className="text-xs text-[#797c7b]"> / month</span>
+                        <span className="text-xs text-[#667781]"> / month</span>
                       </>
                     ) : (
                       "Verification pricing unavailable"
                     )}
                   </div>
                   {eligibility?.eligibleAt && !eligibility?.eligible && (
-                    <div className="text-xs text-[#797c7b]">
+                    <div className="text-xs text-[#667781]">
                       Available on {new Date(eligibility.eligibleAt).toLocaleDateString()}
                     </div>
                   )}
@@ -490,12 +512,12 @@ export default function Settings() {
                   <p className="text-sm text-red-600 mt-2">{verificationError}</p>
                 )}
                 {missingVerificationProfile && (
-                  <p className="text-xs text-[#797c7b] mt-2">
+                  <p className="text-xs text-[#667781] mt-2">
                     Add a username and phone number in your profile to buy verification.
                   </p>
                 )}
                 {!eligibility?.eligible && (
-                  <p className="text-xs text-[#797c7b] mt-2">
+                  <p className="text-xs text-[#667781] mt-2">
                     Checkmark becomes available after 3 months on Rivvo.
                   </p>
                 )}
@@ -550,8 +572,8 @@ export default function Settings() {
         {/* Checkmark Legend */}
         <div className="px-6 mb-6">
           <div className="rounded-2xl border border-gray-100 bg-white p-4">
-            <h4 className="text-sm font-semibold text-[#000e08] mb-2">Checkmark Legend</h4>
-            <div className="flex items-center gap-3 text-sm text-[#797c7b]">
+            <h4 className="text-sm font-semibold text-[#111b21] mb-2">Checkmark Legend</h4>
+            <div className="flex items-center gap-3 text-sm text-[#667781]">
               <span className="inline-flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#1DA1F2]">
                   <CheckCircle size={10} className="text-white" />
@@ -570,38 +592,42 @@ export default function Settings() {
 
         {/* Settings Groups */}
         {settingsGroups.map((group, groupIndex) => (
-          <div key={groupIndex} className="mb-4">
-            {group.items.map((item, itemIndex) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={itemIndex}
-                  onClick={item.onClick}
-                  className="w-full px-6 py-4 hover:bg-gray-50 transition-colors flex items-center gap-4 border-b border-gray-100"
-                >
-                  <div className="w-11 h-11 rounded-full bg-[#F2F8F7] flex items-center justify-center">
-                    <Icon size={20} className="text-[#797C7B]" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="font-semibold text-[#000e08]">{item.label}</h3>
-                    <p className="text-sm text-[#797c7b]">{item.description}</p>
-                  </div>
-                  {item.hasToggle && (
+          <div key={groupIndex} className="mb-4 px-6">
+            <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm">
+              {group.items.map((item, itemIndex) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={itemIndex}
+                    onClick={item.onClick}
+                    className="w-full px-5 py-4 hover:bg-[#f7f9f9] transition-colors flex items-center gap-4 border-b border-gray-100 last:border-b-0"
+                  >
+                <div className="w-11 h-11 rounded-full bg-[#e9edef] flex items-center justify-center">
+                  <Icon size={20} className="text-[#54656f]" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-semibold text-[#111b21]">{item.label}</h3>
+                  <p className="text-sm text-[#667781]">{item.description}</p>
+                </div>
+                {item.hasToggle ? (
+                  <div
+                    className={`w-12 h-6 rounded-full transition-colors ${
+                      theme === "dark" ? "bg-[#25D366]" : "bg-gray-300"
+                    }`}
+                  >
                     <div
-                      className={`w-12 h-6 rounded-full transition-colors ${
-                        theme === "dark" ? "bg-[#20A090]" : "bg-gray-300"
+                      className={`w-5 h-5 rounded-full bg-white mt-0.5 transition-transform ${
+                        theme === "dark" ? "translate-x-6" : "translate-x-1"
                       }`}
-                    >
-                      <div
-                        className={`w-5 h-5 rounded-full bg-white mt-0.5 transition-transform ${
-                          theme === "dark" ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                    />
+                  </div>
+                ) : (
+                  <ChevronRight size={18} className="text-[#667781]" />
+                )}
+              </button>
+                );
+              })}
+            </div>
           </div>
         ))}
 
@@ -619,4 +645,7 @@ export default function Settings() {
     </div>
   );
 }
+
+
+
 

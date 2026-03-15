@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
@@ -304,7 +304,7 @@ export default function CallRoom() {
   const totalParticipants = 1 + remoteStreams.length;
 
   return (
-    <div className="min-h-screen bg-[#000e08] text-white">
+    <div className="min-h-[100dvh] bg-[#111b21] text-white">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -413,3 +413,5 @@ function RemoteTile({
     </div>
   );
 }
+
+

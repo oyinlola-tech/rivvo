@@ -25,7 +25,7 @@ function App() {
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="light">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
         <RouterProvider router={router} />
         <Toaster />

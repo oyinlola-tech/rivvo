@@ -49,6 +49,7 @@ export interface ConversationDto {
     timestamp: string | null;
     unreadCount: number;
   };
+  streakCount?: number;
 }
 
 export interface MessageDto {
@@ -79,6 +80,7 @@ export interface PeerDto {
   isModerator: boolean;
   isAdmin: boolean;
   publicKey?: string | null;
+  streakCount?: number;
 }
 
 export interface DeviceDto {

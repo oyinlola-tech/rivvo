@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../lib/api";
@@ -138,7 +138,7 @@ export default function OTPVerification() {
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
-              className="w-12 h-14 text-center text-xl font-bold bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+              className="w-12 h-14 text-center text-xl font-bold bg-[#f0f2f5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#25D366]"
             />
           ))}
         </div>
@@ -146,7 +146,7 @@ export default function OTPVerification() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#20A090] text-white py-3 rounded-xl font-medium hover:bg-[#1a8c7a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#25D366] text-white py-3 rounded-xl font-medium hover:bg-[#128C7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Verifying..." : "Verify Email"}
         </button>
@@ -158,7 +158,7 @@ export default function OTPVerification() {
           <button
             onClick={handleResend}
             disabled={resendLoading}
-            className="text-[#20A090] font-medium hover:underline disabled:opacity-50"
+            className="text-[#25D366] font-medium hover:underline disabled:opacity-50"
           >
             {resendLoading ? "Sending..." : "Resend"}
           </button>
@@ -167,3 +167,4 @@ export default function OTPVerification() {
     </div>
   );
 }
+

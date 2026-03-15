@@ -1,4 +1,4 @@
-import svgPaths from "./svg-8cf93of1e5";
+﻿import svgPaths from "./svg-8cf93of1e5";
 import imgRectangle1110 from "figma:asset/a9feae091f1cc422584f752ab411848eed45fa51.png";
 import imgEllipse412 from "figma:asset/223a81c6d5c434715e36b9ab2ecc798348eabcfe.png";
 import imgEllipse411 from "figma:asset/5635d3e15b8c9b84b3fddbb9f8eed9bab00633e1.png";
@@ -154,7 +154,7 @@ function Group7() {
     <div className="absolute contents left-[234px] top-[611px]">
       <div className="absolute left-[234px] size-[48px] top-[611px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 48 48">
-          <circle cx="24" cy="24" fill="var(--fill-0, #20A090)" id="Ellipse 399" r="24" />
+          <circle cx="24" cy="24" fill="var(--fill-0, #25D366)" id="Ellipse 399" r="24" />
         </svg>
       </div>
       <Message />

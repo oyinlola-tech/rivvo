@@ -1,4 +1,4 @@
-import svgPaths from "./svg-8hn502q7m8";
+﻿import svgPaths from "./svg-8hn502q7m8";
 import imgEllipse307 from "figma:asset/ed41264d9beba9e2d5928ade1b92b6a229a9bc3d.png";
 
 function Group() {
@@ -62,10 +62,10 @@ function Group1() {
       <div className="absolute inset-[-3.85%]">
         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 21 21">
           <g id="Group">
-            <path clipRule="evenodd" d={svgPaths.p3f1a2380} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p32c60400} id="Path_2" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p1a78c380} id="Path_3" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.peed1700} id="Path_4" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path clipRule="evenodd" d={svgPaths.p3f1a2380} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p32c60400} id="Path_2" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p1a78c380} id="Path_3" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.peed1700} id="Path_4" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
         </svg>
       </div>
@@ -85,7 +85,7 @@ function Group8() {
   return (
     <div className="absolute contents left-[24px] top-[740px]">
       <Message />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[24px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Message</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[24px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Message</p>
     </div>
   );
 }
@@ -95,7 +95,7 @@ function Call() {
     <div className="absolute inset-[91.13%_58.67%_5.67%_34.4%]" data-name="Call">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 26 26">
         <g id="Call">
-          <path d={svgPaths.p1968a300} fill="var(--stroke-0, #797C7B)" id="Vector" />
+          <path d={svgPaths.p1968a300} fill="var(--stroke-0, #667781)" id="Vector" />
         </g>
       </svg>
     </div>
@@ -106,7 +106,7 @@ function Group7() {
   return (
     <div className="absolute contents left-[123px] top-[740px]">
       <Call />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[123px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Calls</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[123px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Calls</p>
     </div>
   );
 }
@@ -116,9 +116,9 @@ function User() {
     <div className="absolute left-[212px] size-[26px] top-[740px]" data-name="user">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 26 26">
         <g id="user">
-          <circle cx="13" cy="13" id="Ellipse 259" r="10.8333" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
-          <path d={svgPaths.p1352bf80} id="Vector" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-          <circle cx="3.25" cy="3.25" id="Ellipse 260" r="3.25" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" transform="matrix(1 0 0 -1 9.75 13)" />
+          <circle cx="13" cy="13" id="Ellipse 259" r="10.8333" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d={svgPaths.p1352bf80} id="Vector" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+          <circle cx="3.25" cy="3.25" id="Ellipse 260" r="3.25" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" transform="matrix(1 0 0 -1 9.75 13)" />
         </g>
       </svg>
     </div>
@@ -129,7 +129,7 @@ function Group6() {
   return (
     <div className="absolute contents left-[189px] top-[740px]">
       <User />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[189px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Contacts</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[189px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Contacts</p>
     </div>
   );
 }
@@ -198,8 +198,8 @@ function Profile() {
       <div className="absolute left-[24px] size-[60px] top-[176px]">
         <img alt="" className="absolute block max-w-none size-full" height="60" src={imgEllipse307} width="60" />
       </div>
-      <p className="absolute font-['Caros:Bold',sans-serif] leading-[20px] left-[96px] not-italic text-[#000e08] text-[20px] top-[187px] whitespace-nowrap">Nazrul Islam</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[99px] not-italic text-[#797c7b] text-[12px] top-[213px] whitespace-nowrap">Never give up 💪</p>
+      <p className="absolute font-['Caros:Bold',sans-serif] leading-[20px] left-[96px] not-italic text-[#111b21] text-[20px] top-[187px] whitespace-nowrap">Nazrul Islam</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[99px] not-italic text-[#667781] text-[12px] top-[213px] whitespace-nowrap">Never give up ðŸ’ª</p>
       <QrCode />
     </div>
   );
@@ -211,8 +211,8 @@ function Group3() {
       <div className="absolute inset-[-4.41%]">
         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 18.501 18.4998">
           <g id="Group">
-            <path d={svgPaths.p9716b80} id="Path" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path clipRule="evenodd" d={svgPaths.p2b0655b0} fillRule="evenodd" id="Path_2" stroke="var(--stroke-1, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p9716b80} id="Path" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path clipRule="evenodd" d={svgPaths.p2b0655b0} fillRule="evenodd" id="Path_2" stroke="var(--stroke-1, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
         </svg>
       </div>
@@ -252,8 +252,8 @@ function Group9() {
 function Group14() {
   return (
     <div className="absolute contents left-[80px] not-italic top-[291px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#000e08] text-[16px] top-[291px]">Account</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#797c7b] text-[12px] top-[313px]">Privacy, security, change number</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#111b21] text-[16px] top-[291px]">Account</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#667781] text-[12px] top-[313px]">Privacy, security, change number</p>
     </div>
   );
 }
@@ -273,10 +273,10 @@ function Group4() {
       <div className="absolute inset-[-3.85%]">
         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 21 21">
           <g id="Group">
-            <path clipRule="evenodd" d={svgPaths.p3f1a2380} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p32c60400} id="Path_2" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p1a78c380} id="Path_3" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.peed1700} id="Path_4" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path clipRule="evenodd" d={svgPaths.p3f1a2380} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p32c60400} id="Path_2" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p1a78c380} id="Path_3" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.peed1700} id="Path_4" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
         </svg>
       </div>
@@ -308,8 +308,8 @@ function Group19() {
 function Group20() {
   return (
     <div className="absolute contents left-[80px] not-italic top-[365px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#000e08] text-[16px] top-[365px]">Chat</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#797c7b] text-[12px] top-[387px]">Chat history,theme,wallpapers</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#111b21] text-[16px] top-[365px]">Chat</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#667781] text-[12px] top-[387px]">Chat history,theme,wallpapers</p>
     </div>
   );
 }
@@ -330,7 +330,7 @@ function Group10() {
         <g id="Group 404">
           <circle cx="22" cy="22" fill="var(--fill-0, #F2F8F7)" id="Ellipse 1183" r="22" />
           <g id="Notification">
-            <path d={svgPaths.p2aa39a80} fill="var(--stroke-0, #797C7B)" id="Vector" />
+            <path d={svgPaths.p2aa39a80} fill="var(--stroke-0, #667781)" id="Vector" />
           </g>
         </g>
       </svg>
@@ -341,8 +341,8 @@ function Group10() {
 function Group15() {
   return (
     <div className="absolute contents left-[80px] not-italic top-[439px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#000e08] text-[16px] top-[439px]">Notifications</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#797c7b] text-[12px] top-[461px]">Messages, group and others</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#111b21] text-[16px] top-[439px]">Notifications</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#667781] text-[12px] top-[461px]">Messages, group and others</p>
     </div>
   );
 }
@@ -363,8 +363,8 @@ function Group11() {
         <g id="Group 405">
           <circle cx="22" cy="22" fill="var(--fill-0, #F2F8F7)" id="Ellipse 1184" r="22" />
           <g id="Help">
-            <path d={svgPaths.p28560800} id="Vector" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeWidth="1.5" />
-            <circle cx="22" cy="27" fill="var(--fill-0, #797C7B)" id="Ellipse 1181" r="1" />
+            <path d={svgPaths.p28560800} id="Vector" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeWidth="1.5" />
+            <circle cx="22" cy="27" fill="var(--fill-0, #667781)" id="Ellipse 1181" r="1" />
           </g>
         </g>
       </svg>
@@ -375,8 +375,8 @@ function Group11() {
 function Group16() {
   return (
     <div className="absolute contents left-[80px] not-italic top-[513px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#000e08] text-[16px] top-[513px]">Help</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#797c7b] text-[12px] top-[535px]">Help center,contact us, privacy policy</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#111b21] text-[16px] top-[513px]">Help</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#667781] text-[12px] top-[535px]">Help center,contact us, privacy policy</p>
     </div>
   );
 }
@@ -397,8 +397,8 @@ function Group12() {
         <g id="Group 406">
           <circle cx="22" cy="22" fill="var(--fill-0, #F2F8F7)" id="Ellipse 1185" r="22" />
           <g id="Data">
-            <path d={svgPaths.p25201d80} id="Vector 198" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p1474ff80} id="Vector 199" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p25201d80} id="Vector 198" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p1474ff80} id="Vector 199" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
         </g>
       </svg>
@@ -409,8 +409,8 @@ function Group12() {
 function Group17() {
   return (
     <div className="absolute contents left-[80px] not-italic top-[587px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#000e08] text-[16px] top-[587px]">Storage and data</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#797c7b] text-[12px] top-[609px]">Network usage, stogare usage</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] text-[#111b21] text-[16px] top-[587px]">Storage and data</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[82px] text-[#667781] text-[12px] top-[609px]">Network usage, stogare usage</p>
     </div>
   );
 }
@@ -431,10 +431,10 @@ function Group13() {
         <g id="Group 407">
           <circle cx="22" cy="22" fill="var(--fill-0, #F2F8F7)" id="Ellipse 1186" r="22" />
           <g id="Users">
-            <ellipse cx="20" cy="27.5" id="Ellipse 293" rx="7" ry="3.5" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
-            <circle cx="20" cy="17" id="Ellipse 294" r="4" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p31457300} fill="var(--fill-0, #797C7B)" id="Subtract" />
-            <path d={svgPaths.p18625c80} fill="var(--fill-0, #797C7B)" id="Subtract_2" />
+            <ellipse cx="20" cy="27.5" id="Ellipse 293" rx="7" ry="3.5" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
+            <circle cx="20" cy="17" id="Ellipse 294" r="4" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p31457300} fill="var(--fill-0, #667781)" id="Subtract" />
+            <path d={svgPaths.p18625c80} fill="var(--fill-0, #667781)" id="Subtract_2" />
           </g>
         </g>
       </svg>
@@ -445,7 +445,7 @@ function Group13() {
 function Group18() {
   return (
     <div className="absolute contents left-[80px] top-[670px]">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] not-italic text-[#000e08] text-[16px] top-[670px] whitespace-nowrap">Invite a friend</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[80px] not-italic text-[#111b21] text-[16px] top-[670px] whitespace-nowrap">Invite a friend</p>
     </div>
   );
 }
@@ -461,7 +461,7 @@ function InviteFriends() {
 
 export default function Settings() {
   return (
-    <div className="bg-[#000e08] relative size-full" data-name="Settings">
+    <div className="bg-[#111b21] relative size-full" data-name="Settings">
       <div className="absolute bg-white h-[677px] left-0 rounded-tl-[40px] rounded-tr-[40px] top-[135px] w-[375px]" />
       <div className="absolute h-0 left-0 top-[256px] w-[375px]">
         <div className="absolute inset-[-1px_0_0_0]">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Link as LinkIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -97,14 +97,14 @@ export default function Calls() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000e08] md:ml-64">
+    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
       {/* Header */}
-      <div className="bg-[#000e08] sticky top-0 z-10 px-6 py-4">
+      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
         <h1 className="text-2xl font-bold text-white">Calls</h1>
       </div>
 
       {/* Calls List */}
-      <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-100px)] pt-6">
+      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6">
         <div className="px-6 mb-6">
           <h2 className="font-semibold text-lg mb-3">Create call link</h2>
           <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -140,7 +140,7 @@ export default function Calls() {
             )}
             <button
               onClick={handleCreateCallLink}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#20A090] text-white text-sm"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#25D366] text-white text-sm"
             >
               <LinkIcon size={16} /> Create link
             </button>
@@ -153,7 +153,7 @@ export default function Calls() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -168,7 +168,7 @@ export default function Calls() {
             {calls.map((call) => (
               <div key={call.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-bold">
                     {call.user.avatar ? (
                       <img
                         src={call.user.avatar}
@@ -182,7 +182,7 @@ export default function Calls() {
 
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-[#000e08]">{call.user.name}</h3>
+                      <h3 className="font-semibold text-[#111b21]">{call.user.name}</h3>
                       {(call.user.isVerifiedBadge || call.user.isModerator || call.user.isAdmin) && (
                         <VerificationBadge
                           type={call.user.isModerator || call.user.isAdmin ? "staff" : "user"}
@@ -190,7 +190,7 @@ export default function Calls() {
                         />
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-[#797c7b]">
+                    <div className="flex items-center gap-2 text-sm text-[#667781]">
                       {getCallIcon(call.direction)}
                       <span>{formatTime(call.timestamp)}</span>
                     </div>
@@ -198,10 +198,10 @@ export default function Calls() {
 
                   <div className="flex gap-2">
                     <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
-                      <Phone size={20} className="text-[#797C7B]" />
+                      <Phone size={20} className="text-[#667781]" />
                     </button>
                     <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
-                      <Video size={20} className="text-[#797C7B]" />
+                      <Video size={20} className="text-[#667781]" />
                     </button>
                   </div>
                 </div>
@@ -213,3 +213,6 @@ export default function Calls() {
     </div>
   );
 }
+
+
+

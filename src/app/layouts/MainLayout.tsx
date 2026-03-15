@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, Navigate } from "react-router";
+﻿import { Outlet, Link, useLocation, Navigate } from "react-router";
 import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -8,9 +8,9 @@ export default function MainLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -34,14 +34,14 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="pb-20 md:pb-0">
           <Outlet />
         </div>
 
         {/* Mobile Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#000e08] border-t border-border md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border md:hidden">
           <div className="flex justify-around items-center h-20 px-4">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -54,15 +54,17 @@ export default function MainLayout() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="flex flex-col items-center gap-1 flex-1"
+                  className={`flex flex-col items-center gap-1 flex-1 py-2 rounded-xl transition-colors ${
+                    isActive ? "text-[#25D366]" : "text-[#667781]"
+                  }`}
                 >
                   <Icon
                     size={24}
-                    className={isActive ? "text-[#20A090]" : "text-[#797C7B]"}
+                    className={isActive ? "text-[#25D366]" : "text-[#667781]"}
                   />
                   <span
                     className={`text-xs ${
-                      isActive ? "text-[#20A090] font-medium" : "text-[#797C7B]"
+                      isActive ? "text-[#25D366] font-medium" : "text-[#667781]"
                     }`}
                   >
                     {item.label}
@@ -79,7 +81,7 @@ export default function MainLayout() {
         </div>
 
         {/* Desktop Side Navigation */}
-        <div className="hidden md:flex md:fixed md:left-0 md:top-0 md:h-full md:w-64 md:bg-white dark:md:bg-[#000e08] md:border-r md:border-border md:flex-col md:p-6">
+        <div className="hidden md:flex md:fixed md:left-0 md:top-0 md:h-full md:w-64 md:bg-background md:border-r md:border-border md:flex-col md:p-6">
           <div className="mb-8">
             <h1 className="text-2xl font-bold">RIVVO</h1>
           </div>
@@ -97,7 +99,7 @@ export default function MainLayout() {
                   to={item.path}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
-                      ? "bg-[#20A090] text-white"
+                      ? "bg-[#25D366] text-white"
                       : "hover:bg-muted text-foreground"
                   }`}
                 >
@@ -117,3 +119,5 @@ export default function MainLayout() {
     </div>
   );
 }
+
+

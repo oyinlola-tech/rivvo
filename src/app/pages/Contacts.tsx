@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Search, UserPlus } from "lucide-react";
 import { api } from "../lib/api";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -110,9 +110,9 @@ export default function Contacts() {
   });
 
   return (
-    <div className="min-h-screen bg-[#000e08] md:ml-64">
+    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
       {/* Header */}
-      <div className="bg-[#000e08] sticky top-0 z-10">
+      <div className="bg-[#111b21] sticky top-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-white">Contacts</h1>
@@ -128,7 +128,7 @@ export default function Contacts() {
               placeholder="Search by name, @username, email, phone"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
             />
           </div>
         </div>
@@ -136,10 +136,10 @@ export default function Contacts() {
 
       {/* Search Results */}
       {showSearchResults && (
-        <div className="bg-white dark:bg-white rounded-t-[40px] pt-6">
+        <div className="bg-background rounded-t-[40px] pt-6">
           {searching ? (
             <div className="flex items-center justify-center py-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
             </div>
           ) : results.length === 0 ? (
             <div className="text-center py-6">
@@ -151,7 +151,7 @@ export default function Contacts() {
                 <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-bold">
                         {user.avatar ? (
                           <img
                             src={user.avatar}
@@ -165,7 +165,7 @@ export default function Contacts() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-[#000e08]">{user.name}</h3>
+                        <h3 className="font-semibold text-[#111b21]">{user.name}</h3>
                         {(user.isVerifiedBadge || user.isModerator || user.isAdmin) && (
                           <VerificationBadge
                             type={user.isModerator || user.isAdmin ? "staff" : "user"}
@@ -173,12 +173,12 @@ export default function Contacts() {
                           />
                         )}
                       </div>
-                      <p className="text-sm text-[#797c7b]">{user.email}</p>
-                      {user.phone && <p className="text-xs text-[#797c7b]">{user.phone}</p>}
+                      <p className="text-sm text-[#667781]">{user.email}</p>
+                      {user.phone && <p className="text-xs text-[#667781]">{user.phone}</p>}
                     </div>
                     <button
                       onClick={() => api.addContact(user.id).then(loadContacts)}
-                      className="px-3 py-2 rounded-lg bg-[#20A090] text-white text-sm hover:bg-[#1a8c7a] transition-colors"
+                      className="px-3 py-2 rounded-lg bg-[#25D366] text-white text-sm hover:bg-[#128C7E] transition-colors"
                     >
                       Add
                     </button>
@@ -191,10 +191,10 @@ export default function Contacts() {
       )}
 
       {/* Contacts List */}
-      <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-160px)] pt-6">
+      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-160px)] pt-6">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -210,7 +210,7 @@ export default function Contacts() {
               <div key={contact.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-bold">
                       {contact.avatar ? (
                         <img
                           src={contact.avatar}
@@ -228,7 +228,7 @@ export default function Contacts() {
 
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-[#000e08]">{contact.name}</h3>
+                      <h3 className="font-semibold text-[#111b21]">{contact.name}</h3>
                       {(contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
                         <VerificationBadge
                           type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
@@ -236,14 +236,14 @@ export default function Contacts() {
                         />
                       )}
                     </div>
-                    <p className="text-sm text-[#797c7b]">{contact.email}</p>
+                    <p className="text-sm text-[#667781]">{contact.email}</p>
                   </div>
                   <button
                     onClick={() => handleToggleMute(contact.id)}
                     className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                       mutedIds.has(contact.id)
                         ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        : "bg-[#20A090] text-white hover:bg-[#1a8c7a]"
+                        : "bg-[#25D366] text-white hover:bg-[#128C7E]"
                     }`}
                   >
                     {mutedIds.has(contact.id) ? "Unmute" : "Mute"}
@@ -257,3 +257,6 @@ export default function Contacts() {
     </div>
   );
 }
+
+
+

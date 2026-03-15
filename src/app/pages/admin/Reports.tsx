@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Flag, CheckCircle, UserX, ClipboardList } from "lucide-react";
 import { api } from "../../lib/api";
 
@@ -122,7 +122,7 @@ export default function AdminReports() {
               onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === status
-                  ? "bg-[#20A090] text-white"
+                  ? "bg-[#25D366] text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -135,7 +135,7 @@ export default function AdminReports() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -233,7 +233,7 @@ export default function AdminReports() {
                         {reportMessages.map((msg) => (
                           <div key={msg.id} className="border-b border-gray-200 pb-2">
                             <p className="text-xs text-gray-500">
-                              {msg.senderName} • {new Date(msg.createdAt).toLocaleString()}
+                              {msg.senderName} â€¢ {new Date(msg.createdAt).toLocaleString()}
                             </p>
                             <p className="text-gray-700">
                               {msg.encrypted ? "Encrypted message" : msg.body}
@@ -255,3 +255,4 @@ export default function AdminReports() {
     </div>
   );
 }
+

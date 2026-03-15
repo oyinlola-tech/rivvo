@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { api } from "../../lib/api";
 
 export default function ModeratorUserSearch() {
@@ -38,7 +38,7 @@ export default function ModeratorUserSearch() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
         />
-        <button onClick={handleSearch} className="px-4 py-2 rounded-lg bg-[#20A090] text-white">
+        <button onClick={handleSearch} className="px-4 py-2 rounded-lg bg-[#25D366] text-white">
           Search
         </button>
       </div>
@@ -67,3 +67,4 @@ export default function ModeratorUserSearch() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -39,7 +39,7 @@ export default function InviteGroup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000e08] flex items-center justify-center p-6">
+    <div className="min-h-[100dvh] bg-[#111b21] flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md">
         {error ? (
           <p className="text-red-600">{error}</p>
@@ -53,14 +53,14 @@ export default function InviteGroup() {
             {!user ? (
               <Link
                 to="/auth/login"
-                className="inline-flex px-4 py-2 rounded-lg bg-[#20A090] text-white"
+                className="inline-flex px-4 py-2 rounded-lg bg-[#25D366] text-white"
               >
                 Login to join
               </Link>
             ) : (
               <button
                 onClick={handleJoin}
-                className="px-4 py-2 rounded-lg bg-[#20A090] text-white"
+                className="px-4 py-2 rounded-lg bg-[#25D366] text-white"
               >
                 {group.isPrivate ? "Request to join" : "Join group"}
               </button>
@@ -71,3 +71,5 @@ export default function InviteGroup() {
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Plus, Shield } from "lucide-react";
 import { api } from "../../lib/api";
 import { VerificationBadge } from "../../components/VerificationBadge";
@@ -61,7 +61,7 @@ export default function AdminModerators() {
         <h1 className="text-3xl font-bold">Moderators</h1>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#20A090] text-white rounded-lg hover:bg-[#1a8c7a] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#128C7E] transition-colors"
         >
           <Plus size={20} />
           <span>Add Moderator</span>
@@ -79,7 +79,7 @@ export default function AdminModerators() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25D366]"
                   required
                 />
               </div>
@@ -89,7 +89,7 @@ export default function AdminModerators() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25D366]"
                   required
                 />
               </div>
@@ -99,7 +99,7 @@ export default function AdminModerators() {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25D366]"
                   required
                   minLength={8}
                 />
@@ -115,7 +115,7 @@ export default function AdminModerators() {
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="flex-1 px-4 py-2 bg-[#20A090] text-white rounded-lg hover:bg-[#1a8c7a] transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#128C7E] transition-colors disabled:opacity-50"
                 >
                   {createLoading ? "Creating..." : "Create"}
                 </button>
@@ -128,7 +128,7 @@ export default function AdminModerators() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -168,3 +168,4 @@ export default function AdminModerators() {
     </div>
   );
 }
+

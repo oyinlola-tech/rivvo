@@ -1,6 +1,6 @@
-export default function Privacy() {
+﻿export default function Privacy() {
   return (
-    <div className="min-h-screen bg-[#000e08] px-6 py-12 text-white">
+    <div className="min-h-[100dvh] bg-[#111b21] px-6 py-12 text-white">
       <div className="mx-auto max-w-3xl space-y-8">
         <header>
           <h1 className="text-3xl font-bold">RIVVO Privacy Policy</h1>
@@ -26,7 +26,7 @@ export default function Privacy() {
         </section>
 
         <section className="space-y-4 text-white/90">
-          <h2 className="text-xl font-semibold text-white">3. What We Don’t See</h2>
+          <h2 className="text-xl font-semibold text-white">3. What We Donâ€™t See</h2>
           <p>
             We cannot read your message content. Encryption happens on your device, and only
             recipients with the correct keys can decrypt it.
@@ -86,3 +86,5 @@ export default function Privacy() {
     </div>
   );
 }
+
+

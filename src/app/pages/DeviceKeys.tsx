@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { api } from "../lib/api";
 import {
@@ -72,16 +72,16 @@ export default function DeviceKeys() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000e08] md:ml-64">
-      <div className="bg-[#000e08] sticky top-0 z-10 px-6 py-4">
+    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
+      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
         <h1 className="text-2xl font-bold text-white">Device Verification</h1>
       </div>
 
-      <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-100px)] pt-6 px-6 pb-10">
+      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6 px-6 pb-10">
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-[#000e08]">This device</h2>
-          <p className="text-sm text-[#797c7b]">Device ID: {deviceId}</p>
-          <p className="text-sm text-[#797c7b] break-all">
+          <h2 className="text-lg font-semibold text-[#111b21]">This device</h2>
+          <p className="text-sm text-[#667781]">Device ID: {deviceId}</p>
+          <p className="text-sm text-[#667781] break-all">
             Fingerprint: {deviceFingerprint || "Generating..."}
           </p>
           {qrDataUrl && (
@@ -94,7 +94,7 @@ export default function DeviceKeys() {
           <div className="mt-4">
             <button
               onClick={rotateKey}
-              className="px-4 py-2 rounded-lg bg-[#20A090] text-white"
+              className="px-4 py-2 rounded-lg bg-[#25D366] text-white"
             >
               Rotate Device Key
             </button>
@@ -102,8 +102,8 @@ export default function DeviceKeys() {
         </div>
 
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-[#000e08]">Verify a device</h2>
-          <p className="text-sm text-[#797c7b] mb-3">
+          <h2 className="text-lg font-semibold text-[#111b21]">Verify a device</h2>
+          <p className="text-sm text-[#667781] mb-3">
             Paste the QR payload from the device you want to verify.
           </p>
           <textarea
@@ -114,14 +114,14 @@ export default function DeviceKeys() {
           />
           <button
             onClick={verifyFromPayload}
-            className="mt-3 px-4 py-2 rounded-lg bg-[#000e08] text-white"
+            className="mt-3 px-4 py-2 rounded-lg bg-[#111b21] text-white"
           >
             Verify Device
           </button>
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold text-[#000e08]">Known devices</h2>
+          <h2 className="text-lg font-semibold text-[#111b21]">Known devices</h2>
           <div className="mt-4 space-y-3">
             {devices.map((device) => (
               <div
@@ -129,10 +129,10 @@ export default function DeviceKeys() {
                 className="border rounded-xl px-4 py-3 flex items-center justify-between"
               >
                 <div>
-                  <p className="font-medium text-[#000e08]">
+                  <p className="font-medium text-[#111b21]">
                     {device.deviceName || "Unknown device"}
                   </p>
-                  <p className="text-xs text-[#797c7b]">ID: {device.deviceId}</p>
+                  <p className="text-xs text-[#667781]">ID: {device.deviceId}</p>
                 </div>
                 <span
                   className={`text-xs px-2 py-1 rounded-full ${
@@ -149,3 +149,6 @@ export default function DeviceKeys() {
     </div>
   );
 }
+
+
+

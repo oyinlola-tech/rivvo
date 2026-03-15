@@ -1,6 +1,6 @@
-export default function Terms() {
+﻿export default function Terms() {
   return (
-    <div className="min-h-screen bg-[#000e08] px-6 py-12 text-white">
+    <div className="min-h-[100dvh] bg-[#111b21] px-6 py-12 text-white">
       <div className="mx-auto max-w-3xl space-y-8">
         <header>
           <h1 className="text-3xl font-bold">RIVVO Terms of Service</h1>
@@ -97,3 +97,5 @@ export default function Terms() {
     </div>
   );
 }
+
+

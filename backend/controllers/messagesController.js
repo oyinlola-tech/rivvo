@@ -68,6 +68,11 @@ export const getConversations = async (req, res) => {
         lm.is_encrypted AS last_encrypted,
         lm.view_once AS last_view_once,
         cp1.last_read_at AS last_read_at,
+        CASE
+          WHEN c.last_mutual_at IS NULL THEN 0
+          WHEN TIMESTAMPDIFF(HOUR, c.last_mutual_at, NOW()) >= 24 THEN 0
+          ELSE c.streak_count
+        END AS streak_count,
         (
           SELECT COUNT(*)
           FROM messages m
@@ -119,7 +124,8 @@ export const getConversations = async (req, res) => {
           : row.last_text || '',
       timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : null,
       unreadCount: Number(row.unread_count || 0)
-    }
+    },
+    streakCount: Number(row.streak_count || 0)
   }));
 
   return res.json(conversations);
@@ -251,10 +257,56 @@ export const sendMessage = async (req, res) => {
 
   await pool.execute(
     `UPDATE conversation_participants
-     SET last_read_at = NOW()
+     SET last_read_at = NOW(), last_message_at = NOW()
      WHERE conversation_id = :conversation_id AND user_id = :user_id`,
     { conversation_id: conversationId, user_id: userId }
   );
+
+  const [otherLastRows] = await pool.execute(
+    `SELECT last_message_at
+     FROM conversation_participants
+     WHERE conversation_id = :conversation_id AND user_id = :other_user_id
+     LIMIT 1`,
+    { conversation_id: conversationId, other_user_id: otherUserId }
+  );
+
+  const [streakRows] = await pool.execute(
+    `SELECT streak_count, last_mutual_at
+     FROM conversations
+     WHERE id = :conversation_id
+     LIMIT 1`,
+    { conversation_id: conversationId }
+  );
+
+  const now = new Date();
+  const otherLast = otherLastRows[0]?.last_message_at ? new Date(otherLastRows[0].last_message_at) : null;
+  const lastMutual = streakRows[0]?.last_mutual_at ? new Date(streakRows[0].last_mutual_at) : null;
+  let streakCount = Number(streakRows[0]?.streak_count || 0);
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  if (lastMutual && now.getTime() - lastMutual.getTime() >= DAY_MS) {
+    streakCount = 0;
+  }
+
+  const otherRecent = otherLast && now.getTime() - otherLast.getTime() <= DAY_MS;
+  if (otherRecent) {
+    if (!lastMutual || now.getTime() - lastMutual.getTime() >= DAY_MS) {
+      streakCount += 1;
+      await pool.execute(
+        `UPDATE conversations
+         SET streak_count = :streak_count, last_mutual_at = NOW()
+         WHERE id = :conversation_id`,
+        { streak_count: streakCount, conversation_id: conversationId }
+      );
+    }
+  } else if (lastMutual && now.getTime() - lastMutual.getTime() >= DAY_MS) {
+    await pool.execute(
+      `UPDATE conversations
+       SET streak_count = :streak_count, last_mutual_at = NULL
+       WHERE id = :conversation_id`,
+      { streak_count: streakCount, conversation_id: conversationId }
+    );
+  }
 
   const recipientId = otherUserId;
   const payload = {
@@ -424,10 +476,16 @@ export const getConversationPeer = async (req, res) => {
               WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at <= NOW() THEN 'expired'
               ELSE 'none'
             END AS badge_status,
-            u.is_moderator, u.is_admin, uk.public_key
+            u.is_moderator, u.is_admin, uk.public_key,
+            CASE
+              WHEN c.last_mutual_at IS NULL THEN 0
+              WHEN TIMESTAMPDIFF(HOUR, c.last_mutual_at, NOW()) >= 24 THEN 0
+              ELSE c.streak_count
+            END AS streak_count
      FROM conversation_participants cp
      JOIN users u ON u.id = cp.user_id
      LEFT JOIN user_keys uk ON uk.user_id = u.id
+     JOIN conversations c ON c.id = cp.conversation_id
      WHERE cp.conversation_id = :conversation_id AND cp.user_id <> :user_id
      LIMIT 1`,
     { conversation_id: conversationId, user_id: userId }
@@ -447,7 +505,8 @@ export const getConversationPeer = async (req, res) => {
     badgeStatus: peer.badge_status,
     isModerator: Boolean(peer.is_moderator),
     isAdmin: Boolean(peer.is_admin),
-    publicKey: peer.public_key || null
+    publicKey: peer.public_key || null,
+    streakCount: Number(peer.streak_count || 0)
   });
 };
 

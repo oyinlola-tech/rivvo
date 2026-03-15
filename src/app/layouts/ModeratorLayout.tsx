@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, Navigate } from "react-router";
+﻿import { Outlet, Link, useLocation, Navigate } from "react-router";
 import { ClipboardList, LogOut, ShieldAlert, Ban, Search } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -8,9 +8,9 @@ export default function ModeratorLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -29,8 +29,8 @@ export default function ModeratorLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <div className="w-64 bg-white dark:bg-[#000e08] border-r border-border flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex">
+      <div className="w-64 bg-background border-r border-border flex flex-col">
         <div className="p-6 border-b border-border">
           <h1 className="text-2xl font-bold">RIVVO Moderator</h1>
         </div>
@@ -43,7 +43,7 @@ export default function ModeratorLayout() {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive ? "bg-[#20A090] text-white" : "hover:bg-muted text-foreground"
+                  isActive ? "bg-[#25D366] text-white" : "hover:bg-muted text-foreground"
                 }`}
               >
                 <Icon size={20} />
@@ -69,3 +69,5 @@ export default function ModeratorLayout() {
     </div>
   );
 }
+
+

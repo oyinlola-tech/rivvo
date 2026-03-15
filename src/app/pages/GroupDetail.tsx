@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { api } from "../lib/api";
 import { Copy, Shield } from "lucide-react";
@@ -101,13 +101,13 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000e08] md:ml-64">
-      <div className="bg-[#000e08] sticky top-0 z-10 px-6 py-4">
+    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
+      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
         <h1 className="text-2xl font-bold text-white">{group?.name || "Group"}</h1>
         <p className="text-sm text-white/70">{group?.isPrivate ? "Private" : "Public"}</p>
       </div>
 
-      <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-120px)] pt-6">
+      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-120px)] pt-6">
         {error && <p className="px-6 text-red-600 text-sm">{error}</p>}
 
         <div className="px-6 mb-6">
@@ -119,7 +119,7 @@ export default function GroupDetail() {
           <div className="px-6 mb-6">
             <button
               onClick={handleCreateInvite}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#20A090] text-white"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#25D366] text-white"
             >
               <Copy size={16} /> Generate invite link
             </button>
@@ -145,7 +145,7 @@ export default function GroupDetail() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleApprove(req.id)}
-                        className="px-3 py-1 rounded-lg bg-[#20A090] text-white text-sm"
+                        className="px-3 py-1 rounded-lg bg-[#25D366] text-white text-sm"
                       >
                         Approve
                       </button>
@@ -201,3 +201,6 @@ export default function GroupDetail() {
     </div>
   );
 }
+
+
+

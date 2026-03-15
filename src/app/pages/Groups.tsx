@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { api } from "../lib/api";
 import { Plus, Search } from "lucide-react";
@@ -83,8 +83,8 @@ export default function Groups() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000e08] md:ml-64">
-      <div className="bg-[#000e08] sticky top-0 z-10 px-6 py-4">
+    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
+      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Groups</h1>
           <button
@@ -100,7 +100,7 @@ export default function Groups() {
               key={value}
               onClick={() => setTab(value)}
               className={`px-4 py-2 rounded-full text-sm ${
-                tab === value ? "bg-[#20A090] text-white" : "bg-white/10 text-white"
+                tab === value ? "bg-[#25D366] text-white" : "bg-white/10 text-white"
               }`}
             >
               {value === "my" ? "My groups" : "Discover"}
@@ -109,7 +109,7 @@ export default function Groups() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-white rounded-t-[40px] min-h-[calc(100vh-120px)] pt-6">
+      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-120px)] pt-6">
         {error && <p className="px-6 text-red-600 text-sm">{error}</p>}
 
         {showCreate && (
@@ -137,7 +137,7 @@ export default function Groups() {
             </label>
             <button
               onClick={handleCreate}
-              className="mt-3 px-4 py-2 rounded-lg bg-[#20A090] text-white"
+              className="mt-3 px-4 py-2 rounded-lg bg-[#25D366] text-white"
             >
               Create
             </button>
@@ -161,7 +161,7 @@ export default function Groups() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
           </div>
         ) : tab === "my" ? (
           groups.length === 0 ? (
@@ -174,9 +174,9 @@ export default function Groups() {
                   onClick={() => navigate(`/groups/${group.id}`)}
                   className="w-full px-6 py-4 text-left hover:bg-gray-50"
                 >
-                  <h3 className="font-semibold text-[#000e08]">{group.name}</h3>
-                  <p className="text-sm text-[#797c7b]">
-                    {group.isPrivate ? "Private" : "Public"} • {group.role || "member"}
+                  <h3 className="font-semibold text-[#111b21]">{group.name}</h3>
+                  <p className="text-sm text-[#667781]">
+                    {group.isPrivate ? "Private" : "Public"} â€¢ {group.role || "member"}
                   </p>
                 </button>
               ))}
@@ -189,12 +189,12 @@ export default function Groups() {
             {searchResults.map((group) => (
               <div key={group.id} className="px-6 py-4 flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-[#000e08]">{group.name}</h3>
-                  <p className="text-sm text-[#797c7b]">{group.description || "No description"}</p>
+                  <h3 className="font-semibold text-[#111b21]">{group.name}</h3>
+                  <p className="text-sm text-[#667781]">{group.description || "No description"}</p>
                 </div>
                 <button
                   onClick={() => handleJoinPublic(group.id)}
-                  className="px-4 py-2 rounded-lg bg-[#20A090] text-white"
+                  className="px-4 py-2 rounded-lg bg-[#25D366] text-white"
                 >
                   Join
                 </button>
@@ -206,3 +206,6 @@ export default function Groups() {
     </div>
   );
 }
+
+
+

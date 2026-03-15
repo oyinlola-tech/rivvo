@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Search, CheckCircle, XCircle, UserX } from "lucide-react";
 import { api } from "../../lib/api";
 import { VerificationBadge } from "../../components/VerificationBadge";
@@ -95,14 +95,14 @@ export default function AdminUsers() {
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#25D366]"
             />
           </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -126,7 +126,7 @@ export default function AdminUsers() {
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-bold">
                           {user.name[0].toUpperCase()}
                         </div>
                         <div>
@@ -194,3 +194,4 @@ export default function AdminUsers() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import svgPaths from "./svg-y07xd8y8gj";
+﻿import svgPaths from "./svg-y07xd8y8gj";
 import imgEllipse427 from "figma:asset/5d2eb39338fbb6866e3efc416685bf034280adac.png";
 import imgRectangle1092 from "figma:asset/4e39ef06c74d6ae337f4d1c0eb498e23bbce4997.png";
 import imgEllipse434 from "figma:asset/adf97c0064013ceefe2a4db47904838a1873bcce.png";
@@ -56,7 +56,7 @@ function Back1() {
     <div className="relative size-[24px]" data-name="Back">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
         <g id="Back">
-          <path d={svgPaths.p244cad00} id="Vector 190" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d={svgPaths.p244cad00} id="Vector 190" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
         </g>
       </svg>
     </div>
@@ -82,8 +82,8 @@ function Group1() {
         <g id="Group 199">
           <circle cx="12" cy="12" fill="var(--fill-0, #F0F3F5)" id="Ellipse 388" r="11.25" stroke="var(--stroke-0, white)" strokeWidth="1.5" />
           <g id="plus">
-            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
-            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
           </g>
         </g>
       </svg>
@@ -119,8 +119,8 @@ function Group3() {
         <g id="Group 199">
           <circle cx="12" cy="12" fill="var(--fill-0, #F0F3F5)" id="Ellipse 388" r="11.25" stroke="var(--stroke-0, white)" strokeWidth="1.5" />
           <g id="plus">
-            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
-            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
           </g>
         </g>
       </svg>
@@ -151,8 +151,8 @@ function Group4() {
         <g id="Group 199">
           <circle cx="12" cy="12" fill="var(--fill-0, #F0F3F5)" id="Ellipse 388" r="11.25" stroke="var(--stroke-0, white)" strokeWidth="1.5" />
           <g id="plus">
-            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
-            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
           </g>
         </g>
       </svg>
@@ -178,8 +178,8 @@ function Group5() {
         <g id="Group 199">
           <circle cx="12" cy="12" fill="var(--fill-0, #F0F3F5)" id="Ellipse 388" r="11.25" stroke="var(--stroke-0, white)" strokeWidth="1.5" />
           <g id="plus">
-            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
-            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
           </g>
         </g>
       </svg>
@@ -210,8 +210,8 @@ function Group6() {
         <g id="Group 199">
           <circle cx="12" cy="12" fill="var(--fill-0, #F0F3F5)" id="Ellipse 388" r="11.25" stroke="var(--stroke-0, white)" strokeWidth="1.5" />
           <g id="plus">
-            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
-            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M12 7.33333V16.6667" id="Vector" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+            <path d="M7.33333 12H16.6667" id="Vector_2" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
           </g>
         </g>
       </svg>
@@ -273,7 +273,7 @@ function MembersUihut() {
 function InvitedMembersUihut() {
   return (
     <div className="absolute contents left-[24px] top-[452px]" data-name="Invited Members-uihut">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#797c7b] text-[16px] top-[452px] whitespace-nowrap">Invited Members</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#667781] text-[16px] top-[452px] whitespace-nowrap">Invited Members</p>
       <MembersUihut />
     </div>
   );
@@ -282,8 +282,8 @@ function InvitedMembersUihut() {
 function Group2() {
   return (
     <div className="absolute contents left-[88px] not-italic top-[378px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[88px] text-[#000e08] text-[16px] top-[378px]">Rashid Khan</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#797c7b] text-[12px] top-[402px]">Group Admin</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[88px] text-[#111b21] text-[16px] top-[378px]">Rashid Khan</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#667781] text-[12px] top-[402px]">Group Admin</p>
     </div>
   );
 }
@@ -302,7 +302,7 @@ function GroupAdminUihut1() {
 function GroupAdminUihut() {
   return (
     <div className="absolute contents left-[24px] top-[334px]" data-name="Group Admin-uihut">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#797c7b] text-[16px] top-[334px] whitespace-nowrap">Group Admin</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#667781] text-[16px] top-[334px] whitespace-nowrap">Group Admin</p>
       <GroupAdminUihut1 />
     </div>
   );
@@ -312,7 +312,7 @@ function TeamRelationship() {
   return (
     <div className="absolute contents left-[144px] top-[266px]" data-name="Team relationship">
       <div className="absolute bg-[rgba(32,160,144,0.08)] h-[38px] left-[144px] rounded-[20px] top-[266px] w-[147px]" />
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[14px] left-[160px] not-italic text-[#000e08] text-[14px] top-[278px] whitespace-pre">{`Team  relationship`}</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[14px] left-[160px] not-italic text-[#111b21] text-[14px] top-[278px] whitespace-pre">{`Team  relationship`}</p>
     </div>
   );
 }
@@ -321,7 +321,7 @@ function GroupWork() {
   return (
     <div className="absolute contents left-[24px] top-[266px]" data-name="Group work">
       <div className="absolute bg-[rgba(32,160,144,0.08)] h-[38px] left-[24px] rounded-[20px] top-[266px] w-[107px]" />
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[14px] left-[40px] not-italic text-[#000e08] text-[14px] top-[278px] whitespace-nowrap">Group work</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[14px] left-[40px] not-italic text-[#111b21] text-[14px] top-[278px] whitespace-nowrap">Group work</p>
     </div>
   );
 }
@@ -329,13 +329,13 @@ function GroupWork() {
 export default function CreateGroup() {
   return (
     <div className="bg-white relative size-full" data-name="Create group">
-      <div className="absolute bg-[#20a090] h-[48px] left-[24px] rounded-[16px] top-[734px] w-[327px]" />
+      <div className="absolute bg-[#25D366] h-[48px] left-[24px] rounded-[16px] top-[734px] w-[327px]" />
       <StatusBar />
       <Back />
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[141px] not-italic text-[#000e08] text-[16px] top-[64px] whitespace-nowrap">Create Group</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[141px] not-italic text-[#111b21] text-[16px] top-[64px] whitespace-nowrap">Create Group</p>
       <p className="-translate-x-full absolute font-['Caros:Bold',sans-serif] leading-[16px] left-[215px] not-italic text-[16px] text-right text-white top-[750px] whitespace-nowrap">Create</p>
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#797c7b] text-[16px] top-[114px] whitespace-nowrap">Group Description</p>
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[50px] left-[24px] not-italic text-[#000e08] text-[40px] top-[146px] w-[295px] whitespace-pre-wrap">{`Make Group  for Team Work`}</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#667781] text-[16px] top-[114px] whitespace-nowrap">Group Description</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[50px] left-[24px] not-italic text-[#111b21] text-[40px] top-[146px] w-[295px] whitespace-pre-wrap">{`Make Group  for Team Work`}</p>
       <InvitedMembersUihut />
       <GroupAdminUihut />
       <TeamRelationship />

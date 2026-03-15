@@ -1,4 +1,4 @@
-import svgPaths from "./svg-3fj792pbtx";
+﻿import svgPaths from "./svg-3fj792pbtx";
 import imgEllipse304 from "figma:asset/7f0c80f1d2f1cbe9695e3ae867426ae23f155421.png";
 import imgEllipse386 from "figma:asset/5ab242011e327e1dbfb787c0c3049f0153aa8a4c.png";
 import imgEllipse387 from "figma:asset/1bebc8c3247d5f02f9ae157d3908a4fbb395e2ea.png";
@@ -55,7 +55,7 @@ function Group8() {
     <div className="absolute left-[24px] size-[44px] top-[61px]">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 44 44">
         <g id="Group 370">
-          <circle cx="22" cy="22" fill="var(--fill-0, #000E08)" id="Ellipse 308" r="21.5" stroke="var(--stroke-0, #363F3B)" />
+          <circle cx="22" cy="22" fill="var(--fill-0, #111b21)" id="Ellipse 308" r="21.5" stroke="var(--stroke-0, #363F3B)" />
           <g id="Search">
             <path d={svgPaths.p11be6b00} id="Vector" stroke="var(--stroke-0, white)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
@@ -70,7 +70,7 @@ function Group3() {
     <div className="absolute contents left-[24px] top-[61px]">
       <div className="absolute left-[307px] size-[44px] top-[61px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 44 44">
-          <circle cx="22" cy="22" fill="var(--fill-0, #000E08)" id="Ellipse 307" r="21.5" stroke="var(--stroke-0, #363F3B)" />
+          <circle cx="22" cy="22" fill="var(--fill-0, #111b21)" id="Ellipse 307" r="21.5" stroke="var(--stroke-0, #363F3B)" />
         </svg>
       </div>
       <Group8 />
@@ -167,7 +167,7 @@ function Call1() {
 function Group10() {
   return (
     <div className="absolute contents left-[88px] top-[242px]">
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#797c7b] text-[12px] top-[244px] whitespace-nowrap">Today, 09:30 AM</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#667781] text-[12px] top-[244px] whitespace-nowrap">Today, 09:30 AM</p>
       <Call1 />
     </div>
   );
@@ -176,7 +176,7 @@ function Group10() {
 function Text() {
   return (
     <div className="absolute contents left-[88px] top-[218px]" data-name="Text">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#000e08] text-[18px] top-[218px] whitespace-nowrap">Team Align</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#111b21] text-[18px] top-[218px] whitespace-nowrap">Team Align</p>
       <Group10 />
     </div>
   );
@@ -236,7 +236,7 @@ function Call3() {
 function Group13() {
   return (
     <div className="absolute contents left-[88px] top-[334px]">
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#797c7b] text-[12px] top-[336px] whitespace-nowrap">Today, 07:30 AM</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#667781] text-[12px] top-[336px] whitespace-nowrap">Today, 07:30 AM</p>
       <Call3 />
     </div>
   );
@@ -253,7 +253,7 @@ function Text1() {
           </div>
         </div>
       </div>
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#000e08] text-[18px] top-[310px] whitespace-nowrap">Jhon Abraham</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#111b21] text-[18px] top-[310px] whitespace-nowrap">Jhon Abraham</p>
       <Group13 />
     </div>
   );
@@ -312,7 +312,7 @@ function Call5() {
 function Group14() {
   return (
     <div className="absolute contents left-[88px] top-[610px]">
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#797c7b] text-[12px] top-[612px] whitespace-nowrap">03/07/22, 07:30 AM</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#667781] text-[12px] top-[612px] whitespace-nowrap">03/07/22, 07:30 AM</p>
       <Call5 />
     </div>
   );
@@ -329,7 +329,7 @@ function Text2() {
           </div>
         </div>
       </div>
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#000e08] text-[18px] top-[586px] whitespace-nowrap">Jhon Abraham</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#111b21] text-[18px] top-[586px] whitespace-nowrap">Jhon Abraham</p>
       <Group14 />
     </div>
   );
@@ -388,7 +388,7 @@ function Call7() {
 function Group17() {
   return (
     <div className="absolute contents left-[88px] top-[426px]">
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#797c7b] text-[12px] top-[428px] whitespace-nowrap">Yesterday, 07:35 PM</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#667781] text-[12px] top-[428px] whitespace-nowrap">Yesterday, 07:35 PM</p>
       <Call7 />
     </div>
   );
@@ -405,7 +405,7 @@ function Text3() {
           </div>
         </div>
       </div>
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#000e08] text-[18px] top-[402px] whitespace-nowrap">Sabila Sayma</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#111b21] text-[18px] top-[402px] whitespace-nowrap">Sabila Sayma</p>
       <Group17 />
     </div>
   );
@@ -452,7 +452,7 @@ function Call8() {
 function Group19() {
   return (
     <div className="absolute contents left-[88px] top-[518px]">
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#797c7b] text-[12px] top-[520px] whitespace-nowrap">Monday, 09:30 AM</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#667781] text-[12px] top-[520px] whitespace-nowrap">Monday, 09:30 AM</p>
       <div className="absolute inset-[63.79%_72.27%_34.24%_23.47%] overflow-clip" data-name="Call">
         <div className="absolute inset-[12.5%]" data-name="Vector">
           <div className="absolute inset-[-5%]">
@@ -477,7 +477,7 @@ function Text4() {
           </div>
         </div>
       </div>
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#000e08] text-[18px] top-[494px] whitespace-nowrap">Alex Linderson</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#111b21] text-[18px] top-[494px] whitespace-nowrap">Alex Linderson</p>
       <Group19 />
     </div>
   );
@@ -524,7 +524,7 @@ function Call9() {
 function Group21() {
   return (
     <div className="absolute contents left-[88px] top-[702px]">
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#797c7b] text-[12px] top-[704px] whitespace-nowrap">Monday, 09:30 AM</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[110px] not-italic text-[#667781] text-[12px] top-[704px] whitespace-nowrap">Monday, 09:30 AM</p>
       <div className="absolute inset-[86.45%_72.27%_11.58%_23.47%] overflow-clip" data-name="Call">
         <div className="absolute inset-[12.5%]" data-name="Vector">
           <div className="absolute inset-[-5%]">
@@ -544,7 +544,7 @@ function Text5() {
       <div className="absolute left-[24px] size-[52px] top-[672px]">
         <img alt="" className="absolute block max-w-none size-full" height="52" src={imgEllipse308} width="52" />
       </div>
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#000e08] text-[18px] top-[678px] whitespace-nowrap">John Borino</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[18px] left-[88px] not-italic text-[#111b21] text-[18px] top-[678px] whitespace-nowrap">John Borino</p>
       <Group21 />
     </div>
   );
@@ -566,10 +566,10 @@ function Group1() {
       <div className="absolute inset-[-3.85%]">
         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 21 21">
           <g id="Group">
-            <path clipRule="evenodd" d={svgPaths.p3f1a2380} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p32c60400} id="Path_2" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.p1a78c380} id="Path_3" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            <path d={svgPaths.peed1700} id="Path_4" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path clipRule="evenodd" d={svgPaths.p3f1a2380} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p32c60400} id="Path_2" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p1a78c380} id="Path_3" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.peed1700} id="Path_4" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
         </svg>
       </div>
@@ -589,7 +589,7 @@ function Group7() {
   return (
     <div className="absolute contents left-[24px] top-[740px]">
       <Message />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[24px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Message</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[24px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Message</p>
     </div>
   );
 }
@@ -620,9 +620,9 @@ function User() {
     <div className="absolute left-[212px] size-[26px] top-[740px]" data-name="user">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 26 26">
         <g id="user">
-          <circle cx="13" cy="13" id="Ellipse 259" r="10.8333" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
-          <path d={svgPaths.p1352bf80} id="Vector" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-          <circle cx="3.25" cy="3.25" id="Ellipse 260" r="3.25" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" transform="matrix(1 0 0 -1 9.75 13)" />
+          <circle cx="13" cy="13" id="Ellipse 259" r="10.8333" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d={svgPaths.p1352bf80} id="Vector" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+          <circle cx="3.25" cy="3.25" id="Ellipse 260" r="3.25" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" transform="matrix(1 0 0 -1 9.75 13)" />
         </g>
       </svg>
     </div>
@@ -633,7 +633,7 @@ function Group5() {
   return (
     <div className="absolute contents left-[189px] top-[740px]">
       <User />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[189px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Contacts</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[189px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Contacts</p>
     </div>
   );
 }
@@ -643,8 +643,8 @@ function Settings() {
     <div className="absolute left-[307px] size-[26px] top-[740px]" data-name="settings">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 26 26">
         <g id="settings">
-          <path d={svgPaths.p38baeb00} id="Vector" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
-          <circle cx="13" cy="13" id="Ellipse 91" r="3.25" stroke="var(--stroke-0, #797C7B)" strokeWidth="1.5" />
+          <path d={svgPaths.p38baeb00} id="Vector" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
+          <circle cx="13" cy="13" id="Ellipse 91" r="3.25" stroke="var(--stroke-0, #667781)" strokeWidth="1.5" />
         </g>
       </svg>
     </div>
@@ -655,7 +655,7 @@ function Group4() {
   return (
     <div className="absolute contents left-[289px] top-[740px]">
       <Settings />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[289px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Settings</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[289px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Settings</p>
     </div>
   );
 }
@@ -674,11 +674,11 @@ function NavBar() {
 
 export default function Calls() {
   return (
-    <div className="bg-[#000e08] relative size-full" data-name="Calls">
+    <div className="bg-[#111b21] relative size-full" data-name="Calls">
       <div className="absolute bg-white h-[677px] left-0 rounded-tl-[40px] rounded-tr-[40px] top-[135px] w-[375px]" />
       <div className="absolute bg-[#e6e6e6] h-[3px] left-[172px] rounded-[100px] top-[149px] w-[30px]" />
       <StatusBar />
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#000e08] text-[16px] top-[176px] whitespace-nowrap">Recent</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[24px] not-italic text-[#111b21] text-[16px] top-[176px] whitespace-nowrap">Recent</p>
       <Group3 />
       <CallUser />
       <Group11 />

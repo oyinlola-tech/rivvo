@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 
 export default function ModeratorBlockedUsers() {
@@ -24,7 +24,7 @@ export default function ModeratorBlockedUsers() {
       <h1 className="text-3xl font-bold mb-6">Blocked Users</h1>
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20A090]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
         </div>
       ) : error ? (
         <div className="text-center py-12">
@@ -40,7 +40,7 @@ export default function ModeratorBlockedUsers() {
                 {row.blocker.name} blocked {row.blocked.name}
               </p>
               <p className="text-sm text-gray-600">
-                {row.blocker.email} → {row.blocked.email}
+                {row.blocker.email} â†’ {row.blocked.email}
               </p>
               <p className="text-xs text-gray-500">
                 {new Date(row.createdAt).toLocaleString()}
@@ -52,3 +52,4 @@ export default function ModeratorBlockedUsers() {
     </div>
   );
 }
+

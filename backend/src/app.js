@@ -48,15 +48,13 @@ app.use('/uploads', express.static(uploadsPath));
 
 app.use('/api', apiRateLimiter, routes);
 
-if (env.nodeEnv === 'production') {
-  app.use(express.static(frontendDistPath));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
-      return next();
-    }
-    return res.sendFile(path.join(frontendDistPath, 'index.html'));
-  });
-}
+app.use(express.static(frontendDistPath));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+    return next();
+  }
+  return res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found', message: 'Route not found' });

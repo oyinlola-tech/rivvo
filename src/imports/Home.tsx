@@ -1,4 +1,4 @@
-import svgPaths from "./svg-gwjjgzcj7g";
+﻿import svgPaths from "./svg-gwjjgzcj7g";
 import imgRectangle1092 from "figma:asset/5d6fdc236e3513c898f47dbf179537e1c0c36168.png";
 import imgEllipse304 from "figma:asset/7f0c80f1d2f1cbe9695e3ae867426ae23f155421.png";
 import imgEllipse386 from "figma:asset/5ab242011e327e1dbfb787c0c3049f0153aa8a4c.png";
@@ -33,8 +33,8 @@ function Group14() {
 function Text() {
   return (
     <div className="absolute contents left-[88px] not-italic top-[307px] whitespace-nowrap" data-name="Text">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#000e08] text-[20px] top-[307px]">Alex Linderson</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#797c7b] text-[12px] top-[333px]">How are you today?</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#111b21] text-[20px] top-[307px]">Alex Linderson</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#667781] text-[12px] top-[333px]">How are you today?</p>
     </div>
   );
 }
@@ -51,7 +51,7 @@ function AlexUihut() {
           </div>
         </div>
       </div>
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#797c7b] text-[12px] text-right top-[307px] whitespace-nowrap">2 min ago</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#667781] text-[12px] text-right top-[307px] whitespace-nowrap">2 min ago</p>
       <div className="absolute left-[62px] size-[8px] top-[340px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8 8">
           <circle cx="4" cy="4" fill="var(--fill-0, #0FE16D)" id="Ellipse 385" r="4" />
@@ -82,8 +82,8 @@ function Group15() {
 function Text1() {
   return (
     <div className="absolute contents left-[88px] not-italic top-[389px] whitespace-nowrap" data-name="Text">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#000e08] text-[20px] top-[389px]">Team Align</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#797c7b] text-[12px] top-[415px]">Don’t miss to attend the meeting.</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#111b21] text-[20px] top-[389px]">Team Align</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#667781] text-[12px] top-[415px]">Donâ€™t miss to attend the meeting.</p>
     </div>
   );
 }
@@ -107,7 +107,7 @@ function TeamAlignUihut() {
           <img alt="" className="block max-w-none size-full" height="52" src={imgEllipse387} width="26" />
         </div>
       </div>
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#797c7b] text-[12px] text-right top-[389px] whitespace-nowrap">2 min ago</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#667781] text-[12px] text-right top-[389px] whitespace-nowrap">2 min ago</p>
       <div className="absolute left-[62px] size-[8px] top-[422px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8 8">
           <circle cx="4" cy="4" fill="var(--fill-0, #0FE16D)" id="Ellipse 385" r="4" />
@@ -121,8 +121,8 @@ function TeamAlignUihut() {
 function Text2() {
   return (
     <div className="absolute contents left-[88px] not-italic top-[471px] whitespace-nowrap" data-name="Text">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#000e08] text-[20px] top-[471px]">John Ahraham</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#797c7b] text-[12px] top-[497px]">Hey! Can you join the meeting?</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#111b21] text-[20px] top-[471px]">John Ahraham</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#667781] text-[12px] top-[497px]">Hey! Can you join the meeting?</p>
     </div>
   );
 }
@@ -138,7 +138,7 @@ function AbrahamUihut() {
           </div>
         </div>
       </div>
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#797c7b] text-[12px] text-right top-[471px] whitespace-nowrap">2 min ago</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#667781] text-[12px] text-right top-[471px] whitespace-nowrap">2 min ago</p>
       <div className="absolute left-[63px] size-[8px] top-[503px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8 8">
           <circle cx="4" cy="4" fill="var(--fill-0, #9A9E9C)" id="Ellipse 385" r="4" />
@@ -152,8 +152,8 @@ function AbrahamUihut() {
 function Text3() {
   return (
     <div className="absolute contents left-[88px] not-italic top-[553px] whitespace-nowrap" data-name="Text">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#000e08] text-[20px] top-[553px]">Sabila Sayma</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#797c7b] text-[12px] top-[579px]">How are you today?</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#111b21] text-[20px] top-[553px]">Sabila Sayma</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#667781] text-[12px] top-[579px]">How are you today?</p>
     </div>
   );
 }
@@ -177,7 +177,7 @@ function SaymaUihut() {
           </div>
         </div>
       </div>
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#797c7b] text-[12px] text-right top-[553px] whitespace-nowrap">2 min ago</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#667781] text-[12px] text-right top-[553px] whitespace-nowrap">2 min ago</p>
       <div className="absolute left-[62px] size-[8px] top-[584px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8 8">
           <circle cx="4" cy="4" fill="var(--fill-0, #9A9E9C)" id="Ellipse 385" r="4" />
@@ -191,8 +191,8 @@ function SaymaUihut() {
 function Text4() {
   return (
     <div className="absolute contents left-[88px] not-italic top-[717px] whitespace-nowrap" data-name="Text">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#000e08] text-[20px] top-[717px]">Angel Dayna</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#797c7b] text-[12px] top-[743px]">How are you today?</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#111b21] text-[20px] top-[717px]">Angel Dayna</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#667781] text-[12px] top-[743px]">How are you today?</p>
     </div>
   );
 }
@@ -205,7 +205,7 @@ function AngelDaynaUihut() {
           <img alt="" className="absolute h-[107.69%] left-[-15.12%] max-w-none top-[-1.61%] w-[161.52%]" src={imgRectangle1095} />
         </div>
       </div>
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#797c7b] text-[12px] text-right top-[717px] whitespace-nowrap">2 min ago</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#667781] text-[12px] text-right top-[717px] whitespace-nowrap">2 min ago</p>
       <div className="absolute left-[62px] size-[8px] top-[748px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8 8">
           <circle cx="4" cy="4" fill="var(--fill-0, #9A9E9C)" id="Ellipse 385" r="4" />
@@ -219,8 +219,8 @@ function AngelDaynaUihut() {
 function Text5() {
   return (
     <div className="absolute contents left-[88px] not-italic top-[635px] whitespace-nowrap" data-name="Text">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#000e08] text-[20px] top-[635px]">John Borino</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#797c7b] text-[12px] top-[661px]">Have a good day 🌸</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[20px] left-[88px] text-[#111b21] text-[20px] top-[635px]">John Borino</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[88px] text-[#667781] text-[12px] top-[661px]">Have a good day ðŸŒ¸</p>
     </div>
   );
 }
@@ -247,7 +247,7 @@ function JohnUihut() {
       <div className="absolute left-[24px] size-[52px] top-[626px]">
         <img alt="" className="absolute block max-w-none size-full" height="52" src={imgEllipse308} width="52" />
       </div>
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#797c7b] text-[12px] text-right top-[635px] whitespace-nowrap">2 min ago</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[351px] not-italic text-[#667781] text-[12px] text-right top-[635px] whitespace-nowrap">2 min ago</p>
       <div className="absolute left-[63px] size-[8px] top-[667px]">
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8 8">
           <circle cx="4" cy="4" fill="var(--fill-0, #0FE16D)" id="Ellipse 385" r="4" />
@@ -263,7 +263,7 @@ function Group20() {
     <div className="absolute left-[24px] size-[44px] top-[61px]">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 44 44">
         <g id="Group 370">
-          <circle cx="22" cy="22" fill="var(--fill-0, #000E08)" id="Ellipse 308" r="21.5" stroke="var(--stroke-0, #363F3B)" />
+          <circle cx="22" cy="22" fill="var(--fill-0, #111b21)" id="Ellipse 308" r="21.5" stroke="var(--stroke-0, #363F3B)" />
           <g id="Search">
             <path d={svgPaths.p11be6b00} id="Vector" stroke="var(--stroke-0, white)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
@@ -522,7 +522,7 @@ function Call() {
     <div className="absolute inset-[91.13%_58.67%_5.67%_34.4%]" data-name="Call">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 26 26">
         <g id="Call">
-          <path d={svgPaths.p1968a300} fill="var(--stroke-0, #797C7B)" id="Vector" />
+          <path d={svgPaths.p1968a300} fill="var(--stroke-0, #667781)" id="Vector" />
         </g>
       </svg>
     </div>
@@ -533,7 +533,7 @@ function Group18() {
   return (
     <div className="absolute contents left-[123px] top-[740px]">
       <Call />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[123px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Calls</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[123px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Calls</p>
     </div>
   );
 }
@@ -543,9 +543,9 @@ function User() {
     <div className="absolute left-[212px] size-[26px] top-[740px]" data-name="user">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 26 26">
         <g id="user">
-          <circle cx="13" cy="13" id="Ellipse 259" r="10.8333" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
-          <path d={svgPaths.p1352bf80} id="Vector" stroke="var(--stroke-0, #797C7B)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-          <circle cx="3.25" cy="3.25" id="Ellipse 260" r="3.25" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" transform="matrix(1 0 0 -1 9.75 13)" />
+          <circle cx="13" cy="13" id="Ellipse 259" r="10.8333" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d={svgPaths.p1352bf80} id="Vector" stroke="var(--stroke-0, #667781)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+          <circle cx="3.25" cy="3.25" id="Ellipse 260" r="3.25" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" transform="matrix(1 0 0 -1 9.75 13)" />
         </g>
       </svg>
     </div>
@@ -556,7 +556,7 @@ function Group17() {
   return (
     <div className="absolute contents left-[189px] top-[740px]">
       <User />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[189px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Contacts</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[189px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Contacts</p>
     </div>
   );
 }
@@ -566,8 +566,8 @@ function Settings() {
     <div className="absolute left-[307px] size-[26px] top-[740px]" data-name="settings">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 26 26">
         <g id="settings">
-          <path d={svgPaths.p38baeb00} id="Vector" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
-          <circle cx="13" cy="13" id="Ellipse 91" r="3.25" stroke="var(--stroke-0, #797C7B)" strokeWidth="1.5" />
+          <path d={svgPaths.p38baeb00} id="Vector" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
+          <circle cx="13" cy="13" id="Ellipse 91" r="3.25" stroke="var(--stroke-0, #667781)" strokeWidth="1.5" />
         </g>
       </svg>
     </div>
@@ -578,7 +578,7 @@ function Group16() {
   return (
     <div className="absolute contents left-[289px] top-[740px]">
       <Settings />
-      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[289px] not-italic text-[#797c7b] text-[16px] top-[772px] whitespace-nowrap">Settings</p>
+      <p className="absolute font-['Caros:Regular',sans-serif] leading-[16px] left-[289px] not-italic text-[#667781] text-[16px] top-[772px] whitespace-nowrap">Settings</p>
     </div>
   );
 }
@@ -640,7 +640,7 @@ function StatusBar() {
 
 export default function Home() {
   return (
-    <div className="bg-[#000e08] relative size-full" data-name="Home">
+    <div className="bg-[#111b21] relative size-full" data-name="Home">
       <div className="absolute flex h-[555px] items-center justify-center left-0 top-[257px] w-[375px]">
         <div className="flex-none rotate-180">
           <div className="bg-white h-[555px] rounded-bl-[40px] rounded-br-[40px] w-[375px]" />

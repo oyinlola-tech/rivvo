@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Flame } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -45,6 +45,7 @@ interface PeerInfo {
   isVerifiedBadge: boolean;
   isModerator: boolean;
   isAdmin: boolean;
+  streakCount?: number;
 }
 
 interface Attachment {
@@ -628,20 +629,20 @@ export default function Messages() {
 
   if (!id) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[100dvh] flex items-center justify-center">
         <p className="text-gray-500">Select a conversation to start messaging</p>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white md:ml-64">
+    <div className="h-[100dvh] flex flex-col bg-background md:ml-64">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 flex items-center gap-4">
-        <button onClick={() => navigate("/")} className="md:hidden">
-          <ArrowLeft size={24} />
+      <div className="bg-background border-b border-border px-4 py-3 flex items-center gap-4 sticky top-0 z-10">
+        <button onClick={() => navigate("/")} className="md:hidden text-[#667781]">
+          <ArrowLeft size={22} />
         </button>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#20A090] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white font-bold">
           {contact.avatar ? (
             <img
               src={contact.avatar}
@@ -662,32 +663,32 @@ export default function Messages() {
               />
             )}
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[#667781]">
             {"online" in contact && contact.online ? "Active now" : "Offline"}
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => handleStartCall("audio")}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+            className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
           >
-            <Phone size={20} />
+            <Phone size={18} className="text-[#667781]" />
           </button>
           <button
             onClick={() => handleStartCall("video")}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+            className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
           >
-            <Video size={20} />
+            <Video size={18} className="text-[#667781]" />
           </button>
           <button
             onClick={handleReportUser}
-            className="px-3 py-2 rounded-full text-sm text-gray-600 hover:bg-gray-100"
+            className="px-3 py-2 rounded-full text-xs text-[#667781] hover:bg-black/5"
           >
             Report
           </button>
           <button
             onClick={handleBlockUser}
-            className="px-3 py-2 rounded-full text-sm text-gray-600 hover:bg-gray-100"
+            className="px-3 py-2 rounded-full text-xs text-[#667781] hover:bg-black/5"
           >
             Block
           </button>
@@ -695,10 +696,10 @@ export default function Messages() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F1FAF9]">
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3 bg-[#efeae2]">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20A090]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#25D366]"></div>
           </div>
         ) : (
           <>
@@ -713,82 +714,88 @@ export default function Messages() {
                 className={`flex ${message.sender === "me" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                  className={`max-w-[78%] rounded-2xl px-4 py-2 shadow-sm ${
                     message.sender === "me"
-                      ? "bg-[#20A090] text-white"
-                      : "bg-white text-gray-900"
+                      ? "bg-[#25D366] text-white rounded-br-sm"
+                      : "bg-white text-gray-900 rounded-bl-sm"
                   }`}
                 >
-                  {message.viewOnce ? (
-                    message.sender === "them" && !message.viewOnceViewedAt ? (
-                      <button
-                        onClick={() => handleViewOnce(message)}
-                        className="text-sm font-medium underline"
-                      >
-                        View once message
-                      </button>
-                    ) : message.sender === "me" ? (
-                      <p className="text-sm">View once message</p>
+                  <div className="space-y-1.5">
+                    {message.viewOnce ? (
+                      message.sender === "them" && !message.viewOnceViewedAt ? (
+                        <button
+                          onClick={() => handleViewOnce(message)}
+                          className="text-sm font-medium underline"
+                        >
+                          View once message
+                        </button>
+                      ) : message.sender === "me" ? (
+                        <p className="text-sm">View once message</p>
+                      ) : (
+                        <p className="text-sm">{message.text}</p>
+                      )
+                    ) : message.attachment ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} />
+                          <span className="text-sm font-medium">{message.attachment.name}</span>
+                        </div>
+                        {attachmentUrls[message.id] ? (
+                          message.attachment.mime.startsWith("image/") ? (
+                            <img
+                              src={attachmentUrls[message.id]}
+                              alt={message.attachment.name}
+                              className="max-h-64 rounded-lg"
+                            />
+                          ) : message.attachment.mime.startsWith("video/") ? (
+                            <video controls src={attachmentUrls[message.id]} className="w-full rounded-lg" />
+                          ) : message.attachment.mime.startsWith("audio/") ? (
+                            <audio controls src={attachmentUrls[message.id]} className="w-full" />
+                          ) : (
+                            <a
+                              href={attachmentUrls[message.id]}
+                              download={message.attachment.name}
+                              className="inline-flex items-center gap-2 text-sm underline"
+                            >
+                              <Download size={14} /> Download
+                            </a>
+                          )
+                        ) : (
+                          <button
+                            onClick={() => handleDecryptAttachment(message)}
+                            className="text-sm underline"
+                          >
+                            Open attachment
+                          </button>
+                        )}
+                        <p className="text-xs text-gray-400">
+                          {(message.attachment.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
                     ) : (
                       <p className="text-sm">{message.text}</p>
-                    )
-                  ) : message.attachment ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <FileText size={16} />
-                        <span className="text-sm font-medium">{message.attachment.name}</span>
-                      </div>
-                      {attachmentUrls[message.id] ? (
-                        message.attachment.mime.startsWith("image/") ? (
-                          <img
-                            src={attachmentUrls[message.id]}
-                            alt={message.attachment.name}
-                            className="max-h-64 rounded-lg"
-                          />
-                        ) : message.attachment.mime.startsWith("video/") ? (
-                          <video controls src={attachmentUrls[message.id]} className="w-full rounded-lg" />
-                        ) : message.attachment.mime.startsWith("audio/") ? (
-                          <audio controls src={attachmentUrls[message.id]} className="w-full" />
-                        ) : (
-                          <a
-                            href={attachmentUrls[message.id]}
-                            download={message.attachment.name}
-                            className="inline-flex items-center gap-2 text-sm underline"
-                          >
-                            <Download size={14} /> Download
-                          </a>
-                        )
-                      ) : (
-                        <button
-                          onClick={() => handleDecryptAttachment(message)}
-                          className="text-sm underline"
-                        >
-                          Open attachment
-                        </button>
-                      )}
-                      <p className="text-xs text-gray-400">
-                        {(message.attachment.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
+                    )}
+                    <div className="flex items-center justify-end gap-1 text-[11px]">
+                      <span
+                        className={
+                          message.sender === "me" ? "text-white/80" : "text-[#667781]"
+                        }
+                      >
+                        {formatTime(message.timestamp)}
+                      </span>
+                      {message.sender === "me" && message.readAt ? (
+                        <span className="text-white/80">Seen</span>
+                      ) : null}
                     </div>
-                  ) : (
-                    <p className="text-sm">{message.text}</p>
-                  )}
+                  </div>
                   {message.sender === "them" && !message.viewOnce && (
                     <button
                       onClick={() => handleReportMessage(message.id)}
-                      className="mt-1 text-[11px] underline text-gray-400"
+                      className="mt-1 text-[11px] underline text-[#667781]"
                     >
                       Report message
                     </button>
                   )}
-                  <p
-                    className={`text-xs mt-1 ${
-                      message.sender === "me" ? "text-white/70" : "text-gray-500"
-                    }`}
-                  >
-                    {formatTime(message.timestamp)}
-                    {message.sender === "me" && message.readAt ? " - Seen" : ""}
-                  </p>
                 </div>
               </div>
             ))}
@@ -799,7 +806,7 @@ export default function Messages() {
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t p-4">
+      <div className="bg-background border-t border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
@@ -817,22 +824,22 @@ export default function Messages() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+            className="w-10 h-10 rounded-full hover:bg-black/5 flex items-center justify-center"
             disabled={uploading}
           >
-            <Paperclip size={20} className="text-gray-600" />
+            <Paperclip size={20} className="text-[#667781]" />
           </button>
           <button
             onClick={() => mediaInputRef.current?.click()}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+            className="w-10 h-10 rounded-full hover:bg-black/5 flex items-center justify-center"
             disabled={uploading}
           >
-            <Camera size={20} className="text-gray-600" />
+            <Camera size={20} className="text-[#667781]" />
           </button>
           <button
             onClick={() => setViewOnceMode((prev) => !prev)}
             className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              viewOnceMode ? "bg-[#20A090] text-white" : "hover:bg-gray-100 text-gray-600"
+              viewOnceMode ? "bg-[#25D366] text-white" : "hover:bg-black/5 text-[#667781]"
             }`}
             title="Send view-once message"
           >
@@ -844,12 +851,12 @@ export default function Messages() {
             onChange={(e) => handleTypingInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
             placeholder="Write your message"
-            className="flex-1 px-4 py-2 bg-[#F3F6F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#20A090]"
+            className="flex-1 px-4 py-2.5 bg-[#f0f2f5] rounded-full focus:outline-none focus:ring-2 focus:ring-[#25D366]"
           />
           {newMessage.trim() ? (
             <button
               onClick={handleSend}
-              className="w-10 h-10 rounded-full bg-[#20A090] flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center shadow-sm"
             >
               <Send size={20} className="text-white" />
             </button>
@@ -857,11 +864,11 @@ export default function Messages() {
             <button
               onClick={handleToggleRecording}
               className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                recording ? "bg-red-50 text-red-600" : "hover:bg-gray-100 text-gray-600"
+                recording ? "bg-red-50 text-red-600" : "hover:bg-black/5 text-[#667781]"
               }`}
               disabled={uploading}
             >
-              <Mic size={20} className={recording ? "text-red-600" : "text-gray-600"} />
+              <Mic size={20} className={recording ? "text-red-600" : "text-[#667781]"} />
             </button>
           )}
         </div>
@@ -871,4 +878,7 @@ export default function Messages() {
     </div>
   );
 }
+
+
+
 

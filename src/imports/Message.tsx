@@ -1,4 +1,4 @@
-import svgPaths from "./svg-534sde9gvi";
+﻿import svgPaths from "./svg-534sde9gvi";
 import imgRectangle1092 from "figma:asset/4e39ef06c74d6ae337f4d1c0eb498e23bbce4997.png";
 
 function Group() {
@@ -50,7 +50,7 @@ function Back() {
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
         <g id="Back">
           <g id="Back_2">
-            <path d={svgPaths.p79c3580} id="Vector 190" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            <path d={svgPaths.p79c3580} id="Vector 190" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           </g>
         </g>
       </svg>
@@ -61,8 +61,8 @@ function Back() {
 function Group1() {
   return (
     <div className="absolute contents left-[116px] not-italic top-[65px] whitespace-nowrap">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[116px] text-[#000e08] text-[16px] top-[65px]">Jhon Abraham</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[116px] text-[#797c7b] text-[12px] top-[87px]">Active now</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[16px] left-[116px] text-[#111b21] text-[16px] top-[65px]">Jhon Abraham</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[116px] text-[#667781] text-[12px] top-[87px]">Active now</p>
     </div>
   );
 }
@@ -74,8 +74,8 @@ function TabBarUihut() {
         <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
           <g id="Group">
             <g id="Group_2">
-              <path clipRule="evenodd" d={svgPaths.p261c7800} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-              <path d={svgPaths.p372e3f00} id="Path_2" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+              <path clipRule="evenodd" d={svgPaths.p261c7800} fillRule="evenodd" id="Path" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+              <path d={svgPaths.p372e3f00} id="Path_2" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
             </g>
             <g id="Path_3" />
           </g>
@@ -100,7 +100,7 @@ function TabBarUihut() {
         <div className="absolute inset-[12.5%]">
           <div className="absolute inset-[-4.17%]">
             <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 19.5 19.5">
-              <path d={svgPaths.p15935c00} id="Rectangle 77" stroke="var(--stroke-5, #000E08)" strokeLinejoin="round" strokeWidth="1.5" />
+              <path d={svgPaths.p15935c00} id="Rectangle 77" stroke="var(--stroke-5, #111b21)" strokeLinejoin="round" strokeWidth="1.5" />
             </svg>
           </div>
         </div>
@@ -117,7 +117,7 @@ function Group8() {
           <path d={svgPaths.p18346d80} fill="var(--fill-0, #F2F7FB)" id="Rectangle 1131" />
         </svg>
       </div>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[98px] not-italic text-[#000e08] text-[12px] top-[314px] tracking-[0.12px] whitespace-nowrap">Hello ! Nazrul How are you?</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[98px] not-italic text-[#111b21] text-[12px] top-[314px] tracking-[0.12px] whitespace-nowrap">Hello ! Nazrul How are you?</p>
     </div>
   );
 }
@@ -125,8 +125,8 @@ function Group8() {
 function Group16() {
   return (
     <div className="absolute contents left-[76px] top-[276px]">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[14px] left-[76px] not-italic text-[#000e08] text-[14px] top-[276px] whitespace-nowrap">Jhon Abraham</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[226px] not-italic text-[#797c7b] text-[10px] top-[346px] whitespace-nowrap">09:25 AM</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[14px] left-[76px] not-italic text-[#111b21] text-[14px] top-[276px] whitespace-nowrap">Jhon Abraham</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[226px] not-italic text-[#667781] text-[10px] top-[346px] whitespace-nowrap">09:25 AM</p>
       <Group8 />
     </div>
   );
@@ -161,8 +161,8 @@ function Group9() {
           <path d={svgPaths.p12953e00} fill="var(--fill-0, #F2F7FB)" id="Rectangle 1132" />
         </svg>
       </div>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[98px] not-italic text-[#000e08] text-[12px] top-[514px] tracking-[0.12px] whitespace-nowrap">Have a great working week!!</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[98px] not-italic text-[#000e08] text-[12px] top-[560px] tracking-[0.12px] whitespace-nowrap">Hope you like it</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[98px] not-italic text-[#111b21] text-[12px] top-[514px] tracking-[0.12px] whitespace-nowrap">Have a great working week!!</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[98px] not-italic text-[#111b21] text-[12px] top-[560px] tracking-[0.12px] whitespace-nowrap">Hope you like it</p>
     </div>
   );
 }
@@ -170,8 +170,8 @@ function Group9() {
 function Group17() {
   return (
     <div className="absolute contents left-[76px] top-[476px]">
-      <p className="absolute font-['Caros:Medium',sans-serif] leading-[14px] left-[76px] not-italic text-[#000e08] text-[14px] top-[476px] whitespace-nowrap">Jhon Abraham</p>
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[145px] not-italic text-[#797c7b] text-[10px] top-[592px] whitespace-nowrap">09:25 AM</p>
+      <p className="absolute font-['Caros:Medium',sans-serif] leading-[14px] left-[76px] not-italic text-[#111b21] text-[14px] top-[476px] whitespace-nowrap">Jhon Abraham</p>
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[145px] not-italic text-[#667781] text-[10px] top-[592px] whitespace-nowrap">09:25 AM</p>
       <Group9 />
     </div>
   );
@@ -196,7 +196,7 @@ function Group18() {
 function Group11() {
   return (
     <div className="absolute contents left-[298px] top-[230px]">
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[343px] not-italic text-[#797c7b] text-[10px] text-right top-[230px] whitespace-nowrap">09:25 AM</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[343px] not-italic text-[#667781] text-[10px] text-right top-[230px] whitespace-nowrap">09:25 AM</p>
     </div>
   );
 }
@@ -208,7 +208,7 @@ function Group10() {
         <div className="-scale-y-100 flex-none rotate-180">
           <div className="h-[36px] relative w-[141px]">
             <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 141 36">
-              <path d={svgPaths.p224ee980} fill="var(--fill-0, #20A090)" id="Rectangle 1131" />
+              <path d={svgPaths.p224ee980} fill="var(--fill-0, #25D366)" id="Rectangle 1131" />
             </svg>
           </div>
         </div>
@@ -230,7 +230,7 @@ function Group19() {
 function Group12() {
   return (
     <div className="absolute contents left-[298px] top-[430px]">
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[343px] not-italic text-[#797c7b] text-[10px] text-right top-[430px] whitespace-nowrap">09:25 AM</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[343px] not-italic text-[#667781] text-[10px] text-right top-[430px] whitespace-nowrap">09:25 AM</p>
     </div>
   );
 }
@@ -242,7 +242,7 @@ function Group13() {
         <div className="-scale-y-100 flex-none rotate-180">
           <div className="h-[36px] relative w-[145px]">
             <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 145 36">
-              <path d={svgPaths.p2c535800} fill="var(--fill-0, #20A090)" id="Rectangle 1131" />
+              <path d={svgPaths.p2c535800} fill="var(--fill-0, #25D366)" id="Rectangle 1131" />
             </svg>
           </div>
         </div>
@@ -264,8 +264,8 @@ function Group20() {
 function Group2() {
   return (
     <div className="absolute contents left-[162px] top-[144px]">
-      <div className="absolute bg-[#f8fbfa] h-[22px] left-[162px] rounded-[6px] top-[144px] w-[51px]" />
-      <p className="-translate-x-full absolute font-['Caros:Medium',sans-serif] leading-[12px] left-[206px] not-italic text-[#000e08] text-[12px] text-right top-[149px] whitespace-nowrap">Today</p>
+      <div className="absolute bg-[#f7f9f9] h-[22px] left-[162px] rounded-[6px] top-[144px] w-[51px]" />
+      <p className="-translate-x-full absolute font-['Caros:Medium',sans-serif] leading-[12px] left-[206px] not-italic text-[#111b21] text-[12px] text-right top-[149px] whitespace-nowrap">Today</p>
     </div>
   );
 }
@@ -335,7 +335,7 @@ function Play1() {
     <div className="absolute bottom-[16.67%] left-1/4 right-[16.67%] top-[16.67%]" data-name="play">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 11.6667 13.3333">
         <g id="play">
-          <path d={svgPaths.pf7b2680} fill="var(--fill-0, #20A090)" id="Vector 896" />
+          <path d={svgPaths.pf7b2680} fill="var(--fill-0, #25D366)" id="Vector 896" />
         </g>
       </svg>
     </div>
@@ -370,7 +370,7 @@ function Voice() {
         <div className="-scale-y-100 flex-none rotate-180">
           <div className="h-[38px] relative w-[222px]">
             <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 222 38">
-              <path d={svgPaths.p128872a0} fill="var(--fill-0, #20A090)" id="Rectangle 1131" />
+              <path d={svgPaths.p128872a0} fill="var(--fill-0, #25D366)" id="Rectangle 1131" />
             </svg>
           </div>
         </div>
@@ -385,7 +385,7 @@ function Voice() {
 function RecordingUihut() {
   return (
     <div className="absolute contents left-[129px] top-[632px]" data-name="recording-uihut">
-      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[343px] not-italic text-[#797c7b] text-[10px] text-right top-[678px] whitespace-nowrap">09:25 AM</p>
+      <p className="-translate-x-full absolute font-['Circular_Std:Book',sans-serif] leading-[10px] left-[343px] not-italic text-[#667781] text-[10px] text-right top-[678px] whitespace-nowrap">09:25 AM</p>
       <Voice />
     </div>
   );
@@ -396,7 +396,7 @@ function ClipAttachment() {
     <div className="absolute inset-[92.36%_87.2%_4.68%_6.4%]" data-name="Clip, Attachment">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
         <g id="Group">
-          <path d={svgPaths.p3ac23d40} id="Path" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d={svgPaths.p3ac23d40} id="Path" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
           <g id="Path_2" />
         </g>
       </svg>
@@ -409,7 +409,7 @@ function Files() {
     <div className="absolute inset-[92.36%_28.8%_4.68%_64.8%]" data-name="files">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
         <g id="files">
-          <path d={svgPaths.p33113000} id="Vector" stroke="var(--stroke-0, #797C7B)" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d={svgPaths.p33113000} id="Vector" stroke="var(--stroke-0, #667781)" strokeLinejoin="round" strokeWidth="1.5" />
         </g>
       </svg>
     </div>
@@ -419,8 +419,8 @@ function Files() {
 function SearchBoxUihut() {
   return (
     <div className="absolute contents left-[59px] top-[742px]" data-name="Search box-uihut">
-      <div className="absolute bg-[#f3f6f6] h-[40px] left-[59px] rounded-[12px] top-[742px] w-[216px]" />
-      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[71px] not-italic text-[#797c7b] text-[12px] top-[756px] whitespace-nowrap">Write your message</p>
+      <div className="absolute bg-[#f0f2f5] h-[40px] left-[59px] rounded-[12px] top-[742px] w-[216px]" />
+      <p className="absolute font-['Circular_Std:Book',sans-serif] leading-[12px] left-[71px] not-italic text-[#667781] text-[12px] top-[756px] whitespace-nowrap">Write your message</p>
       <Files />
     </div>
   );
@@ -431,8 +431,8 @@ function Camera() {
     <div className="absolute inset-[92.36%_16%_4.68%_77.6%]" data-name="camera 01">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
         <g id="camera 01">
-          <path d={svgPaths.p370521f0} fill="var(--stroke-0, #000E08)" id="Vector" />
-          <circle cx="12" cy="6" fill="var(--fill-0, #000E08)" id="Ellipse 352" r="1" />
+          <path d={svgPaths.p370521f0} fill="var(--stroke-0, #111b21)" id="Vector" />
+          <circle cx="12" cy="6" fill="var(--fill-0, #111b21)" id="Ellipse 352" r="1" />
         </g>
       </svg>
     </div>
@@ -444,7 +444,7 @@ function Microphone() {
     <div className="absolute inset-[92.36%_6.4%_4.68%_87.2%]" data-name="microphone">
       <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
         <g id="microphone">
-          <path d={svgPaths.p3ffbc600} id="Vector" stroke="var(--stroke-0, #000E08)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d={svgPaths.p3ffbc600} id="Vector" stroke="var(--stroke-0, #111b21)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
         </g>
       </svg>
     </div>

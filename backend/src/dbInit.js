@@ -69,6 +69,8 @@ export const initDb = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS conversations (
       id CHAR(36) PRIMARY KEY,
+      streak_count INT DEFAULT 0,
+      last_mutual_at DATETIME NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -86,6 +88,15 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE conversation_participants
       ADD COLUMN last_read_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE conversation_participants
+      ADD COLUMN last_message_at DATETIME NULL
     `);
   } catch (error) {
     // Column likely exists already.
@@ -112,6 +123,24 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE messages
       ADD COLUMN iv VARCHAR(64) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE conversations
+      ADD COLUMN streak_count INT DEFAULT 0
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE conversations
+      ADD COLUMN last_mutual_at DATETIME NULL
     `);
   } catch (error) {
     // Column likely exists already.
