@@ -12,8 +12,9 @@ export default function MainLayout() {
     return (
       <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+          <img src="/rivvo.png" alt="Rivvo logo" className="mx-auto w-16 h-16 rounded-2xl shadow-lg" />
+          <p className="mt-4 text-lg font-bold tracking-[0.3em] text-foreground">RIVVO</p>
+          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );

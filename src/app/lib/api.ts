@@ -5,9 +5,30 @@ const MEDIA_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const withMediaBase = (url?: string | null) => {
   if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/")) return `${MEDIA_BASE_URL}${url}`;
-  return url;
+  let normalized = url.trim();
+  if (normalized.startsWith("http//")) {
+    normalized = `http://${normalized.slice(6)}`;
+  }
+  if (normalized.startsWith("https//")) {
+    normalized = `https://${normalized.slice(7)}`;
+  }
+  if (normalized.startsWith("//")) {
+    normalized = `https:${normalized}`;
+  }
+  if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+    return normalized;
+  }
+  const httpIndex = normalized.indexOf("http://");
+  const httpsIndex = normalized.indexOf("https://");
+  const embeddedIndex =
+    httpIndex >= 0 && httpsIndex >= 0 ? Math.min(httpIndex, httpsIndex) : Math.max(httpIndex, httpsIndex);
+  if (embeddedIndex >= 0) {
+    return normalized.slice(embeddedIndex);
+  }
+  if (normalized.startsWith("/")) {
+    return `${MEDIA_BASE_URL}${normalized}`;
+  }
+  return normalized;
 };
 
 export interface ApiResponse<T = any> {

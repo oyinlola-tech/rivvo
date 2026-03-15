@@ -29,6 +29,7 @@ export default function Settings() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [inviteLink, setInviteLink] = useState("");
   const [profileName, setProfileName] = useState(user?.name || "");
   const [profileUsername, setProfileUsername] = useState(user?.username || "");
@@ -118,9 +119,14 @@ export default function Settings() {
     navigate("/auth/login");
   };
 
-  const handleAvatarUpload = async () => {
-    if (!avatarFile) return;
-    const response = await api.uploadAvatar(avatarFile);
+  const handleAvatarUpload = async (file?: File) => {
+    const target = file || avatarFile;
+    if (!target) {
+      setAvatarError("Select a photo first");
+      return;
+    }
+    setAvatarUploading(true);
+    const response = await api.uploadAvatar(target);
     if (response.success && response.data?.avatar) {
       setAvatarUrl(response.data.avatar);
       setAvatarFile(null);
@@ -128,6 +134,7 @@ export default function Settings() {
     } else {
       setAvatarError(response.error || "Failed to upload avatar");
     }
+    setAvatarUploading(false);
   };
 
   const handleCreateInvite = async () => {
@@ -307,7 +314,13 @@ export default function Settings() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setAvatarFile(file);
+                    if (file) {
+                      handleAvatarUpload(file);
+                    }
+                  }}
                   className="hidden"
                 />
               </label>
@@ -324,11 +337,11 @@ export default function Settings() {
                 </div>
               )}
               <button
-                onClick={handleAvatarUpload}
-                disabled={!avatarFile}
+                onClick={() => handleAvatarUpload()}
+                disabled={!avatarFile || avatarUploading}
                 className="ml-auto px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Upload
+                {avatarUploading ? "Uploading..." : "Upload"}
               </button>
             </div>
             {avatarError && <p className="text-sm text-red-600 mt-3">{avatarError}</p>}

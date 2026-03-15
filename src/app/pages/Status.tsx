@@ -18,6 +18,7 @@ export default function Status() {
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
   const [replyError, setReplyError] = useState("");
+  const [posting, setPosting] = useState(false);
 
   const loadStatuses = async () => {
     setLoading(true);
@@ -38,15 +39,21 @@ export default function Status() {
   }, []);
 
   const handleCreate = async () => {
-    if (!text.trim() && !file) return;
+    if (!text.trim() && !file) {
+      setError("Add text or media to post a status.");
+      return;
+    }
+    setPosting(true);
     const response = await api.createStatus({ text: text.trim(), media: file || undefined });
     if (response.success) {
       setText("");
       setFile(null);
+      setError("");
       await loadStatuses();
     } else {
       setError(response.error || "Failed to create status");
     }
+    setPosting(false);
   };
 
   const handleOpenGroup = async (group: StatusGroupDto) => {
@@ -232,10 +239,11 @@ export default function Status() {
               )}
               <button
                 onClick={handleCreate}
-                className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#1a8c7a] px-5 py-2.5 text-white text-sm font-medium shadow-sm hover:bg-[#1a8c7a]"
+                disabled={posting}
+                className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#1a8c7a] px-5 py-2.5 text-white text-sm font-medium shadow-sm hover:bg-[#1a8c7a] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <SendHorizontal size={16} />
-                Post
+                {posting ? "Posting..." : "Post"}
               </button>
             </div>
           </div>
