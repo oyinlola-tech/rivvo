@@ -73,7 +73,7 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
-    "@eslint/js": "9.28.0",
+    "@eslint/js": "^9.28.0",
     "@tailwindcss/vite": "4.1.12",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
@@ -81,6 +81,8 @@
     "@typescript-eslint/eslint-plugin": "8.38.0",
     "@typescript-eslint/parser": "8.38.0",
     "@vitejs/plugin-react": "4.7.0",
+    "@vitest/coverage-v8": "4.1.0",
+    "concurrently": "9.1.2",
     "eslint": "9.28.0",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "5.2.0",
@@ -88,9 +90,7 @@
     "tailwindcss": "4.1.12",
     "typescript": "5.8.3",
     "vite": "^6.4.1",
-    "@vitest/coverage-v8": "4.1.0",
-    "vitest": "4.1.0",
-    "concurrently": "9.1.2"
+    "vitest": "4.1.0"
   },
   "peerDependencies": {
     "react": "18.3.1",
