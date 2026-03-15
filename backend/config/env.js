@@ -7,6 +7,10 @@ const clientUrls = (process.env.CLIENT_URLS || process.env.CLIENT_URL || '')
   .map((value) => value.trim())
   .filter(Boolean);
 
+if (!clientUrls.length) {
+  clientUrls.push('https://rivvo.telente.site', 'https://www.rivvo.telente.site');
+}
+
 const env = {
   nodeEnv: process.env.NODE_ENV ,
   port: Number(process.env.PORT),
