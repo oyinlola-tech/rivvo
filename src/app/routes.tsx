@@ -16,6 +16,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
+import UserProfile from "./pages/UserProfile";
 import InviteUser from "./pages/InviteUser";
 import InviteGroup from "./pages/InviteGroup";
 import CallJoin from "./pages/CallJoin";
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
       { path: "contacts", Component: Contacts },
       { path: "settings", Component: Settings },
       { path: "settings/device-keys", Component: DeviceKeys },
+      { path: "users/:id", Component: UserProfile },
     ],
   },
   { path: "/invite/user/:token", Component: InviteUser },

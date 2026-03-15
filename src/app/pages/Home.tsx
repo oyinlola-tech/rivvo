@@ -214,7 +214,15 @@ export default function Home() {
                 <div className="flex items-center gap-4">
                   {/* Avatar */}
                   <div className="relative">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold">
+                    <button
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        navigate(`/users/${conversation.user.id}`);
+                      }}
+                      className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold overflow-hidden"
+                      aria-label={`View ${conversation.user.name} profile`}
+                    >
                       {conversation.user.avatar ? (
                         <img
                           src={conversation.user.avatar}
@@ -224,7 +232,7 @@ export default function Home() {
                       ) : (
                         conversation.user.name[0].toUpperCase()
                       )}
-                    </div>
+                    </button>
                     {conversation.user.online && (
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#0FE16D] rounded-full border-2 border-white"></div>
                     )}

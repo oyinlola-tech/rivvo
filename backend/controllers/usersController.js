@@ -59,6 +59,83 @@ export const getProfile = async (req, res) => {
   return res.json(buildUserPayload(user));
 };
 
+const getContactStatus = async (userId, otherUserId) => {
+  const [mutualRows] = await pool.execute(
+    `SELECT 1
+     FROM contacts c1
+     JOIN contacts c2 ON c2.user_id = c1.contact_id AND c2.contact_id = c1.user_id
+     WHERE c1.user_id = :user_id AND c1.contact_id = :other_user_id
+     LIMIT 1`,
+    { user_id: userId, other_user_id: otherUserId }
+  );
+  if (mutualRows.length) {
+    return 'accepted';
+  }
+
+  const [requestRows] = await pool.execute(
+    `SELECT requester_id, recipient_id, status
+     FROM contact_requests
+     WHERE (requester_id = :user_id AND recipient_id = :other_user_id)
+        OR (requester_id = :other_user_id AND recipient_id = :user_id)
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    { user_id: userId, other_user_id: otherUserId }
+  );
+  const request = requestRows[0];
+  if (!request || request.status !== 'pending') {
+    return 'none';
+  }
+  if (request.requester_id === userId) {
+    return 'outgoing';
+  }
+  return 'incoming';
+};
+
+export const getPublicProfile = async (req, res) => {
+  const userId = req.user?.id;
+  const { userId: targetUserId } = req.params;
+  if (!targetUserId) {
+    return sendError(res, 400, 'User id is required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, name, username, avatar, verified,
+            CASE
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW()
+              THEN 1 ELSE 0
+            END AS is_verified_badge_active,
+            CASE
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW() THEN 'active'
+              WHEN is_verified_badge = 1 AND verified_badge_expires_at <= NOW() THEN 'expired'
+              ELSE 'none'
+            END AS badge_status,
+            is_moderator, is_admin
+     FROM users
+     WHERE id = :id AND status = 'active'
+     LIMIT 1`,
+    { id: targetUserId }
+  );
+  const profile = rows[0];
+  if (!profile) {
+    return sendError(res, 404, 'User not found');
+  }
+
+  const contactStatus = userId ? await getContactStatus(userId, targetUserId) : 'none';
+
+  return res.json({
+    id: profile.id,
+    name: profile.name,
+    username: profile.username || null,
+    avatar: profile.avatar || null,
+    verified: Boolean(profile.verified),
+    isVerifiedBadge: Boolean(profile.is_verified_badge_active),
+    badgeStatus: profile.badge_status,
+    isModerator: Boolean(profile.is_moderator),
+    isAdmin: Boolean(profile.is_admin),
+    contactStatus
+  });
+};
+
 export const updateProfile = async (req, res) => {
   const userId = req.user?.id;
   const { name, avatar, phone, username } = req.body || {};

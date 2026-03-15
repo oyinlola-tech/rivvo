@@ -508,6 +508,28 @@ class ApiClient {
     return response;
   }
 
+  async getContactRequests(direction: "incoming" | "outgoing" = "incoming"): Promise<ApiResponse<any[]>> {
+    const response = await this.request<any[]>(`/contacts/requests?direction=${direction}`);
+    if (response.success && response.data) {
+      response.data = response.data.map((request) => ({
+        ...request,
+        user: {
+          ...request.user,
+          avatar: withMediaBase(request.user.avatar),
+        },
+      }));
+    }
+    return response;
+  }
+
+  async acceptContactRequest(requestId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/contacts/requests/${requestId}/accept`, { method: "POST" });
+  }
+
+  async rejectContactRequest(requestId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/contacts/requests/${requestId}/reject`, { method: "POST" });
+  }
+
   async addContact(userId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request("/contacts", {
       method: "POST",
@@ -523,6 +545,14 @@ class ApiClient {
         ...user,
         avatar: withMediaBase(user.avatar),
       }));
+    }
+    return response;
+  }
+
+  async getUserPublicProfile(userId: string): Promise<ApiResponse<any>> {
+    const response = await this.request<any>(`/users/${userId}/public`);
+    if (response.success && response.data) {
+      response.data.avatar = withMediaBase(response.data.avatar);
     }
     return response;
   }

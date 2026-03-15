@@ -4,6 +4,7 @@ import auth from '../middleware/auth.js';
 import {
   getProfile,
   updateProfile,
+  getPublicProfile,
   upsertPublicKey,
   getPublicKey,
   registerDeviceKey,
@@ -18,6 +19,7 @@ const router = Router();
 
 router.get('/profile', auth, asyncHandler(getProfile));
 router.put('/profile', auth, asyncHandler(updateProfile));
+router.get('/:userId/public', auth, asyncHandler(getPublicProfile));
 router.post('/avatar', auth, (req, res, next) => {
   req.uploadFolder = 'uploads/avatars';
   next();

@@ -653,7 +653,15 @@ export default function Messages() {
         <button onClick={() => navigate("/")} className="md:hidden text-[#667781]">
           <ArrowLeft size={22} />
         </button>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+        <button
+          onClick={() => {
+            if (contact.id) {
+              navigate(`/users/${contact.id}`);
+            }
+          }}
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold overflow-hidden"
+          aria-label={`View ${contact.name} profile`}
+        >
           {contact.avatar ? (
             <img
               src={contact.avatar}
@@ -663,7 +671,7 @@ export default function Messages() {
           ) : (
             contact.name[0]
           )}
-        </div>
+        </button>
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">{contact.name}</h2>

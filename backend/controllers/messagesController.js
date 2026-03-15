@@ -40,6 +40,18 @@ const findConversationWith = async (userId, otherUserId) => {
   return rows[0]?.id || null;
 };
 
+const hasMutualContact = async (userId, otherUserId) => {
+  const [rows] = await pool.execute(
+    `SELECT 1
+     FROM contacts c1
+     JOIN contacts c2 ON c2.user_id = c1.contact_id AND c2.contact_id = c1.user_id
+     WHERE c1.user_id = :user_id AND c1.contact_id = :other_user_id
+     LIMIT 1`,
+    { user_id: userId, other_user_id: otherUserId }
+  );
+  return rows.length > 0;
+};
+
 export const getConversations = async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
@@ -241,6 +253,15 @@ export const sendMessage = async (req, res) => {
   );
 
   const otherUserId = participantRows[0]?.user_id;
+  if (!otherUserId) {
+    return sendError(res, 400, 'Conversation is missing participant');
+  }
+
+  const mutual = await hasMutualContact(userId, otherUserId);
+  if (!mutual) {
+    return sendError(res, 403, 'Contact request not accepted');
+  }
+
   if (otherUserId) {
     const [blockRows] = await pool.execute(
       `SELECT 1 FROM blocks
@@ -371,6 +392,11 @@ export const getOrCreateConversation = async (req, res) => {
   );
   if (blockRows.length) {
     return sendError(res, 403, 'Messaging is blocked');
+  }
+
+  const mutual = await hasMutualContact(userId, otherUserId);
+  if (!mutual) {
+    return sendError(res, 403, 'Contact request not accepted');
   }
 
   const existing = await findConversationWith(userId, otherUserId);

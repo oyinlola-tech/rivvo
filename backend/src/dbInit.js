@@ -192,6 +192,19 @@ export const initDb = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS contact_requests (
+      id CHAR(36) PRIMARY KEY,
+      requester_id CHAR(36) NOT NULL,
+      recipient_id CHAR(36) NOT NULL,
+      status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_contact_request (requester_id, recipient_id),
+      INDEX idx_contact_request_recipient (recipient_id),
+      INDEX idx_contact_request_requester (requester_id)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS calls (
       id CHAR(36) PRIMARY KEY,
       caller_id CHAR(36) NOT NULL,

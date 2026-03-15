@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { Search, UserPlus } from "lucide-react";
 import { api } from "../lib/api";
+import { useNavigate } from "react-router";
 import { VerificationBadge } from "../components/VerificationBadge";
 
 interface Contact {
@@ -28,7 +29,15 @@ interface SearchResult {
   isAdmin: boolean;
 }
 
+interface ContactRequest {
+  id: string;
+  status: string;
+  createdAt: string | null;
+  user: SearchResult;
+}
+
 export default function Contacts() {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -36,6 +45,8 @@ export default function Contacts() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [mutedIds, setMutedIds] = useState<Set<string>>(new Set());
+  const [incomingRequests, setIncomingRequests] = useState<ContactRequest[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<ContactRequest[]>([]);
   const normalizedQuery = searchQuery.trim();
   const usernameQuery = normalizedQuery.startsWith("@")
     ? normalizedQuery.slice(1)
@@ -50,6 +61,13 @@ export default function Contacts() {
   useEffect(() => {
     loadContacts();
     loadMuted();
+    loadRequests();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => loadRequests();
+    window.addEventListener("contact_requests_updated", handler as EventListener);
+    return () => window.removeEventListener("contact_requests_updated", handler as EventListener);
   }, []);
 
   useEffect(() => {
@@ -91,6 +109,19 @@ export default function Contacts() {
     }
   };
 
+  const loadRequests = async () => {
+    const [incoming, outgoing] = await Promise.all([
+      api.getContactRequests("incoming"),
+      api.getContactRequests("outgoing"),
+    ]);
+    if (incoming.success && incoming.data) {
+      setIncomingRequests(incoming.data as ContactRequest[]);
+    }
+    if (outgoing.success && outgoing.data) {
+      setOutgoingRequests(outgoing.data as ContactRequest[]);
+    }
+  };
+
   const handleToggleMute = async (userId: string) => {
     if (mutedIds.has(userId)) {
       await api.unmuteStatusUser(userId);
@@ -99,6 +130,25 @@ export default function Contacts() {
     }
     await loadMuted();
   };
+
+  const handleSendRequest = async (userId: string) => {
+    await api.addContact(userId);
+    await loadRequests();
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    await api.acceptContactRequest(requestId);
+    await loadRequests();
+    await loadContacts();
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    await api.rejectContactRequest(requestId);
+    await loadRequests();
+  };
+
+  const outgoingIds = new Set(outgoingRequests.map((req) => req.user.id));
+  const incomingByUser = new Map(incomingRequests.map((req) => [req.user.id, req]));
 
   const filteredContacts = contacts.filter((contact) => {
     const q = searchQuery.toLowerCase();
@@ -134,6 +184,63 @@ export default function Contacts() {
         </div>
       </div>
 
+      {/* Incoming Requests */}
+      {!showSearchResults && incomingRequests.length > 0 && (
+        <div className="bg-background rounded-t-[40px] pt-6">
+          <div className="px-6 pb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[#111b21]">Requests</h2>
+            <span className="text-xs text-[#667781]">{incomingRequests.length}</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {incomingRequests.map((request) => (
+              <div key={request.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                      {request.user.avatar ? (
+                        <img
+                          src={request.user.avatar}
+                          alt={request.user.name}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        request.user.name[0].toUpperCase()
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-[#111b21]">{request.user.name}</h3>
+                      {(request.user.isVerifiedBadge || request.user.isModerator || request.user.isAdmin) && (
+                        <VerificationBadge
+                          type={request.user.isModerator || request.user.isAdmin ? "staff" : "user"}
+                          size="sm"
+                        />
+                      )}
+                    </div>
+                    <p className="text-sm text-[#667781]">{request.user.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleAcceptRequest(request.id)}
+                      className="px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleRejectRequest(request.id)}
+                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search Results */}
       {showSearchResults && (
         <div className="bg-background rounded-t-[40px] pt-6">
@@ -151,7 +258,11 @@ export default function Contacts() {
                 <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                      <button
+                        onClick={() => navigate(`/users/${user.id}`)}
+                        className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold overflow-hidden"
+                        aria-label={`View ${user.name} profile`}
+                      >
                         {user.avatar ? (
                           <img
                             src={user.avatar}
@@ -161,7 +272,7 @@ export default function Contacts() {
                         ) : (
                           user.name[0].toUpperCase()
                         )}
-                      </div>
+                      </button>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -177,10 +288,26 @@ export default function Contacts() {
                       {user.phone && <p className="text-xs text-[#667781]">{user.phone}</p>}
                     </div>
                     <button
-                      onClick={() => api.addContact(user.id).then(loadContacts)}
-                      className="px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm hover:bg-[#1a8c7a] transition-colors"
+                      onClick={() => {
+                        const incoming = incomingByUser.get(user.id);
+                        if (incoming) {
+                          handleAcceptRequest(incoming.id);
+                          return;
+                        }
+                        handleSendRequest(user.id);
+                      }}
+                      disabled={outgoingIds.has(user.id)}
+                      className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                        outgoingIds.has(user.id)
+                          ? "bg-gray-200 text-gray-700"
+                          : "bg-[#1a8c7a] text-white hover:bg-[#1a8c7a]"
+                      }`}
                     >
-                      Add
+                      {incomingByUser.has(user.id)
+                        ? "Accept"
+                        : outgoingIds.has(user.id)
+                          ? "Pending"
+                          : "Request"}
                     </button>
                   </div>
                 </div>
@@ -209,8 +336,12 @@ export default function Contacts() {
             {filteredContacts.map((contact) => (
               <div key={contact.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                    <div className="relative">
+                    <button
+                      onClick={() => navigate(`/users/${contact.id}`)}
+                      className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold overflow-hidden"
+                      aria-label={`View ${contact.name} profile`}
+                    >
                       {contact.avatar ? (
                         <img
                           src={contact.avatar}
@@ -220,7 +351,7 @@ export default function Contacts() {
                       ) : (
                         contact.name[0].toUpperCase()
                       )}
-                    </div>
+                    </button>
                     {contact.online && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#0FE16D] rounded-full border-2 border-white"></div>
                     )}

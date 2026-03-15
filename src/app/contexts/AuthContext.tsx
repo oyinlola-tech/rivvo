@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useRef } fro
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { getDeviceId, getOrCreateDeviceKeyPair, getOrCreateKeyPair } from "../lib/crypto";
+import { getSocket, disconnectSocket } from "../lib/socket";
 
 interface User {
   id: string;
@@ -137,6 +138,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      disconnectSocket();
+      return;
+    }
+    const token = localStorage.getItem("authToken");
+    const socket = getSocket(token);
+
+    const handleContactRequest = (payload: any) => {
+      const name = payload?.from?.name || "Someone";
+      toast("New contact request", {
+        description: `${name} sent you a contact request.`,
+      });
+      window.dispatchEvent(new CustomEvent("contact_requests_updated"));
+    };
+
+    const handleContactAccepted = (payload: any) => {
+      const name = payload?.by?.name || "Someone";
+      toast("Request accepted", {
+        description: `${name} accepted your contact request.`,
+      });
+      window.dispatchEvent(new CustomEvent("contact_requests_updated"));
+    };
+
+    const handleContactRejected = () => {
+      toast("Request declined", {
+        description: "Your contact request was declined.",
+      });
+      window.dispatchEvent(new CustomEvent("contact_requests_updated"));
+    };
+
+    socket.on("contact_request", handleContactRequest);
+    socket.on("contact_request_accepted", handleContactAccepted);
+    socket.on("contact_request_rejected", handleContactRejected);
+
+    return () => {
+      socket.off("contact_request", handleContactRequest);
+      socket.off("contact_request_accepted", handleContactAccepted);
+      socket.off("contact_request_rejected", handleContactRejected);
+    };
+  }, [user?.id]);
 
   const login = async (identifier: string, password: string) => {
     const response = await api.login(identifier, password);
