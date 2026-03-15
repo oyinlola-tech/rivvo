@@ -63,6 +63,10 @@ export const getConversations = async (req, res) => {
         END AS badge_status,
         u.is_moderator,
         u.is_admin,
+        CASE
+          WHEN cu.is_verified_badge = 1 AND cu.verified_badge_expires_at > NOW()
+          THEN 1 ELSE 0
+        END AS is_my_verified_badge_active,
         lm.body AS last_text,
         lm.created_at AS last_timestamp,
         lm.is_encrypted AS last_encrypted,
@@ -73,6 +77,15 @@ export const getConversations = async (req, res) => {
           WHEN TIMESTAMPDIFF(HOUR, c.last_mutual_at, NOW()) >= 24 THEN 0
           ELSE c.streak_count
         END AS streak_count,
+        CASE
+          WHEN c.last_mutual_at IS NULL THEN 0
+          WHEN TIMESTAMPDIFF(HOUR, c.last_mutual_at, NOW()) >= 24 THEN 0
+          WHEN (CASE WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW() THEN 1 ELSE 0 END) = 1
+            OR (CASE WHEN cu.is_verified_badge = 1 AND cu.verified_badge_expires_at > NOW() THEN 1 ELSE 0 END) = 1
+            THEN c.streak_count
+          WHEN c.streak_count >= 3 THEN c.streak_count
+          ELSE 0
+        END AS effective_streak_count,
         (
           SELECT COUNT(*)
           FROM messages m
@@ -89,6 +102,7 @@ export const getConversations = async (req, res) => {
      JOIN conversation_participants cp2
        ON cp2.conversation_id = c.id AND cp2.user_id <> :user_id
      JOIN users u ON u.id = cp2.user_id
+     JOIN users cu ON cu.id = :user_id
      LEFT JOIN (
        SELECT m1.conversation_id, m1.body, m1.created_at, m1.is_encrypted, m1.view_once
        FROM messages m1
@@ -125,7 +139,7 @@ export const getConversations = async (req, res) => {
       timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : null,
       unreadCount: Number(row.unread_count || 0)
     },
-    streakCount: Number(row.streak_count || 0)
+    streakCount: Number(row.effective_streak_count || 0)
   }));
 
   return res.json(conversations);
@@ -481,11 +495,21 @@ export const getConversationPeer = async (req, res) => {
               WHEN c.last_mutual_at IS NULL THEN 0
               WHEN TIMESTAMPDIFF(HOUR, c.last_mutual_at, NOW()) >= 24 THEN 0
               ELSE c.streak_count
-            END AS streak_count
+            END AS streak_count,
+            CASE
+              WHEN c.last_mutual_at IS NULL THEN 0
+              WHEN TIMESTAMPDIFF(HOUR, c.last_mutual_at, NOW()) >= 24 THEN 0
+              WHEN (CASE WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW() THEN 1 ELSE 0 END) = 1
+                OR (CASE WHEN cu.is_verified_badge = 1 AND cu.verified_badge_expires_at > NOW() THEN 1 ELSE 0 END) = 1
+                THEN c.streak_count
+              WHEN c.streak_count >= 3 THEN c.streak_count
+              ELSE 0
+            END AS effective_streak_count
      FROM conversation_participants cp
      JOIN users u ON u.id = cp.user_id
      LEFT JOIN user_keys uk ON uk.user_id = u.id
      JOIN conversations c ON c.id = cp.conversation_id
+     JOIN users cu ON cu.id = :user_id
      WHERE cp.conversation_id = :conversation_id AND cp.user_id <> :user_id
      LIMIT 1`,
     { conversation_id: conversationId, user_id: userId }
@@ -506,7 +530,7 @@ export const getConversationPeer = async (req, res) => {
     isModerator: Boolean(peer.is_moderator),
     isAdmin: Boolean(peer.is_admin),
     publicKey: peer.public_key || null,
-    streakCount: Number(peer.streak_count || 0)
+    streakCount: Number(peer.effective_streak_count || 0)
   });
 };
 

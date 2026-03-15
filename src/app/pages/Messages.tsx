@@ -90,6 +90,7 @@ export default function Messages() {
     isVerifiedBadge: true,
     isModerator: false,
     isAdmin: false,
+    streakCount: 0,
   };
 
   useEffect(() => {
@@ -234,7 +235,8 @@ export default function Messages() {
         verified: peerResponse.data.verified,
         isVerifiedBadge: peerResponse.data.isVerifiedBadge,
         isModerator: peerResponse.data.isModerator,
-        isAdmin: peerResponse.data.isAdmin
+        isAdmin: peerResponse.data.isAdmin,
+        streakCount: peerResponse.data.streakCount
       });
       const keyPair = await getOrCreateKeyPair();
       const privateKey = await importPrivateKey(keyPair.privateKey);
@@ -249,7 +251,8 @@ export default function Messages() {
         verified: peerResponse.data.verified,
         isVerifiedBadge: peerResponse.data.isVerifiedBadge,
         isModerator: peerResponse.data.isModerator,
-        isAdmin: peerResponse.data.isAdmin
+        isAdmin: peerResponse.data.isAdmin,
+        streakCount: peerResponse.data.streakCount
       });
     } else if (!peerResponse.success) {
       setError(peerResponse.error || "Failed to load conversation details");
@@ -661,6 +664,12 @@ export default function Messages() {
                 type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
                 size="sm"
               />
+            )}
+            {contact.streakCount && contact.streakCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs text-[#25D366]">
+                <Flame size={12} />
+                {contact.streakCount}
+              </span>
             )}
           </div>
           <p className="text-xs text-[#667781]">
