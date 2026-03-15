@@ -13,6 +13,7 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsPath = path.join(__dirname, '..', 'uploads');
+const frontendDistPath = path.join(__dirname, '..', '..', 'dist');
 
 app.use(helmet());
 app.use(
@@ -46,6 +47,16 @@ app.get('/api/health', (req, res) => {
 app.use('/uploads', express.static(uploadsPath));
 
 app.use('/api', apiRateLimiter, routes);
+
+if (env.nodeEnv === 'production') {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    return res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found', message: 'Route not found' });
