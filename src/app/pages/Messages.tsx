@@ -80,7 +80,6 @@ export default function Messages() {
   const [recording, setRecording] = useState(false);
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const attachmentUrlsRef = useRef<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -209,13 +208,16 @@ export default function Messages() {
       if (payload.conversationId !== id) return;
       let nextText = payload.message.text;
       let encryptedFlag = Boolean(payload.message.encrypted);
-      if (payload.message.encrypted && payload.message.iv && sharedKey) {
-        try {
-          nextText = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
-        } catch {
+      if (payload.message.encrypted) {
+        if (payload.message.iv && sharedKey) {
+          try {
+            nextText = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
+          } catch {
+            nextText = "Encrypted message";
+          }
+        } else {
           nextText = "Encrypted message";
         }
-        encryptedFlag = payload.message.encrypted ? true : false;
       }
       setMessages((prev) => {
         const updated = prev.map((msg) =>
@@ -428,17 +430,19 @@ export default function Messages() {
   const handleSend = async () => {
     if (!newMessage.trim() || !id) return;
 
-    const tempId = Date.now().toString();
-    const tempMessage: Message = {
-      id: tempId,
-      text: newMessage,
-      timestamp: new Date().toISOString(),
-      sender: "me",
-      readAt: null,
-      viewOnce: viewOnceMode,
-    };
-
-    setMessages([...messages, tempMessage]);
+    let tempId: string | null = null;
+    if (!editingMessageId) {
+      tempId = Date.now().toString();
+      const tempMessage: Message = {
+        id: tempId,
+        text: newMessage,
+        timestamp: new Date().toISOString(),
+        sender: "me",
+        readAt: null,
+        viewOnce: viewOnceMode,
+      };
+      setMessages([...messages, tempMessage]);
+    }
     setNewMessage("");
     setError("");
 
@@ -459,13 +463,14 @@ export default function Messages() {
 
     if (!response.success) {
       setError(response.error || "Failed to send message");
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      if (tempId) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      }
       return;
     }
 
     setViewOnceMode(false);
     setEditingMessageId(null);
-    setEditingText("");
     await loadMessages();
   };
 
@@ -476,21 +481,18 @@ export default function Messages() {
       try {
         const text = await decryptMessage(message.text, message.iv, sharedKey);
         setNewMessage(text);
-        setEditingText(text);
       } catch {
         setError("Unable to decrypt this message for editing");
         return;
       }
     } else {
       setNewMessage(message.text);
-      setEditingText(message.text);
     }
     setEditingMessageId(message.id);
   };
 
   const cancelEdit = () => {
     setEditingMessageId(null);
-    setEditingText("");
     setNewMessage("");
   };
 
@@ -1166,48 +1168,3 @@ export default function Messages() {
     </div>
   );
 }
-
-
-
-
-
-    const handleMessageEdited = async (payload: {
-      conversationId: string;
-      message: { id: string; text: string; iv?: string | null; encrypted?: boolean; editedAt?: string | null };
-    }) => {
-      if (payload.conversationId !== id) return;
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === payload.message.id
-            ? { ...msg, text: payload.message.text, iv: payload.message.iv || null, encrypted: payload.message.encrypted, editedAt: payload.message.editedAt || new Date().toISOString() }
-            : msg
-        )
-      );
-      if (user?.id) {
-        const updated = messages.map((msg) =>
-          msg.id === payload.message.id
-            ? { ...msg, text: payload.message.text, iv: payload.message.iv || null, encrypted: payload.message.encrypted, editedAt: payload.message.editedAt || new Date().toISOString() }
-            : msg
-        );
-        saveMessages(user.id, id, updated);
-      }
-    };
-
-    const handleMessageDeleted = (payload: { conversationId: string; messageId: string; deletedAt: string }) => {
-      if (payload.conversationId !== id) return;
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === payload.messageId
-            ? { ...msg, deletedForAllAt: payload.deletedAt, text: "" }
-            : msg
-        )
-      );
-      if (user?.id) {
-        const updated = messages.map((msg) =>
-          msg.id === payload.messageId
-            ? { ...msg, deletedForAllAt: payload.deletedAt, text: "" }
-            : msg
-        );
-        saveMessages(user.id, id, updated);
-      }
-    };

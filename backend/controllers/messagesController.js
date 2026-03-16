@@ -83,6 +83,11 @@ export const getConversations = async (req, res) => {
         lm.created_at AS last_timestamp,
         lm.is_encrypted AS last_encrypted,
         lm.view_once AS last_view_once,
+        lm.deleted_for_all_at AS last_deleted_all,
+        CASE
+          WHEN lm.sender_id = :user_id THEN lm.deleted_for_sender_at
+          ELSE lm.deleted_for_recipient_at
+        END AS last_deleted_for_user,
         cp1.last_read_at AS last_read_at,
         CASE
           WHEN c.last_mutual_at IS NULL THEN 0
@@ -116,7 +121,8 @@ export const getConversations = async (req, res) => {
      JOIN users u ON u.id = cp2.user_id
      JOIN users cu ON cu.id = :user_id
      LEFT JOIN (
-       SELECT m1.conversation_id, m1.body, m1.created_at, m1.is_encrypted, m1.view_once
+       SELECT m1.conversation_id, m1.body, m1.created_at, m1.is_encrypted, m1.view_once, m1.sender_id,
+              m1.deleted_for_all_at, m1.deleted_for_sender_at, m1.deleted_for_recipient_at
        FROM messages m1
        JOIN (
          SELECT conversation_id, MAX(created_at) AS max_created
@@ -143,11 +149,15 @@ export const getConversations = async (req, res) => {
       isAdmin: Boolean(row.is_admin)
     },
     lastMessage: {
-      text: row.last_view_once
-        ? 'View once message'
-        : row.last_encrypted
-          ? 'Encrypted message'
-          : row.last_text || '',
+      text: row.last_deleted_all
+        ? 'Message deleted'
+        : row.last_deleted_for_user
+          ? 'Message deleted'
+          : row.last_view_once
+            ? 'View once message'
+            : row.last_encrypted
+              ? 'Encrypted message'
+              : row.last_text || '',
       timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : null,
       unreadCount: Number(row.unread_count || 0)
     },
@@ -641,7 +651,7 @@ export const editMessage = async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    `SELECT sender_id, read_at, view_once
+    `SELECT sender_id, read_at, view_once, deleted_for_all_at
      FROM messages
      WHERE id = :id AND conversation_id = :conversation_id
      LIMIT 1`,
@@ -658,6 +668,9 @@ export const editMessage = async (req, res) => {
   }
   if (existing.view_once) {
     return sendError(res, 400, 'View-once messages cannot be edited');
+  }
+  if (existing.deleted_for_all_at) {
+    return sendError(res, 400, 'Deleted messages cannot be edited');
   }
 
   if (existing.read_at) {
@@ -717,7 +730,7 @@ export const deleteMessage = async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    `SELECT sender_id, read_at
+    `SELECT sender_id, read_at, deleted_for_all_at
      FROM messages
      WHERE id = :id AND conversation_id = :conversation_id
      LIMIT 1`,
@@ -729,6 +742,9 @@ export const deleteMessage = async (req, res) => {
   }
 
   const existing = rows[0];
+  if (existing.deleted_for_all_at && scope === 'all') {
+    return sendError(res, 400, 'Message already deleted for everyone');
+  }
   if (scope === 'all') {
     if (existing.sender_id !== userId) {
       return sendError(res, 403, 'You can only delete your own messages for everyone');
