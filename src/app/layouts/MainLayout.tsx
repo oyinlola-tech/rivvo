@@ -39,16 +39,21 @@ export default function MainLayout() {
     navItems.push({ path: "/admin", icon: LayoutDashboard, label: "Admin" });
   }
 
+  const hideGlobalNav =
+    location.pathname.startsWith("/messages/") ||
+    location.pathname.startsWith("/call/");
+
   return (
     <div className="min-h-[100dvh] bg-background">
       <div className="max-w-7xl mx-auto">
-        <div className="pb-20 md:pb-0">
+        <div className={hideGlobalNav ? "" : "pb-20 md:pb-0"}>
           <Outlet />
         </div>
         <NotificationsSheet />
 
         {/* Mobile Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border md:hidden">
+        {!hideGlobalNav && (
+          <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border md:hidden">
           <div className="flex justify-around items-center h-20 px-4">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -94,8 +99,9 @@ export default function MainLayout() {
             </button>
           </div>
         </div>
+        )}
 
-        {showMoreSheet && (
+        {showMoreSheet && !hideGlobalNav && (
           <div className="fixed inset-0 z-50 bg-black/40 md:hidden">
             <div className="absolute inset-x-0 bottom-0 bg-background rounded-t-3xl p-6">
               <div className="flex items-center justify-between mb-4">
@@ -132,7 +138,8 @@ export default function MainLayout() {
         )}
 
         {/* Desktop Side Navigation */}
-        <div className="hidden md:flex md:fixed md:left-0 md:top-0 md:h-full md:w-64 md:bg-background md:border-r md:border-border md:flex-col md:p-6">
+        {!hideGlobalNav && (
+          <div className="hidden md:flex md:fixed md:left-0 md:top-0 md:h-full md:w-64 md:bg-background md:border-r md:border-border md:flex-col md:p-6">
           <div className="mb-8">
             <h1 className="text-2xl font-bold">RIVVO</h1>
           </div>
@@ -166,6 +173,7 @@ export default function MainLayout() {
             })}
           </nav>
         </div>
+        )}
       </div>
     </div>
   );

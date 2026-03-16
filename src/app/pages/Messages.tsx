@@ -857,20 +857,28 @@ export default function Messages() {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  const truncatePreview = (text: string, maxLength: number = 9) => {
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength)}...`;
+  };
+
   const getLastMessagePreview = () => {
     if (!messages.length) return "No messages yet";
     const last = messages[messages.length - 1];
-    if (last.viewOnce) return "View once message";
-    if (last.attachment) {
-      if (last.attachment.mime.startsWith("audio/")) return "Voice note";
-      if (last.attachment.mime.startsWith("image/")) return "Photo";
-      if (last.attachment.mime.startsWith("video/")) return "Video";
-      return last.attachment.name || "Attachment";
+    let preview = "";
+    if (last.viewOnce) {
+      preview = "View once message";
+    } else if (last.attachment) {
+      if (last.attachment.mime.startsWith("audio/")) preview = "Voice note";
+      else if (last.attachment.mime.startsWith("image/")) preview = "Photo";
+      else if (last.attachment.mime.startsWith("video/")) preview = "Video";
+      else preview = last.attachment.name || "Attachment";
+    } else if (last.encrypted && (!last.text || last.text === "Encrypted message")) {
+      preview = "New message";
+    } else {
+      preview = last.text || "No messages yet";
     }
-    if (last.encrypted && (!last.text || last.text === "Encrypted message")) {
-      return "Message";
-    }
-    return last.text || "No messages yet";
+    return truncatePreview(preview);
   };
 
   if (!id) {
@@ -1189,15 +1197,6 @@ export default function Messages() {
             disabled={uploading}
           >
             <Camera size={20} className="text-[#667781]" />
-          </button>
-          <button
-            onClick={() => setViewOnceMode((prev) => !prev)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              viewOnceMode ? "bg-[#1a8c7a] text-white" : "hover:bg-black/5 text-[#667781]"
-            }`}
-            title="Send view-once message"
-          >
-            <span className="text-xs font-semibold">1x</span>
           </button>
           <button
             onClick={() => setShowEmojiPicker((prev) => !prev)}

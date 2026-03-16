@@ -294,7 +294,7 @@ export default function Home() {
                           : "No messages yet"}
                       </p>
                       <div className="flex items-center gap-2">
-                        {conversation.streakCount && conversation.streakCount > 0 && (
+                        {(conversation.streakCount ?? 0) > 0 && (
                           <div className="flex items-center gap-1 text-xs text-[#1a8c7a]">
                             <Flame size={12} />
                             {conversation.streakCount}
