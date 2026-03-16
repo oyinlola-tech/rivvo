@@ -39,6 +39,7 @@ export default function CallRoom() {
   const { user } = useAuth();
   const [callType, setCallType] = useState<CallType>("video");
   const [callScope, setCallScope] = useState<"direct" | "group" | null>(null);
+  const [callInfoLoaded, setCallInfoLoaded] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<
     { peerId: string; stream: MediaStream; name: string }[]
@@ -128,6 +129,7 @@ export default function CallRoom() {
       if (!stream) return;
       peerStreamsRef.current.set(peerId, stream);
       updateRemoteStreams();
+      setStatus("Connected");
     };
 
     pc.onconnectionstatechange = () => {
@@ -218,10 +220,12 @@ export default function CallRoom() {
         to: from,
         data: { type: "answer", sdp: pc.localDescription },
       });
+      setStatus("Connecting...");
     } else if (data.type === "answer") {
       if (!pc.currentRemoteDescription) {
         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
       }
+      setStatus("Connecting...");
     } else if (data.type === "candidate") {
       if (pc.remoteDescription) {
         await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
@@ -256,6 +260,7 @@ export default function CallRoom() {
             setCallType(response.data.type === "audio" ? "audio" : "video");
             setCallScope(response.data.scope ?? "group");
           }
+          setCallInfoLoaded(true);
           return;
         }
         const response = await api.getCallDetails(token);
@@ -264,8 +269,10 @@ export default function CallRoom() {
           setCallType(response.data.type === "audio" ? "audio" : "video");
           setCallScope("direct");
         }
+        setCallInfoLoaded(true);
       } catch {
         // fallback to defaults
+        setCallInfoLoaded(true);
       }
     };
 
@@ -277,7 +284,7 @@ export default function CallRoom() {
   }, [token]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !callInfoLoaded) return;
 
     let cancelled = false;
 
@@ -308,7 +315,7 @@ export default function CallRoom() {
     return () => {
       cancelled = true;
     };
-  }, [callType, token]);
+  }, [callType, token, callInfoLoaded]);
 
   useEffect(() => {
     if (!token || !localStream || joined) return;
@@ -325,7 +332,7 @@ export default function CallRoom() {
     };
 
     const handlePeers = async (peers: { peerId: string; name: string }[]) => {
-      setStatus("Connected");
+      setStatus(peers.length ? "Connecting..." : "Waiting for others...");
       for (const peer of peers) {
         peerNamesRef.current.set(peer.peerId, peer.name || "Guest");
         createPeerConnection(peer.peerId);
@@ -346,6 +353,7 @@ export default function CallRoom() {
       if (typeof shouldOffer === "boolean") {
         politeRef.current.set(peerId, !shouldOffer);
       }
+      setStatus("Connecting...");
       if (shouldOffer) {
         makeOffer(peerId).catch(() => undefined);
       }
