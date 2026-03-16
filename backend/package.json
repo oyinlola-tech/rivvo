@@ -1,6 +1,6 @@
 {
   "name": "rivvo-backend",
-  "version": "1.0.0",
+  "version": "6.3.1",
   "type": "module",
   "private": true,
   "main": "src/server.js",
