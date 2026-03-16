@@ -101,7 +101,8 @@ io.on('connection', (socket) => {
     socket.emit('call:peers', peers);
     socket.to(roomKey).emit('call:peer-joined', {
       peerId: socket.id,
-      name: socket.data.displayName || 'Guest'
+      name: socket.data.displayName || 'Guest',
+      shouldOffer: true
     });
   });
 

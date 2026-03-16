@@ -57,6 +57,8 @@ export default function CallRoom() {
   const socketIdRef = useRef<string | null>(null);
   const peerConnectionsRef = useRef<Map<string, PeerConnectionEntry>>(new Map());
   const peerNamesRef = useRef<Map<string, string>>(new Map());
+  const makingOfferRef = useRef<Map<string, boolean>>(new Map());
+  const politeRef = useRef<Map<string, boolean>>(new Map());
 
   const localName = useMemo(() => user?.name || "Guest", [user]);
   const authToken = useMemo(() => localStorage.getItem("authToken"), []);
@@ -106,6 +108,11 @@ export default function CallRoom() {
     };
 
     updateSendersWithStream(entry, localStream);
+    makingOfferRef.current.set(peerId, false);
+    if (!politeRef.current.has(peerId)) {
+      const localId = socketIdRef.current;
+      politeRef.current.set(peerId, localId ? localId < peerId : true);
+    }
 
     pc.onicecandidate = (event) => {
       if (event.candidate && socketRef.current) {
@@ -129,8 +136,48 @@ export default function CallRoom() {
       }
     };
 
+    pc.onnegotiationneeded = async () => {
+      const socket = socketRef.current;
+      if (!socket) return;
+      if (makingOfferRef.current.get(peerId)) return;
+      try {
+        makingOfferRef.current.set(peerId, true);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit("call:signal", {
+          to: peerId,
+          data: { type: "offer", sdp: pc.localDescription },
+        });
+      } catch {
+        // ignore negotiation errors
+      } finally {
+        makingOfferRef.current.set(peerId, false);
+      }
+    };
+
     peerConnectionsRef.current.set(peerId, entry);
     return entry;
+  };
+
+  const makeOffer = async (peerId: string) => {
+    const socket = socketRef.current;
+    if (!socket) return;
+    const entry = createPeerConnection(peerId);
+    const pc = entry.pc;
+    if (makingOfferRef.current.get(peerId)) return;
+    try {
+      makingOfferRef.current.set(peerId, true);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit("call:signal", {
+        to: peerId,
+        data: { type: "offer", sdp: pc.localDescription },
+      });
+    } catch {
+      // ignore
+    } finally {
+      makingOfferRef.current.set(peerId, false);
+    }
   };
 
   const cleanupPeer = (peerId: string) => {
@@ -141,6 +188,8 @@ export default function CallRoom() {
     peerConnectionsRef.current.delete(peerId);
     peerStreamsRef.current.delete(peerId);
     peerNamesRef.current.delete(peerId);
+    makingOfferRef.current.delete(peerId);
+    politeRef.current.delete(peerId);
     updateRemoteStreams();
   };
 
@@ -149,7 +198,13 @@ export default function CallRoom() {
     const pc = entry.pc;
 
     if (data.type === "offer") {
-      if (pc.signalingState !== "stable") {
+      const makingOffer = makingOfferRef.current.get(from) || false;
+      const polite = politeRef.current.get(from) ?? true;
+      const offerCollision = makingOffer || pc.signalingState !== "stable";
+      if (offerCollision && !polite) {
+        return;
+      }
+      if (offerCollision) {
         try {
           await pc.setLocalDescription({ type: "rollback" });
         } catch {
@@ -271,27 +326,29 @@ export default function CallRoom() {
 
     const handlePeers = async (peers: { peerId: string; name: string }[]) => {
       setStatus("Connected");
-      const localId = socket.id;
       for (const peer of peers) {
         peerNamesRef.current.set(peer.peerId, peer.name || "Guest");
-        const entry = createPeerConnection(peer.peerId);
-        if (!localId || localId > peer.peerId) {
-          continue;
-        }
-        if (entry.pc.signalingState !== "stable") {
-          continue;
-        }
-        const offer = await entry.pc.createOffer();
-        await entry.pc.setLocalDescription(offer);
-        socket.emit("call:signal", {
-          to: peer.peerId,
-          data: { type: "offer", sdp: entry.pc.localDescription },
-        });
+        createPeerConnection(peer.peerId);
       }
     };
 
-    const handlePeerJoined = ({ peerId, name }: { peerId: string; name: string }) => {
+    const handlePeerJoined = ({
+      peerId,
+      name,
+      shouldOffer,
+    }: {
+      peerId: string;
+      name: string;
+      shouldOffer?: boolean;
+    }) => {
       peerNamesRef.current.set(peerId, name || "Guest");
+      createPeerConnection(peerId);
+      if (typeof shouldOffer === "boolean") {
+        politeRef.current.set(peerId, !shouldOffer);
+      }
+      if (shouldOffer) {
+        makeOffer(peerId).catch(() => undefined);
+      }
       updateRemoteStreams();
     };
 

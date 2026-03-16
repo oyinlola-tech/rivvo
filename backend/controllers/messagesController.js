@@ -491,10 +491,6 @@ export const sendMessage = async (req, res) => {
       conversationId,
       message: { ...payload, sender: 'them' }
     });
-    io.to(`conversation:${conversationId}`).emit('new_message', {
-      conversationId,
-      message: { ...payload, sender: 'them' }
-    });
     if (deliveredAt) {
       io.to(`user:${userId}`).emit('delivery_receipt', {
         conversationId,
