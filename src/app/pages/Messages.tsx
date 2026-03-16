@@ -455,7 +455,8 @@ export default function Messages() {
   };
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !id) return;
+    const outgoingText = newMessage.trim();
+    if (!outgoingText || !id) return;
     if (sendingRef.current) return;
     sendingRef.current = true;
     setSending(true);
@@ -465,13 +466,13 @@ export default function Messages() {
       tempId = Date.now().toString();
       const tempMessage: Message = {
         id: tempId,
-        text: newMessage,
+        text: outgoingText,
         timestamp: new Date().toISOString(),
         sender: "me",
         readAt: null,
         viewOnce: viewOnceMode,
       };
-      setMessages([...messages, tempMessage]);
+      setMessages((prev) => [...prev, tempMessage]);
     }
     setNewMessage("");
     setError("");
@@ -479,16 +480,16 @@ export default function Messages() {
     let response;
     if (editingMessageId) {
       if (sharedKey) {
-        const encrypted = await encryptMessage(newMessage, sharedKey);
+        const encrypted = await encryptMessage(outgoingText, sharedKey);
         response = await api.editMessage(id, editingMessageId, { ...encrypted, encrypted: true });
       } else {
-        response = await api.editMessage(id, editingMessageId, { message: newMessage, encrypted: false });
+        response = await api.editMessage(id, editingMessageId, { message: outgoingText, encrypted: false });
       }
     } else if (sharedKey) {
-      const encrypted = await encryptMessage(newMessage, sharedKey);
+      const encrypted = await encryptMessage(outgoingText, sharedKey);
       response = await api.sendEncryptedMessage(id, { ...encrypted, viewOnce: viewOnceMode });
     } else {
-      response = await api.sendMessage(id, newMessage, viewOnceMode);
+      response = await api.sendMessage(id, outgoingText, viewOnceMode);
     }
 
     try {
@@ -498,6 +499,31 @@ export default function Messages() {
           setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
         }
         return;
+      }
+
+      if (!editingMessageId && tempId) {
+        if (response.data) {
+          let nextText = outgoingText;
+          if (response.data.encrypted && response.data.iv && sharedKey) {
+            try {
+              nextText = await decryptMessage(response.data.text, response.data.iv, sharedKey);
+            } catch {
+              nextText = "Encrypted message";
+            }
+          } else if (response.data.encrypted) {
+            nextText = "Encrypted message";
+          }
+          const attachment = parseAttachment(nextText);
+          const hydrated: Message = attachment
+            ? { ...response.data, text: nextText, attachment }
+            : { ...response.data, text: nextText };
+          setMessages((prev) => prev.map((msg) => (msg.id === tempId ? hydrated : msg)));
+          if (user?.id) {
+            await saveMessages(user.id, id, [hydrated]);
+          }
+        } else {
+          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+        }
       }
 
       setViewOnceMode(false);

@@ -1,9 +1,13 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation, Navigate } from "react-router";
 import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard, MoreHorizontal, PhoneCall, PhoneOff, Video } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationsSheet from "../components/NotificationsSheet";
 import { CallProvider, useCall } from "../contexts/CallContext";
+import { getSocket } from "../lib/socket";
+import { readCache, writeCache } from "../lib/cache";
+import { saveMessages } from "../lib/messageStore";
+import { ConversationDto } from "../lib/api";
 
 export default function MainLayout() {
   return (
@@ -18,6 +22,47 @@ function MainLayoutContent() {
   const { user, loading, verificationPending } = useAuth();
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const { outgoingCall, incomingCall, acceptCall, declineCall, cancelCall, missedToast, outgoingSecondsLeft } = useCall();
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const token = localStorage.getItem("authToken");
+    const socket = getSocket(token);
+    const cacheKey = `conversations:${user.id}`;
+
+    const handleIncoming = (payload: {
+      conversationId: string;
+      message: { text: string; timestamp: string; senderId?: string; encrypted?: boolean; viewOnce?: boolean };
+    }) => {
+      if (payload.message.senderId && payload.message.senderId === user.id) {
+        return;
+      }
+      const cached = readCache<ConversationDto[]>(cacheKey, Number.POSITIVE_INFINITY) || [];
+      const next = cached.map((conv) => {
+        if (conv.id !== payload.conversationId) return conv;
+        return {
+          ...conv,
+          lastMessage: {
+            text: payload.message.viewOnce
+              ? "View once message"
+              : payload.message.encrypted
+                ? "Message"
+                : payload.message.text,
+            timestamp: payload.message.timestamp,
+            unreadCount: (conv.lastMessage?.unreadCount ?? 0) + 1,
+          },
+        };
+      });
+      if (next.length) {
+        writeCache(cacheKey, next);
+      }
+      saveMessages(user.id, payload.conversationId, [payload.message]).catch(() => null);
+    };
+
+    socket.on("new_message", handleIncoming);
+    return () => {
+      socket.off("new_message", handleIncoming);
+    };
+  }, [user?.id]);
 
   if (loading) {
     return (
