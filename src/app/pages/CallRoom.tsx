@@ -46,7 +46,7 @@ export default function CallRoom() {
     { peerId: string; stream: MediaStream; name: string }[]
   >([]);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("Preparing media...");
+  const [status, setStatus] = useState<string>("Connecting...");
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [joined, setJoined] = useState(false);
@@ -300,6 +300,12 @@ export default function CallRoom() {
   }, [token, searchParams]);
 
   useEffect(() => {
+    if (callInfoLoaded && callScope === "direct") {
+      setStatus("Ringing...");
+    }
+  }, [callInfoLoaded, callScope]);
+
+  useEffect(() => {
     if (!token || !callInfoLoaded) return;
 
     let cancelled = false;
@@ -348,7 +354,7 @@ export default function CallRoom() {
     };
 
     const handlePeers = async (peers: { peerId: string; name: string }[]) => {
-      setStatus(peers.length ? "Connecting..." : "Waiting for others...");
+      setStatus(peers.length ? "Connecting..." : "Ringing...");
       for (const peer of peers) {
         peerNamesRef.current.set(peer.peerId, peer.name || "Guest");
         createPeerConnection(peer.peerId);

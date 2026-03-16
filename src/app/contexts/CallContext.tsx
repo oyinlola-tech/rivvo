@@ -59,6 +59,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
   const ringbackRef = useRef<{ stop: () => void } | null>(null);
   const ringtoneRef = useRef<{ stop: () => void } | null>(null);
   const countdownRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const clearTimeoutIfAny = () => {
     if (timeoutRef.current) {
@@ -71,10 +72,33 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const ensureAudioContext = async () => {
+    const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextCtor) return null;
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContextCtor();
+    }
+    if (audioCtxRef.current.state === "suspended") {
+      try {
+        await audioCtxRef.current.resume();
+      } catch {
+        return null;
+      }
+    }
+    return audioCtxRef.current;
+  };
+
+  const emitIfConnected = (socket: ReturnType<typeof getSocket>, event: string, payload: any) => {
+    if (socket.connected) {
+      socket.emit(event, payload);
+      return;
+    }
+    socket.once("connect", () => socket.emit(event, payload));
+  };
+
   const playTone = (pattern: number[]) => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return null;
-    const ctx = new AudioContext();
+    const ctx = audioCtxRef.current;
+    if (!ctx || ctx.state !== "running") return null;
     const gain = ctx.createGain();
     gain.gain.value = 0.08;
     gain.connect(ctx.destination);
@@ -99,13 +123,14 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     return {
       stop: () => {
         running = false;
-        ctx.close().catch(() => undefined);
+        // keep context for later reuse
       },
     };
   };
 
   const startCall = async (peer: CallUser, type: "audio" | "video") => {
     if (!peer?.id) return;
+    await ensureAudioContext();
     clearTimeoutIfAny();
     const response = await api.initiateCall(peer.id, type);
     if (!response.success || !response.data?.callId || !response.data?.roomUrl) {
@@ -141,9 +166,10 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
 
   const cancelCall = async () => {
     if (!outgoingCall) return;
+    await ensureAudioContext();
     const token = localStorage.getItem("authToken");
     const socket = getSocket(token);
-    socket.emit("call:cancel", {
+    emitIfConnected(socket, "call:cancel", {
       callId: outgoingCall.callId,
       toUserId: outgoingCall.toUser.id,
     });
@@ -156,9 +182,10 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
 
   const acceptCall = async () => {
     if (!incomingCall) return;
+    await ensureAudioContext();
     const token = localStorage.getItem("authToken");
     const socket = getSocket(token);
-    socket.emit("call:accept", {
+    emitIfConnected(socket, "call:accept", {
       callId: incomingCall.callId,
       toUserId: incomingCall.fromUser.id,
     });
@@ -170,9 +197,10 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
 
   const declineCall = async () => {
     if (!incomingCall) return;
+    await ensureAudioContext();
     const token = localStorage.getItem("authToken");
     const socket = getSocket(token);
-    socket.emit("call:decline", {
+    emitIfConnected(socket, "call:decline", {
       callId: incomingCall.callId,
       toUserId: incomingCall.fromUser.id,
     });
@@ -189,7 +217,10 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
 
     const handleIncoming = (payload: any) => {
       if (outgoingCall || incomingCall) {
-        socket.emit("call:decline", { callId: payload.callId, toUserId: payload.fromUser?.id || payload.fromUserId });
+        emitIfConnected(socket, "call:decline", {
+          callId: payload.callId,
+          toUserId: payload.fromUser?.id || payload.fromUserId,
+        });
         return;
       }
       const fromUser = payload.fromUser || {
@@ -203,8 +234,8 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         fromUser,
       });
       ringtoneRef.current?.stop();
-      ringtoneRef.current = playTone([600, 600, 600, 600]);
-      socket.emit("call:ringing", { callId: payload.callId, toUserId: fromUser.id });
+      // Only start ringtone after a user gesture unlocks audio context.
+      emitIfConnected(socket, "call:ringing", { callId: payload.callId, toUserId: fromUser.id });
     };
 
     const handleAccepted = (payload: any) => {
