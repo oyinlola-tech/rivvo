@@ -54,6 +54,7 @@ export default function CallRoom() {
   const [callDuration, setCallDuration] = useState(0);
 
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
+  const socketIdRef = useRef<string | null>(null);
   const peerConnectionsRef = useRef<Map<string, PeerConnectionEntry>>(new Map());
   const peerNamesRef = useRef<Map<string, string>>(new Map());
 
@@ -148,6 +149,13 @@ export default function CallRoom() {
     const pc = entry.pc;
 
     if (data.type === "offer") {
+      if (pc.signalingState !== "stable") {
+        try {
+          await pc.setLocalDescription({ type: "rollback" });
+        } catch {
+          // ignore rollback errors
+        }
+      }
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
@@ -252,6 +260,10 @@ export default function CallRoom() {
 
     const socket = getSocket(authToken);
     socketRef.current = socket;
+    socketIdRef.current = socket.id ?? null;
+    socket.on("connect", () => {
+      socketIdRef.current = socket.id ?? null;
+    });
 
     const handleFull = () => {
       setError(`Room is full (max ${MAX_PARTICIPANTS} participants).`);
@@ -259,9 +271,16 @@ export default function CallRoom() {
 
     const handlePeers = async (peers: { peerId: string; name: string }[]) => {
       setStatus("Connected");
+      const localId = socket.id;
       for (const peer of peers) {
         peerNamesRef.current.set(peer.peerId, peer.name || "Guest");
         const entry = createPeerConnection(peer.peerId);
+        if (!localId || localId > peer.peerId) {
+          continue;
+        }
+        if (entry.pc.signalingState !== "stable") {
+          continue;
+        }
         const offer = await entry.pc.createOffer();
         await entry.pc.setLocalDescription(offer);
         socket.emit("call:signal", {
@@ -295,6 +314,7 @@ export default function CallRoom() {
     setJoined(true);
 
     return () => {
+      socket.off("connect");
       socket.off("call:full", handleFull);
       socket.off("call:peers", handlePeers);
       socket.off("call:peer-joined", handlePeerJoined);
