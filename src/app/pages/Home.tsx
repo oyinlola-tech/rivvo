@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
-import { Search, Flame, Bell } from "lucide-react";
+import { Search, Bell } from "lucide-react";
 import { api, ConversationDto } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -9,6 +9,7 @@ import { openNotificationsSheet } from "../lib/notificationsSheet";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { readCache, writeCache } from "../lib/cache";
 import { preloadImages } from "../lib/imageCache";
+import { getConversationStreak, recordConversationActivity } from "../lib/streak";
 
 export default function Home() {
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
@@ -33,6 +34,21 @@ export default function Home() {
     loadConversations();
   }, [user?.id]);
 
+  useEffect(() => {
+    const handleFocus = () => loadConversations();
+    const handleVisibility = () => {
+      if (!document.hidden) loadConversations();
+    };
+    const interval = window.setInterval(() => loadConversations(), 20000);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [user?.id]);
+
   
 
 
@@ -49,10 +65,14 @@ export default function Home() {
         return;
       }
       setConversations((prev) => {
+        const updatedStreak = user?.id
+          ? recordConversationActivity(user.id, payload.conversationId).count
+          : 0;
         const next = prev.map((conv) => {
           if (conv.id !== payload.conversationId) return conv;
           return {
             ...conv,
+            streakCount: Math.max(conv.streakCount ?? 0, updatedStreak),
             lastMessage: {
               text: payload.message.viewOnce
                 ? "View once message"
@@ -75,12 +95,21 @@ export default function Home() {
     };
   }, [user?.id]);
 
+  const applyLocalStreaks = (list: ConversationDto[]) => {
+    if (!user?.id) return list;
+    return list.map((conv) => {
+      const local = getConversationStreak(user.id, conv.id).count;
+      return { ...conv, streakCount: Math.max(conv.streakCount ?? 0, local) };
+    });
+  };
+
   const loadConversations = async () => {
     setError("");
     const cacheKey = user?.id ? `conversations:${user.id}` : "conversations:guest";
     const cached = readCache<ConversationDto[]>(cacheKey, 60_000);
     if (cached && cached.length) {
-      setConversations(cached);
+      const hydrated = applyLocalStreaks(cached);
+      setConversations(hydrated);
       setLoading(false);
       preloadImages(cached.map((conv) => conv.user.avatar));
       return;
@@ -88,8 +117,9 @@ export default function Home() {
 
     const response = await api.getConversations();
     if (response.success && response.data) {
-      setConversations(response.data);
-      writeCache(cacheKey, response.data);
+      const hydrated = applyLocalStreaks(response.data);
+      setConversations(hydrated);
+      writeCache(cacheKey, hydrated);
       preloadImages(response.data.map((conv) => conv.user.avatar));
     } else if (!response.success) {
       setError(response.error || "Failed to load conversations");
@@ -295,8 +325,8 @@ export default function Home() {
                       </p>
                       <div className="flex items-center gap-2">
                         {(conversation.streakCount ?? 0) > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-[#1a8c7a]">
-                            <Flame size={12} />
+                          <div className="flex items-center gap-1 rounded-full bg-[#fff4e5] px-2 py-0.5 text-xs text-[#b45309]">
+                            <span aria-hidden="true">??</span>
                             {conversation.streakCount}
                           </div>
                         )}

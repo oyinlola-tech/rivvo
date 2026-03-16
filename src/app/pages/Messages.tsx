@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Flame, Check, CheckCheck, Smile } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Check, CheckCheck, Smile } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -25,6 +25,7 @@ import {
 import { useCall } from "../contexts/CallContext";
 import { preloadImage } from "../lib/imageCache";
 import EmojiPicker from "../components/EmojiPicker";
+import { getConversationStreak, recordConversationActivity } from "../lib/streak";
 
 interface Message {
   id: string;
@@ -105,6 +106,7 @@ export default function Messages() {
   const [reportMessageId, setReportMessageId] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [reportBlock, setReportBlock] = useState(false);
+  const [localStreak, setLocalStreak] = useState(0);
   const reportSuggestions = [
     "Spam or scam",
     "Harassment or hate speech",
@@ -116,6 +118,7 @@ export default function Messages() {
   const contact = peer;
   const firstName = contact?.name?.trim().split(" ")[0] || contact?.name || "";
   const canNavigateProfile = Boolean(contact?.id);
+  const streakValue = Math.max(contact?.streakCount ?? 0, localStreak);
 
   const handleMessageLongPressStart = (messageId: string) => {
     if (longPressTimerRef.current) {
@@ -137,8 +140,11 @@ export default function Messages() {
   useEffect(() => {
     if (id) {
       loadMessages();
+      if (user?.id) {
+        setLocalStreak(getConversationStreak(user.id, id).count);
+      }
     }
-  }, [id]);
+  }, [id, user?.id]);
 
   useEffect(() => {
     if (!id) return;
@@ -169,6 +175,8 @@ export default function Messages() {
         setMessages((prev) => [...prev, nextMessage]);
         if (user?.id) {
           saveMessages(user.id, id, [nextMessage]);
+          const updated = recordConversationActivity(user.id, id);
+          setLocalStreak(updated.count);
         }
       }
     };
@@ -314,6 +322,24 @@ export default function Messages() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (!id) return;
+    const interval = window.setInterval(() => {
+      loadMessages();
+    }, 15000);
+    const handleFocus = () => loadMessages();
+    const handleVisibility = () => {
+      if (!document.hidden) loadMessages();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [id, user?.id, sharedKey]);
 
   useEffect(() => {
     return () => {
@@ -528,6 +554,10 @@ export default function Messages() {
 
       setViewOnceMode(false);
       setEditingMessageId(null);
+      if (user?.id && id) {
+        const updated = recordConversationActivity(user.id, id);
+        setLocalStreak(updated.count);
+      }
       await loadMessages();
     } finally {
       sendingRef.current = false;
@@ -940,10 +970,10 @@ export default function Messages() {
                     size="sm"
                   />
                 )}
-                {(contact.streakCount ?? 0) > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs text-[#1a8c7a]">
-                    <Flame size={12} />
-                    {contact.streakCount}
+                {streakValue > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4e5] px-2 py-0.5 text-xs text-[#b45309]">
+                    <span aria-hidden="true">??</span>
+                    {streakValue}
                   </span>
                 )}
               </>

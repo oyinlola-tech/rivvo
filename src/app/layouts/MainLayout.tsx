@@ -8,6 +8,7 @@ import { getSocket } from "../lib/socket";
 import { readCache, writeCache } from "../lib/cache";
 import { saveMessages } from "../lib/messageStore";
 import { ConversationDto } from "../lib/api";
+import { recordConversationActivity } from "../lib/streak";
 
 export default function MainLayout() {
   return (
@@ -37,10 +38,12 @@ function MainLayoutContent() {
         return;
       }
       const cached = readCache<ConversationDto[]>(cacheKey, Number.POSITIVE_INFINITY) || [];
+      const updatedStreak = recordConversationActivity(user.id, payload.conversationId).count;
       const next = cached.map((conv) => {
         if (conv.id !== payload.conversationId) return conv;
         return {
           ...conv,
+          streakCount: Math.max(conv.streakCount ?? 0, updatedStreak),
           lastMessage: {
             text: payload.message.viewOnce
               ? "View once message"
