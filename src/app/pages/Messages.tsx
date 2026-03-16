@@ -1292,7 +1292,9 @@ export default function Messages() {
             style={{ animation: "modal-zoom 200ms ease-out" }}
             onTouchStart={(event) => {
               if (event.touches.length === 2) {
-                const [a, b] = event.touches;
+                const a = event.touches.item(0);
+                const b = event.touches.item(1);
+                if (!a || !b) return;
                 const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
                 pinchStartRef.current = { dist, scale: avatarTransform.scale };
                 return;
@@ -1310,7 +1312,9 @@ export default function Messages() {
             }}
             onTouchMove={(event) => {
               if (event.touches.length === 2 && pinchStartRef.current) {
-                const [a, b] = event.touches;
+                const a = event.touches.item(0);
+                const b = event.touches.item(1);
+                if (!a || !b) return;
                 const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
                 const nextScale = Math.min(3, Math.max(1, (dist / pinchStartRef.current.dist) * pinchStartRef.current.scale));
                 setAvatarTransform((prev) => ({ ...prev, scale: nextScale }));
