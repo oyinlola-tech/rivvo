@@ -11,7 +11,8 @@ import {
   listDevices,
   verifyDevice,
   uploadAvatar,
-  searchUsers
+  searchUsers,
+  getStorageUsage
 } from '../controllers/usersController.js';
 import { upload } from '../utils/upload.js';
 
@@ -19,6 +20,7 @@ const router = Router();
 
 router.get('/profile', auth, asyncHandler(getProfile));
 router.put('/profile', auth, asyncHandler(updateProfile));
+router.get('/storage', auth, asyncHandler(getStorageUsage));
 router.get('/:userId/public', auth, asyncHandler(getPublicProfile));
 router.post('/avatar', auth, (req, res, next) => {
   req.uploadFolder = 'uploads/avatars';

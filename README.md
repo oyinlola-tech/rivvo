@@ -21,6 +21,11 @@ Rivvo is a cross-platform messaging application that uses an internet connection
 - Encrypted local cache (IndexedDB) for offline access.
 - Per-device key verification with QR support.
 - Verification badge system with admin review.
+- Contact request notifications with global sheet + unread badge.
+- Password reset via OTP (email verification required).
+- Help Center with contact support, privacy, and terms.
+- Storage & data usage dashboard.
+- Invite links for sharing Rivvo.
 
 ## Verification Badges
 - Paid monthly.
@@ -35,6 +40,7 @@ Rivvo is a cross-platform messaging application that uses an internet connection
 - Phone number is optional at signup.
 - Username is optional and can be created after signup in Settings.
 - Username can be changed once every 15 days.
+- Password reset requires OTP verification before update.
 
 ## Status (Stories)
 - 24-hour lifecycle for posts.
@@ -53,6 +59,9 @@ Rivvo is a cross-platform messaging application that uses an internet connection
 - Status updates with 24-hour expiry.
 - Device keys and verification state.
 - Verification payments + admin audit logs.
+- Message attachments tracked for storage usage.
+- OTPs scoped by purpose (email verification, password reset).
+- Contact requests include read state for notifications.
 
 ## Environment Variables
 ### Frontend
@@ -78,6 +87,7 @@ ADMIN_EMAIL=admin@rivvo.com
 ADMIN_PASSWORD=change_this_admin_password
 ADMIN_NAME=Rivvo Admin
 ```
+SMTP is required to deliver OTPs, welcome emails, password reset, and support messages.
 
 Flutterwave (verification payments):
 ```
@@ -146,5 +156,6 @@ See `SECURITY.md`.
 
 ## Operational Notes
 - Database migrations should be reviewed before deployment.
+- Ensure DB init runs after new tables/columns (message_attachments, otps.purpose, contact_requests.read_at).
 - Always rotate secrets on environment changes.
 - Monitor rate-limit errors for abuse detection.

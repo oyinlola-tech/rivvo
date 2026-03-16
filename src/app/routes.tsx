@@ -14,6 +14,9 @@ import Contacts from "./pages/Contacts";
 import Status from "./pages/Status";
 import Settings from "./pages/Settings";
 import DeviceKeys from "./pages/DeviceKeys";
+import Help from "./pages/Help";
+import StorageData from "./pages/StorageData";
+import InviteFriend from "./pages/InviteFriend";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Groups from "./pages/Groups";
@@ -70,6 +73,9 @@ export const router = createBrowserRouter([
       { path: "contacts", Component: Contacts },
       { path: "settings", Component: Settings },
       { path: "settings/device-keys", Component: DeviceKeys },
+      { path: "settings/help", Component: Help },
+      { path: "settings/storage", Component: StorageData },
+      { path: "settings/invite", Component: InviteFriend },
       { path: "users/:id", Component: UserProfile },
     ],
   },

@@ -1,4 +1,6 @@
 import pool from '../config/db.js';
+import fs from 'fs/promises';
+import path from 'path';
 import {
   sendError,
   isNonEmptyString,
@@ -33,6 +35,22 @@ const buildUserPayload = (user) => ({
   isAdmin: Boolean(user.is_admin),
   avatar: user.avatar || null
 });
+
+const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+
+const safeFileSize = async (relativeUrl) => {
+  if (!relativeUrl || typeof relativeUrl !== 'string') return 0;
+  if (!relativeUrl.startsWith('/uploads/')) return 0;
+  const normalized = relativeUrl.replace(/^\/uploads\//, '');
+  const target = path.resolve(uploadsRoot, normalized);
+  if (!target.startsWith(uploadsRoot)) return 0;
+  try {
+    const stat = await fs.stat(target);
+    return stat.isFile() ? stat.size : 0;
+  } catch (error) {
+    return 0;
+  }
+};
 
 const hasPendingVerificationReview = async (userId) => {
   const [rows] = await pool.execute(
@@ -235,6 +253,78 @@ export const updateProfile = async (req, res) => {
   );
 
   return res.json({ message: 'Profile updated successfully' });
+};
+
+export const getStorageUsage = async (req, res) => {
+  const userId = req.user?.id;
+
+  const [[userRow]] = await pool.execute(
+    `SELECT avatar FROM users WHERE id = :id LIMIT 1`,
+    { id: userId }
+  );
+
+  const [statusRows] = await pool.execute(
+    `SELECT media_url FROM statuses WHERE user_id = :user_id AND media_url IS NOT NULL`,
+    { user_id: userId }
+  );
+
+  const [[sentRow]] = await pool.execute(
+    `SELECT COUNT(*) AS count, COALESCE(SUM(CHAR_LENGTH(body)), 0) AS bytes
+     FROM messages WHERE sender_id = :user_id`,
+    { user_id: userId }
+  );
+
+  const [[receivedRow]] = await pool.execute(
+    `SELECT COUNT(*) AS count, COALESCE(SUM(CHAR_LENGTH(body)), 0) AS bytes
+     FROM messages WHERE sender_id <> :user_id
+       AND conversation_id IN (
+         SELECT conversation_id FROM conversation_participants WHERE user_id = :user_id
+       )`,
+    { user_id: userId }
+  );
+
+  const [[contactsRow]] = await pool.execute(
+    `SELECT COUNT(*) AS count FROM contacts WHERE user_id = :user_id`,
+    { user_id: userId }
+  );
+
+  const [[statusesRow]] = await pool.execute(
+    `SELECT COUNT(*) AS count FROM statuses WHERE user_id = :user_id`,
+    { user_id: userId }
+  );
+
+  const [[attachmentsRow]] = await pool.execute(
+    `SELECT COUNT(*) AS count, COALESCE(SUM(size), 0) AS bytes
+     FROM message_attachments
+     WHERE user_id = :user_id`,
+    { user_id: userId }
+  );
+
+  const avatarBytes = await safeFileSize(userRow?.avatar || null);
+  const statusBytesList = await Promise.all(
+    statusRows.map((row) => safeFileSize(row.media_url))
+  );
+  const statusMediaBytes = statusBytesList.reduce((sum, size) => sum + size, 0);
+
+  return res.json({
+    storage: {
+      avatarBytes,
+      statusMediaBytes,
+      attachmentBytes: Number(attachmentsRow?.bytes || 0),
+      totalBytes: avatarBytes + statusMediaBytes + Number(attachmentsRow?.bytes || 0)
+    },
+    network: {
+      messagesSent: Number(sentRow?.count || 0),
+      messagesReceived: Number(receivedRow?.count || 0),
+      textBytesSent: Number(sentRow?.bytes || 0),
+      textBytesReceived: Number(receivedRow?.bytes || 0)
+    },
+    counts: {
+      contacts: Number(contactsRow?.count || 0),
+      statuses: Number(statusesRow?.count || 0),
+      attachments: Number(attachmentsRow?.count || 0)
+    }
+  });
 };
 
 export const uploadAvatar = async (req, res) => {

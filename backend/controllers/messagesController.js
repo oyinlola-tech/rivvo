@@ -610,8 +610,27 @@ export const uploadAttachment = async (req, res) => {
   }
 
   const relativePath = `/uploads/messages/${path.basename(req.file.path)}`;
+  const attachmentId = uuid();
+
+  await pool.execute(
+    `INSERT INTO message_attachments
+      (id, conversation_id, user_id, url, size, file_type, file_name, kind)
+     VALUES
+      (:id, :conversation_id, :user_id, :url, :size, :file_type, :file_name, :kind)`,
+    {
+      id: attachmentId,
+      conversation_id: conversationId,
+      user_id: userId,
+      url: relativePath,
+      size: req.file.size || 0,
+      file_type: normalizedType || null,
+      file_name: fileName || req.file.originalname || 'attachment',
+      kind: kind || 'document'
+    }
+  );
 
   return res.status(201).json({
+    id: attachmentId,
     url: relativePath,
     size: req.file.size,
     fileType: normalizedType,

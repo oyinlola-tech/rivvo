@@ -139,6 +139,22 @@ export const initDb = async () => {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS message_attachments (
+      id CHAR(36) PRIMARY KEY,
+      conversation_id CHAR(36) NOT NULL,
+      user_id CHAR(36) NOT NULL,
+      url VARCHAR(512) NOT NULL,
+      size BIGINT DEFAULT 0,
+      file_type VARCHAR(128) NULL,
+      file_name VARCHAR(255) NULL,
+      kind VARCHAR(32) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_attachments_user (user_id),
+      INDEX idx_attachments_conv (conversation_id)
+    )
+  `);
+
   try {
     await pool.query(`
       ALTER TABLE messages

@@ -13,6 +13,7 @@ import inviteRoutes from './invites.js';
 import callLinkRoutes from './callLinks.js';
 import statusRoutes from './status.js';
 import verificationRoutes from './verification.js';
+import supportRoutes from './support.js';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use('/groups', groupRoutes);
 router.use('/invites', inviteRoutes);
 router.use('/call-links', callLinkRoutes);
 router.use('/verification', verificationRoutes);
+router.use('/support', supportRoutes);
 
 export default router;

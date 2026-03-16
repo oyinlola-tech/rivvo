@@ -301,6 +301,63 @@ const buildWelcomeEmail = ({ name }) => {
   return { subject, text, html };
 };
 
+const buildSupportEmail = ({ fromName, fromEmail, subject, message }) => {
+  const safeName = fromName || 'User';
+  const safeEmail = fromEmail || 'unknown';
+  const mailSubject = `Support request: ${subject}`;
+  const text =
+    `Support request from ${safeName} <${safeEmail}>\n\n` +
+    `Subject: ${subject}\n\n` +
+    `${message}`;
+  const html = `
+    <div style="margin:0;padding:0;background:#000e08;color:#20A090;font-family:Arial,Helvetica,sans-serif;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#000e08;color:#20A090;">
+        <tr>
+          <td align="center" style="padding:32px 16px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;border:1px solid #20A090;border-radius:12px;">
+              <tr>
+                <td style="padding:24px 24px 8px 24px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <img src="${logoUrl()}" alt="Rivvo" width="36" height="36" style="border-radius:8px;display:block;" />
+                    <div style="font-size:22px;font-weight:700;letter-spacing:0.3px;">Rivvo</div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 24px 16px 24px;">
+                  <div style="font-size:18px;font-weight:700;">Support request</div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 24px 8px 24px;font-size:13px;line-height:18px;">
+                  <strong>From:</strong> ${safeName} (${safeEmail})
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 24px 8px 24px;font-size:13px;line-height:18px;">
+                  <strong>Subject:</strong> ${subject}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 24px 24px 24px;font-size:14px;line-height:20px;">
+                  ${String(message || '').replace(/\n/g, '<br />')}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:16px 24px 24px 24px;border-top:1px solid #20A090;font-size:11px;line-height:16px;">
+                  This message was sent from the Rivvo app.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  return { subject: mailSubject, text, html };
+};
+
 export const sendOtpEmail = async ({ to, code }) => {
   const mailer = getTransporter();
 
@@ -399,5 +456,30 @@ export const sendWelcomeEmail = async ({ to, name }) => {
     subject,
     text,
     html
+  });
+};
+
+export const sendSupportEmail = async ({ to, fromName, fromEmail, subject, message }) => {
+  const mailer = getTransporter();
+
+  if (!mailer) {
+    console.log(`Support email: ${subject} (${fromEmail})`);
+    return;
+  }
+
+  const { subject: mailSubject, text, html } = buildSupportEmail({
+    fromName,
+    fromEmail,
+    subject,
+    message
+  });
+
+  await mailer.sendMail({
+    from: env.smtp.from,
+    to,
+    subject: mailSubject,
+    text,
+    html,
+    replyTo: fromEmail || undefined
   });
 };

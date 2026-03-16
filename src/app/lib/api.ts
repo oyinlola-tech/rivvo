@@ -406,6 +406,14 @@ class ApiClient {
     });
   }
 
+  async getStorageUsage(): Promise<ApiResponse<{
+    storage: { avatarBytes: number; statusMediaBytes: number; attachmentBytes: number; totalBytes: number };
+    network: { messagesSent: number; messagesReceived: number; textBytesSent: number; textBytesReceived: number };
+    counts: { contacts: number; statuses: number; attachments: number };
+  }>> {
+    return this.request("/users/storage");
+  }
+
   async uploadAvatar(file: File): Promise<ApiResponse<{ message: string; avatar: string }>> {
     const form = new FormData();
     form.append("avatar", file);
@@ -601,6 +609,13 @@ class ApiClient {
 
   async resolveGroupInvite(token: string): Promise<ApiResponse<any>> {
     return this.request(`/invites/groups/${token}`);
+  }
+
+  async sendSupportMessage(payload: { subject: string; message: string }): Promise<ApiResponse<{ message: string }>> {
+    return this.request("/support/contact", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   }
 
   // Groups
