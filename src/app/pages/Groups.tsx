@@ -1,7 +1,9 @@
 ﻿import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { api } from "../lib/api";
 import { Plus, Search, Bell } from "lucide-react";
+import { openNotificationsSheet } from "../lib/notificationsSheet";
+import { useNotifications } from "../contexts/NotificationsContext";
 
 interface Group {
   id: string;
@@ -24,6 +26,7 @@ export default function Groups() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     loadGroups();
@@ -88,13 +91,18 @@ export default function Groups() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Groups</h1>
           <div className="flex items-center gap-2">
-            <Link
-              to="/"
+            <button
+              onClick={openNotificationsSheet}
               aria-label="Notifications"
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+              className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
             >
               <Bell size={20} />
-            </Link>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F04A4C] text-white text-[10px] flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => setShowCreate((prev) => !prev)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white"

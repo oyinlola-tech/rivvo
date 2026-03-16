@@ -522,6 +522,14 @@ class ApiClient {
     return response;
   }
 
+  async getContactRequestUnreadCount(): Promise<ApiResponse<{ unreadCount: number }>> {
+    return this.request("/contacts/requests/unread-count");
+  }
+
+  async markContactRequestsRead(): Promise<ApiResponse<{ message: string; updated: number }>> {
+    return this.request("/contacts/requests/mark-read", { method: "POST" });
+  }
+
   async acceptContactRequest(requestId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/contacts/requests/${requestId}/accept`, { method: "POST" });
   }

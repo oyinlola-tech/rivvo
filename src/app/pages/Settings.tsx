@@ -20,7 +20,8 @@ import {
   Camera,
   ChevronRight,
 } from "lucide-react";
-import { Link } from "react-router";
+import { openNotificationsSheet } from "../lib/notificationsSheet";
+import { useNotifications } from "../contexts/NotificationsContext";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 
 export default function Settings() {
@@ -47,6 +48,7 @@ export default function Settings() {
   const [showVerificationNotice, setShowVerificationNotice] = useState(true);
   const [verificationError, setVerificationError] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const { unreadCount } = useNotifications();
   const avatarSrc = avatarUrl || "";
   const missingVerificationProfile = !user?.phone || !user?.username;
   const renewalWindowOpen = (() => {
@@ -289,13 +291,18 @@ export default function Settings() {
       <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Settings</h1>
-          <Link
-            to="/"
+          <button
+            onClick={openNotificationsSheet}
             aria-label="Notifications"
-            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
           >
             <Bell size={20} />
-          </Link>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F04A4C] text-white text-[10px] flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 

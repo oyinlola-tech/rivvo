@@ -1,6 +1,7 @@
 import { RouterProvider } from "react-router";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationsProvider } from "./contexts/NotificationsContext";
 import { router } from "./routes";
 import { useEffect, useState } from "react";
 import { Toaster } from "./components/ui/sonner";
@@ -27,8 +28,10 @@ function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
-        <RouterProvider router={router} />
-        <Toaster />
+        <NotificationsProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+        </NotificationsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

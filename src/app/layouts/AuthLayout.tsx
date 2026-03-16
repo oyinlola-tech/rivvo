@@ -1,19 +1,39 @@
-﻿import { Outlet } from "react-router";
+import { Outlet } from "react-router";
+
+const AUTH_IMAGE_URL =
+  "https://images.unsplash.com/photo-1763810021881-49b45b0717d5?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=80&w=2000";
 
 export default function AuthLayout() {
   return (
-    <div className="min-h-[100dvh] bg-[#111b21] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">RIVVO</h1>
-          <p className="text-gray-400 text-sm">Secure messaging for everyone</p>
+    <div className="min-h-[100dvh] bg-[#0c1116] md:grid md:grid-cols-2">
+      <div
+        className="relative hidden md:flex flex-col justify-between p-10 text-white"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(8,16,20,0.75), rgba(8,16,20,0.25)), url(${AUTH_IMAGE_URL})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div>
+          <h1 className="text-4xl font-bold tracking-widest">RIVVO</h1>
+          <p className="mt-3 max-w-md text-sm text-white/80">
+            Secure messaging for people who move fast and stay connected.
+          </p>
         </div>
-        <div className="bg-white rounded-3xl p-8 shadow-xl">
-          <Outlet />
+        <div className="text-xs text-white/70">Photo: Unsplash</div>
+      </div>
+
+      <div className="flex min-h-[100dvh] items-center justify-center p-4 md:p-10">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8 md:hidden">
+            <h1 className="text-3xl font-bold text-white mb-2">RIVVO</h1>
+            <p className="text-gray-400 text-sm">Secure messaging for everyone</p>
+          </div>
+          <div className="bg-white rounded-3xl p-8 shadow-xl">
+            <Outlet />
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-

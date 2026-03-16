@@ -2,7 +2,8 @@
 import { api, StatusGroupDto } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { Eye, EyeOff, VolumeX, X, Plus, Image as ImageIcon, SendHorizontal, Bell } from "lucide-react";
-import { Link } from "react-router";
+import { openNotificationsSheet } from "../lib/notificationsSheet";
+import { useNotifications } from "../contexts/NotificationsContext";
 
 export default function Status() {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function Status() {
   const [replySending, setReplySending] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [posting, setPosting] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const loadStatuses = async () => {
     setLoading(true);
@@ -176,13 +178,18 @@ export default function Status() {
             <h1 className="text-2xl font-bold text-white">Status</h1>
             <p className="text-xs text-white/70 mt-1">Share quick updates with your contacts</p>
           </div>
-          <Link
-            to="/"
+          <button
+            onClick={openNotificationsSheet}
             aria-label="Notifications"
-            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
           >
             <Bell size={20} />
-          </Link>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F04A4C] text-white text-[10px] flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 

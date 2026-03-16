@@ -126,7 +126,7 @@ export const listContactRequests = async (req, res) => {
   const direction = req.query.direction === 'outgoing' ? 'outgoing' : 'incoming';
 
   const [rows] = await pool.execute(
-    `SELECT r.id, r.requester_id, r.recipient_id, r.status, r.created_at,
+    `SELECT r.id, r.requester_id, r.recipient_id, r.status, r.created_at, r.read_at,
             u.id AS user_id, u.name, u.email, u.phone, u.avatar, u.verified,
             CASE
               WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
@@ -150,6 +150,7 @@ export const listContactRequests = async (req, res) => {
     id: row.id,
     status: row.status,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    readAt: row.read_at ? new Date(row.read_at).toISOString() : null,
     user: {
       id: row.user_id,
       name: row.name,
@@ -165,6 +166,34 @@ export const listContactRequests = async (req, res) => {
   }));
 
   return res.json(requests);
+};
+
+export const getContactRequestUnreadCount = async (req, res) => {
+  const userId = req.user?.id;
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) AS unreadCount
+     FROM contact_requests
+     WHERE recipient_id = :user_id
+       AND status = 'pending'
+       AND read_at IS NULL`,
+    { user_id: userId }
+  );
+
+  return res.json({ unreadCount: Number(rows[0]?.unreadCount || 0) });
+};
+
+export const markContactRequestsRead = async (req, res) => {
+  const userId = req.user?.id;
+  const [result] = await pool.execute(
+    `UPDATE contact_requests
+     SET read_at = NOW()
+     WHERE recipient_id = :user_id
+       AND status = 'pending'
+       AND read_at IS NULL`,
+    { user_id: userId }
+  );
+
+  return res.json({ message: 'Notifications marked as read', updated: result?.affectedRows || 0 });
 };
 
 export const acceptContactRequest = async (req, res) => {

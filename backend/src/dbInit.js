@@ -197,12 +197,22 @@ export const initDb = async () => {
       requester_id CHAR(36) NOT NULL,
       recipient_id CHAR(36) NOT NULL,
       status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+      read_at DATETIME NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE KEY uq_contact_request (requester_id, recipient_id),
       INDEX idx_contact_request_recipient (recipient_id),
       INDEX idx_contact_request_requester (requester_id)
     )
   `);
+
+  try {
+    await pool.query(`
+      ALTER TABLE contact_requests
+      ADD COLUMN read_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS calls (

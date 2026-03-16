@@ -2,6 +2,7 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router";
 import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard, MoreHorizontal } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import NotificationsSheet from "../components/NotificationsSheet";
 
 export default function MainLayout() {
   const location = useLocation();
@@ -44,6 +45,7 @@ export default function MainLayout() {
         <div className="pb-20 md:pb-0">
           <Outlet />
         </div>
+        <NotificationsSheet />
 
         {/* Mobile Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border md:hidden">
