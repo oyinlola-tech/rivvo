@@ -42,4 +42,12 @@ Public disclosure should only occur after a fix is released or with explicit own
 - Accessing data that is not yours
 
 ## Acknowledgements
-Security reporters may be credited at the owner’s discretion.
+Security reporters may be credited at the owner's discretion.
+
+## In-App Support
+For general security concerns or account help, use the in-app Help Center contact form so the team can respond securely.
+
+## Recent Security-Related Features
+- Password reset requires OTP verification before changing the password.
+- Security emails are sent for password changes and email changes.
+- Contact request notifications support read/unread state.

@@ -26,6 +26,9 @@ This Code of Conduct applies to all project spaces, including issues, pull reque
 3. The owner will acknowledge and review.
 4. Actions may include warnings, removal, or bans.
 
+## In-App Support
+If the issue is related to account access, privacy, or security, use the in-app Help Center contact form so it can be handled privately.
+
 ## Enforcement Principles
 - Decisions are final.
 - Repeated violations escalate consequences.

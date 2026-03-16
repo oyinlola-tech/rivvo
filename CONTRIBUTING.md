@@ -18,6 +18,8 @@ This project is proprietary. Contributions require explicit written permission f
 3. Update documentation when behavior changes.
 4. Include tests where relevant.
 5. Do not add secrets or credentials to commits.
+6. Email templates must include the Rivvo logo and follow brand colors.
+7. Any new DB tables/columns should be added to `backend/src/dbInit.js`.
 
 ## Development Workflow
 1. Ensure the app runs locally (`npm run dev`).
@@ -27,6 +29,7 @@ This project is proprietary. Contributions require explicit written permission f
    - `npm test`
 3. If you touch backend code, also run:
    - `cd backend && npm test`
+4. If you add new storage-tracked assets, update storage usage reporting.
 
 ## Security Expectations
 - Do not introduce insecure dependencies or patterns.
