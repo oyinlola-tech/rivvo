@@ -58,13 +58,33 @@ export const initDb = async () => {
       id CHAR(36) PRIMARY KEY,
       user_id CHAR(36) NOT NULL,
       code VARCHAR(6) NOT NULL,
+      purpose VARCHAR(32) DEFAULT 'email_verification',
       expires_at DATETIME NOT NULL,
       used TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_otps_user (user_id),
+      INDEX idx_otps_purpose (purpose),
       INDEX idx_otps_expires (expires_at)
     )
   `);
+
+  try {
+    await pool.query(`
+      ALTER TABLE otps
+      ADD COLUMN purpose VARCHAR(32) DEFAULT 'email_verification'
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE otps
+      ADD INDEX idx_otps_purpose (purpose)
+    `);
+  } catch (error) {
+    // Index likely exists already.
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS conversations (

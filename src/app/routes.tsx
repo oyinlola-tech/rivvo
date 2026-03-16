@@ -5,6 +5,8 @@ import AdminLayout from "./layouts/AdminLayout";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import OTPVerification from "./pages/auth/OTPVerification";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Home from "./pages/Home";
 import Messages from "./pages/Messages";
 import Calls from "./pages/Calls";
@@ -42,6 +44,8 @@ export const router = createBrowserRouter([
       { path: "login", Component: Login },
       { path: "signup", Component: Signup },
       { path: "verify-otp", Component: OTPVerification },
+      { path: "forgot-password", Component: ForgotPassword },
+      { path: "reset-password", Component: ResetPassword },
     ],
   },
   {

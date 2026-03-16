@@ -1,34 +1,15 @@
 ﻿import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { Search, Flame, Bell } from "lucide-react";
-import { api } from "../lib/api";
+import { api, ConversationDto } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { useAuth } from "../contexts/AuthContext";
 import { openNotificationsSheet } from "../lib/notificationsSheet";
 import { useNotifications } from "../contexts/NotificationsContext";
 
-interface Conversation {
-  id: string;
-  user: {
-    id: string;
-    name: string;
-    avatar?: string | null;
-    online: boolean;
-    verified: boolean;
-    isVerifiedBadge: boolean;
-    isModerator: boolean;
-    isAdmin: boolean;
-  };
-  lastMessage: {
-    text: string;
-    timestamp: string | null;
-    unreadCount: number;
-  };
-}
-
 export default function Home() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");

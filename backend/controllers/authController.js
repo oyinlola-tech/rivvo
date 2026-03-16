@@ -4,7 +4,12 @@ import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
 import env from '../config/env.js';
 import { createToken } from '../services/tokenService.js';
-import { sendOtpEmail } from '../services/emailService.js';
+import {
+  sendOtpEmail,
+  sendPasswordResetOtpEmail,
+  sendPasswordChangedEmail,
+  sendWelcomeEmail
+} from '../services/emailService.js';
 import {
   sendError,
   requireFields,
@@ -194,8 +199,8 @@ export const signup = async (req, res) => {
     );
 
     await connection.execute(
-      `INSERT INTO otps (id, user_id, code, expires_at, used)
-       VALUES (:id, :user_id, :code, :expires_at, 0)`,
+      `INSERT INTO otps (id, user_id, code, purpose, expires_at, used)
+       VALUES (:id, :user_id, :code, 'email_verification', :expires_at, 0)`,
       {
         id: otpId,
         user_id: userId,
@@ -213,6 +218,7 @@ export const signup = async (req, res) => {
   }
 
   await sendOtpEmail({ to: email, code: otpCode });
+  await sendWelcomeEmail({ to: email, name });
 
   return res.status(201).json({ message: 'OTP sent to email' });
 };
@@ -234,7 +240,8 @@ export const verifyOtp = async (req, res) => {
 
   const [otpRows] = await pool.execute(
     `SELECT * FROM otps
-     WHERE user_id = :user_id AND code = :code AND used = 0 AND expires_at > NOW()
+     WHERE user_id = :user_id AND code = :code AND purpose = 'email_verification'
+       AND used = 0 AND expires_at > NOW()
      ORDER BY created_at DESC
      LIMIT 1`,
     { user_id: user.id, code: otp }
@@ -277,8 +284,8 @@ export const resendOtp = async (req, res) => {
   const expiresAt = new Date(Date.now() + env.otpExpiresMinutes * 60 * 1000);
 
   await pool.execute(
-    `INSERT INTO otps (id, user_id, code, expires_at, used)
-     VALUES (:id, :user_id, :code, :expires_at, 0)`,
+    `INSERT INTO otps (id, user_id, code, purpose, expires_at, used)
+     VALUES (:id, :user_id, :code, 'email_verification', :expires_at, 0)`,
     {
       id: otpId,
       user_id: user.id,
@@ -290,6 +297,97 @@ export const resendOtp = async (req, res) => {
   await sendOtpEmail({ to: email, code: otpCode });
 
   return res.json({ message: 'OTP sent successfully' });
+};
+
+export const requestPasswordReset = async (req, res) => {
+  const { email } = req.body || {};
+  const missing = requireFields(req.body, ['email']);
+  if (missing.length) {
+    return sendError(res, 400, 'Email required');
+  }
+  if (!isEmail(email)) {
+    return sendError(res, 400, 'Email is invalid');
+  }
+
+  const user = await getUserByEmail(email);
+  if (!user) {
+    return res.json({ message: 'If the account exists, an OTP has been sent.' });
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpId = uuid();
+  const expiresAt = new Date(Date.now() + env.otpExpiresMinutes * 60 * 1000);
+
+  await pool.execute(
+    `INSERT INTO otps (id, user_id, code, purpose, expires_at, used)
+     VALUES (:id, :user_id, :code, 'password_reset', :expires_at, 0)`,
+    {
+      id: otpId,
+      user_id: user.id,
+      code: otpCode,
+      expires_at: expiresAt
+    }
+  );
+
+  await sendPasswordResetOtpEmail({ to: email, code: otpCode });
+
+  return res.json({ message: 'If the account exists, an OTP has been sent.' });
+};
+
+export const resetPassword = async (req, res) => {
+  const { email, otp, password } = req.body || {};
+  const missing = requireFields(req.body, ['email', 'otp', 'password']);
+  if (missing.length) {
+    return sendError(res, 400, 'Email, OTP, and password required');
+  }
+  if (!isEmail(email)) {
+    return sendError(res, 400, 'Email is invalid');
+  }
+  if (typeof password !== 'string' || password.length < 8) {
+    return sendError(res, 400, 'Password must be at least 8 characters');
+  }
+
+  const user = await getUserByEmail(email);
+  if (!user) {
+    return sendError(res, 404, 'User not found');
+  }
+
+  const [otpRows] = await pool.execute(
+    `SELECT * FROM otps
+     WHERE user_id = :user_id AND code = :code AND purpose = 'password_reset'
+       AND used = 0 AND expires_at > NOW()
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    { user_id: user.id, code: otp }
+  );
+
+  if (!otpRows.length) {
+    return sendError(res, 400, 'Invalid or expired OTP');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      'UPDATE users SET password_hash = :password_hash WHERE id = :id',
+      { password_hash: passwordHash, id: user.id }
+    );
+    await connection.execute('UPDATE otps SET used = 1 WHERE id = :id', {
+      id: otpRows[0].id
+    });
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  await sendPasswordChangedEmail({ to: user.email });
+
+  return res.json({ message: 'Password updated successfully' });
 };
 
 export const refresh = async (req, res) => {
