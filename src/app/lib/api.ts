@@ -106,6 +106,7 @@ export interface PeerDto {
   id: string;
   name: string;
   avatar?: string | null;
+  online?: boolean;
   verified: boolean;
   isVerifiedBadge: boolean;
   badgeStatus?: "none" | "active" | "expired";

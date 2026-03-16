@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Flame, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Flame, Check, CheckCheck, Smile } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -22,6 +22,7 @@ import {
   saveMessages,
   setConversationSync
 } from "../lib/messageStore";
+import { preloadImage } from "../lib/imageCache";
 
 interface Message {
   id: string;
@@ -70,7 +71,7 @@ export default function Messages() {
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [viewOnceMode, setViewOnceMode] = useState(false);
@@ -80,6 +81,10 @@ export default function Messages() {
   const [recording, setRecording] = useState(false);
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [actionMessageId, setActionMessageId] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const attachmentUrlsRef = useRef<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,6 +92,8 @@ export default function Messages() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const viewOnceTimeoutRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
   const [reportMessageId, setReportMessageId] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [reportBlock, setReportBlock] = useState(false);
@@ -97,19 +104,56 @@ export default function Messages() {
     "Inappropriate content",
     "Other",
   ];
+  const RECENT_EMOJI_KEY = "recentEmojis";
+  const emojiList = [
+    "😀", "😁", "😂", "🤣", "😊", "😍", "😘", "😎", "🥳", "🤩", "😇", "🙂",
+    "😉", "😌", "😋", "😜", "🤗", "🤔", "🫡", "🤝", "🙌", "👍", "👎", "👏",
+    "🙏", "💪", "🔥", "🎉", "✨", "💯", "❤️", "🧡", "💛", "💚", "💙", "💜",
+    "🖤", "🤍", "🤎", "😢", "😭", "😤", "😡", "🤯", "😴", "😷", "🤒", "🤕",
+    "🤒", "😵", "😵‍💫", "🤪", "😬", "🫠", "🫶", "👀", "🙈", "🙉", "🙊", "💀",
+  ];
 
-  const contact = peer || {
-    id: "",
-    name: "John Abraham",
-    avatar: null,
-    online: true,
-    verified: true,
-    isVerifiedBadge: true,
-    isModerator: false,
-    isAdmin: false,
-    streakCount: undefined,
+  useEffect(() => {
+    const raw = localStorage.getItem(RECENT_EMOJI_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      if (Array.isArray(parsed)) {
+        setRecentEmojis(parsed.slice(0, 24));
+      }
+    } catch {
+      setRecentEmojis([]);
+    }
+  }, []);
+
+  const pushRecentEmoji = (emoji: string) => {
+    setRecentEmojis((prev) => {
+      const next = [emoji, ...prev.filter((item) => item !== emoji)].slice(0, 24);
+      localStorage.setItem(RECENT_EMOJI_KEY, JSON.stringify(next));
+      return next;
+    });
   };
-  const firstName = contact.name?.trim().split(" ")[0] || contact.name;
+
+  const contact = peer;
+  const firstName = contact?.name?.trim().split(" ")[0] || contact?.name || "";
+  const canNavigateProfile = Boolean(contact?.id);
+
+  const handleMessageLongPressStart = (messageId: string) => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+    }
+    longPressTriggeredRef.current = false;
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      setActionMessageId(messageId);
+    }, 450);
+  };
+
+  const handleMessageLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -334,6 +378,8 @@ export default function Messages() {
       });
       setMessages(hydratedCached);
       setLoading(false);
+    } else {
+      setLoading(true);
     }
 
     let derivedKey: CryptoKey | null = null;
@@ -350,6 +396,7 @@ export default function Messages() {
         isAdmin: peerResponse.data.isAdmin,
         streakCount: peerResponse.data.streakCount || undefined
       });
+      preloadImage(peerResponse.data.avatar);
       const keyPair = await getOrCreateKeyPair();
       const privateKey = await importPrivateKey(keyPair.privateKey);
       const peerPublic = await importPublicKey(JSON.parse(peerResponse.data.publicKey));
@@ -367,6 +414,7 @@ export default function Messages() {
         isAdmin: peerResponse.data.isAdmin,
         streakCount: peerResponse.data.streakCount || undefined
       });
+      preloadImage(peerResponse.data.avatar);
     } else if (!peerResponse.success) {
       setError(peerResponse.error || "Failed to load conversation details");
     }
@@ -728,7 +776,19 @@ export default function Messages() {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const preferredMimeTypes = [
+        "audio/webm;codecs=opus",
+        "audio/ogg;codecs=opus",
+        "audio/webm",
+        "audio/ogg",
+        "audio/mp4",
+      ];
+      const selectedMimeType =
+        preferredMimeTypes.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      const recorder = new MediaRecorder(stream, {
+        ...(selectedMimeType ? { mimeType: selectedMimeType } : {}),
+        audioBitsPerSecond: 32000,
+      });
       recorderRef.current = recorder;
       const chunks: BlobPart[] = [];
 
@@ -738,9 +798,16 @@ export default function Messages() {
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
-        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
-        const voiceFile = new File([blob], `voice-note-${Date.now()}.webm`, {
-          type: blob.type || "audio/webm",
+        const finalType = recorder.mimeType || "audio/webm";
+        const extension =
+          finalType.includes("ogg")
+            ? "ogg"
+            : finalType.includes("mp4")
+              ? "mp4"
+              : "webm";
+        const blob = new Blob(chunks, { type: finalType });
+        const voiceFile = new File([blob], `voice-note-${Date.now()}.${extension}`, {
+          type: finalType,
         });
         await uploadEncryptedAttachment(voiceFile, "voice");
       };
@@ -787,7 +854,7 @@ export default function Messages() {
       return last.attachment.name || "Attachment";
     }
     if (last.encrypted && (!last.text || last.text === "Encrypted message")) {
-      return "Encrypted message";
+      return "Message";
     }
     return last.text || "No messages yet";
   };
@@ -807,48 +874,73 @@ export default function Messages() {
         <button onClick={() => navigate("/")} className="md:hidden text-[#667781]">
           <ArrowLeft size={22} />
         </button>
-        <button
-          onClick={() => {
-            if (contact.id) {
-              navigate(`/users/${contact.id}`);
-            }
-          }}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold overflow-hidden"
-          aria-label={`View ${contact.name} profile`}
-        >
-          {contact.avatar ? (
-            <img
-              src={contact.avatar}
-              alt={contact.name}
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            contact.name[0]
-          )}
-        </button>
+        {contact ? (
+          <button
+            onClick={() => {
+              if (contact.avatar) {
+                setShowAvatarPreview(true);
+                return;
+              }
+              if (contact.id) {
+                navigate(`/users/${contact.id}`);
+              }
+            }}
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold overflow-hidden"
+            aria-label={`View ${contact.name} profile`}
+            aria-disabled={!canNavigateProfile}
+          >
+            {contact.avatar ? (
+              <img
+                src={contact.avatar}
+                alt={contact.name}
+                className="w-full h-full rounded-full object-cover"
+                loading="eager"
+                decoding="async"
+              />
+            ) : (
+              contact.name[0]
+            )}
+          </button>
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" aria-hidden="true" />
+        )}
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold">
-              <span className="md:hidden">{firstName}</span>
-              <span className="hidden md:inline">{contact.name}</span>
-            </h2>
-            {(contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
-              <VerificationBadge
-                type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
-                size="sm"
-              />
-            )}
-            {contact.streakCount && contact.streakCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs text-[#1a8c7a]">
-                <Flame size={12} />
-                {contact.streakCount}
-              </span>
+            {contact ? (
+              <>
+                <h2 className="font-semibold">
+                  <span className="md:hidden">{firstName}</span>
+                  <span className="hidden md:inline">{contact.name}</span>
+                </h2>
+                {(contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
+                  <VerificationBadge
+                    type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
+                    size="sm"
+                  />
+                )}
+                {(contact.streakCount ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs text-[#1a8c7a]">
+                    <Flame size={12} />
+                    {contact.streakCount}
+                  </span>
+                )}
+              </>
+            ) : (
+              <div className="h-4 w-32 rounded bg-gray-200 animate-pulse" aria-hidden="true" />
             )}
           </div>
-          <p className="text-xs text-[#667781] truncate">{getLastMessagePreview()}</p>
-          <p className="text-[11px] text-[#667781]">
-            {isTyping ? "Typing..." : contact.online ? "Active now" : "Offline"}
-          </p>
+          {contact ? (
+            <>
+              <p className="text-[11px] text-[#667781]">
+                {isTyping ? "Typing..." : contact.online ? "Active now" : "Offline"}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mt-2 h-3 w-40 rounded bg-gray-200 animate-pulse" aria-hidden="true" />
+              <div className="mt-2 h-3 w-20 rounded bg-gray-200 animate-pulse" aria-hidden="true" />
+            </>
+          )}
         </div>
         <div className="flex gap-2">
           <button
@@ -867,8 +959,11 @@ export default function Messages() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3 bg-[#efeae2]">
-        {loading ? (
+      <div
+        className="flex-1 overflow-y-auto px-4 py-5 space-y-3 bg-[#efeae2]"
+        onClick={() => setActionMessageId(null)}
+      >
+        {loading && messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
           </div>
@@ -890,6 +985,20 @@ export default function Messages() {
                       ? "bg-[#1a8c7a] text-white rounded-br-sm"
                       : "bg-white text-gray-900 rounded-bl-sm"
                   }`}
+                  onTouchStart={() => handleMessageLongPressStart(message.id)}
+                  onTouchEnd={handleMessageLongPressEnd}
+                  onTouchCancel={handleMessageLongPressEnd}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setActionMessageId(message.id);
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (actionMessageId === message.id && !longPressTriggeredRef.current) {
+                      setActionMessageId(null);
+                    }
+                    longPressTriggeredRef.current = false;
+                  }}
                 >
                   <div className="space-y-1.5">
                     {message.deletedForAllAt ? (
@@ -919,6 +1028,8 @@ export default function Messages() {
                               src={attachmentUrls[message.id]}
                               alt={message.attachment.name}
                               className="max-h-64 rounded-lg"
+                              loading="lazy"
+                              decoding="async"
                             />
                           ) : message.attachment.mime.startsWith("video/") ? (
                             <video controls src={attachmentUrls[message.id]} className="w-full rounded-lg" />
@@ -966,11 +1077,17 @@ export default function Messages() {
                         )
                       ) : null}
                       {message.editedAt && !message.deletedForAllAt ? (
-                        <span className="text-[10px] text-white/70">Edited</span>
+                        <span
+                          className={
+                            message.sender === "me" ? "text-[10px] text-white/70" : "text-[10px] text-[#667781]"
+                          }
+                        >
+                          Edited
+                        </span>
                       ) : null}
                     </div>
                   </div>
-                  {message.sender === "me" &&
+                  {actionMessageId === message.id && message.sender === "me" &&
                     !message.viewOnce &&
                     !message.attachment &&
                     !message.deletedForAllAt && (
@@ -995,18 +1112,21 @@ export default function Messages() {
                         </button>
                       </div>
                     )}
-                  {message.sender === "them" && !message.viewOnce && !message.deletedForAllAt && (
-                    <button
-                      onClick={() => {
-                        setReportMessageId(message.id);
-                        setReportReason("");
-                        setReportBlock(false);
-                      }}
-                      className="mt-1 text-[11px] underline text-[#667781]"
-                    >
-                      Report message
-                    </button>
-                  )}
+                  {actionMessageId === message.id &&
+                    message.sender === "them" &&
+                    !message.viewOnce &&
+                    !message.deletedForAllAt && (
+                      <button
+                        onClick={() => {
+                          setReportMessageId(message.id);
+                          setReportReason("");
+                          setReportBlock(false);
+                        }}
+                        className="mt-1 text-[11px] underline text-[#667781]"
+                      >
+                        Report message
+                      </button>
+                    )}
                 </div>
               </div>
             ))}
@@ -1017,7 +1137,7 @@ export default function Messages() {
       </div>
 
       {/* Input */}
-      <div className="bg-background border-t border-border px-4 py-3">
+      <div className="bg-background border-t border-border px-4 py-3 sticky bottom-0 z-10">
         {editingMessageId && (
           <div className="mb-2 flex items-center justify-between rounded-lg bg-[#f0f2f5] px-3 py-2 text-xs text-[#667781]">
             <span>Editing message</span>
@@ -1026,7 +1146,7 @@ export default function Messages() {
             </button>
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="relative flex items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -1064,14 +1184,63 @@ export default function Messages() {
           >
             <span className="text-xs font-semibold">1x</span>
           </button>
+          <button
+            onClick={() => setShowEmojiPicker((prev) => !prev)}
+            className="w-10 h-10 rounded-full hover:bg-black/5 flex items-center justify-center"
+            title="Emoji"
+          >
+            <Smile size={20} className="text-[#667781]" />
+          </button>
           <input
             type="text"
             value={newMessage}
             onChange={(e) => handleTypingInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
             placeholder="Write your message"
-            className="flex-1 px-4 py-2.5 bg-[#f0f2f5] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
+            className="flex-1 px-4 py-2.5 bg-[#f0f2f5] text-[#111b21] placeholder:text-[#667781] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a] dark:bg-[#1b1f23] dark:text-white dark:placeholder:text-white/60"
           />
+          {showEmojiPicker && (
+            <div className="absolute bottom-14 left-0 z-20 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+              {recentEmojis.length > 0 && (
+                <>
+                  <div className="text-[11px] text-[#667781] mb-2">Recent</div>
+                  <div className="grid grid-cols-8 gap-2 text-lg mb-3">
+                    {recentEmojis.map((emoji) => (
+                      <button
+                        key={`recent-${emoji}`}
+                        type="button"
+                        onClick={() => {
+                          handleTypingInput(`${newMessage}${emoji}`);
+                          pushRecentEmoji(emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                        className="hover:bg-gray-100 rounded"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <div className="text-[11px] text-[#667781] mb-2">All</div>
+              <div className="grid grid-cols-8 gap-2 text-lg">
+                {emojiList.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      handleTypingInput(`${newMessage}${emoji}`);
+                      pushRecentEmoji(emoji);
+                      setShowEmojiPicker(false);
+                    }}
+                    className="hover:bg-gray-100 rounded"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {newMessage.trim() ? (
             <button
               onClick={handleSend}
@@ -1094,6 +1263,44 @@ export default function Messages() {
         {uploading && <p className="mt-2 text-xs text-gray-500">Uploading encrypted file...</p>}
         {recording && <p className="mt-2 text-xs text-red-600">Recording voice note...</p>}
       </div>
+
+      {showAvatarPreview && contact?.avatar && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
+          <div className="w-full max-w-md">
+            <div className="flex items-center justify-between text-white mb-4">
+              <div className="text-lg font-semibold">{contact.name}</div>
+              <button
+                onClick={() => setShowAvatarPreview(false)}
+                className="text-sm text-white/80"
+              >
+                Close
+              </button>
+            </div>
+            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-black">
+              <img
+                src={contact.avatar}
+                alt={contact.name}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={() => {
+                  setShowAvatarPreview(false);
+                  if (contact.id) {
+                    navigate(`/users/${contact.id}`);
+                  }
+                }}
+                className="rounded-full bg-white/10 px-5 py-2 text-sm text-white hover:bg-white/20"
+              >
+                View profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {reportMessageId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">

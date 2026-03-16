@@ -7,6 +7,8 @@ import { VerificationBadge } from "../components/VerificationBadge";
 import { useAuth } from "../contexts/AuthContext";
 import { openNotificationsSheet } from "../lib/notificationsSheet";
 import { useNotifications } from "../contexts/NotificationsContext";
+import { readCache, writeCache } from "../lib/cache";
+import { preloadImages } from "../lib/imageCache";
 
 export default function Home() {
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
@@ -29,7 +31,7 @@ export default function Home() {
 
   useEffect(() => {
     loadConversations();
-  }, []);
+  }, [user?.id]);
 
   
 
@@ -37,6 +39,7 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     const socket = getSocket(token);
+    const cacheKey = user?.id ? `conversations:${user.id}` : "conversations:guest";
 
     const handleIncoming = (payload: {
       conversationId: string;
@@ -45,8 +48,8 @@ export default function Home() {
       if (payload.message.senderId && payload.message.senderId === user?.id) {
         return;
       }
-      setConversations((prev) =>
-        prev.map((conv) => {
+      setConversations((prev) => {
+        const next = prev.map((conv) => {
           if (conv.id !== payload.conversationId) return conv;
           return {
             ...conv,
@@ -54,14 +57,16 @@ export default function Home() {
               text: payload.message.viewOnce
                 ? "View once message"
                 : payload.message.encrypted
-                  ? "Encrypted message"
+                  ? "Message"
                   : payload.message.text,
               timestamp: payload.message.timestamp,
               unreadCount: conv.lastMessage.unreadCount + 1,
             },
           };
-        })
-      );
+        });
+        writeCache(cacheKey, next);
+        return next;
+      });
     };
 
     socket.on("new_message", handleIncoming);
@@ -72,9 +77,20 @@ export default function Home() {
 
   const loadConversations = async () => {
     setError("");
+    const cacheKey = user?.id ? `conversations:${user.id}` : "conversations:guest";
+    const cached = readCache<ConversationDto[]>(cacheKey, 60_000);
+    if (cached && cached.length) {
+      setConversations(cached);
+      setLoading(false);
+      preloadImages(cached.map((conv) => conv.user.avatar));
+      return;
+    }
+
     const response = await api.getConversations();
     if (response.success && response.data) {
       setConversations(response.data);
+      writeCache(cacheKey, response.data);
+      preloadImages(response.data.map((conv) => conv.user.avatar));
     } else if (!response.success) {
       setError(response.error || "Failed to load conversations");
     }
@@ -235,6 +251,8 @@ export default function Home() {
                           src={conversation.user.avatar}
                           alt={conversation.user.name}
                           className="w-full h-full rounded-full object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         conversation.user.name[0].toUpperCase()
@@ -270,7 +288,9 @@ export default function Home() {
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-[#667781] truncate">
                         {conversation.lastMessage.timestamp
-                          ? conversation.lastMessage.text
+                          ? conversation.lastMessage.text === "Encrypted message"
+                            ? "Message"
+                            : conversation.lastMessage.text
                           : "No messages yet"}
                       </p>
                       <div className="flex items-center gap-2">

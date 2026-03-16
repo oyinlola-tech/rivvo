@@ -1,9 +1,11 @@
 ﻿import { useEffect, useState } from "react";
 import { api, StatusGroupDto } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
-import { Eye, EyeOff, VolumeX, X, Plus, Image as ImageIcon, SendHorizontal, Bell } from "lucide-react";
+import { Eye, EyeOff, VolumeX, X, Plus, Image as ImageIcon, SendHorizontal, Bell, Smile } from "lucide-react";
 import { openNotificationsSheet } from "../lib/notificationsSheet";
 import { useNotifications } from "../contexts/NotificationsContext";
+import { readCache, writeCache } from "../lib/cache";
+import { preloadImages } from "../lib/imageCache";
 
 export default function Status() {
   const { user } = useAuth();
@@ -21,9 +23,60 @@ export default function Status() {
   const [replySending, setReplySending] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [posting, setPosting] = useState(false);
+  const [mediaReady, setMediaReady] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { unreadCount } = useNotifications();
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
+  const RECENT_EMOJI_KEY = "recentEmojis";
+  const emojiList = [
+    "😀", "😁", "😂", "🤣", "😊", "😍", "😘", "😎", "🥳", "🤩", "😇", "🙂",
+    "😉", "😌", "😋", "😜", "🤗", "🤔", "🫡", "🤝", "🙌", "👍", "👎", "👏",
+    "🙏", "💪", "🔥", "🎉", "✨", "💯", "❤️", "🧡", "💛", "💚", "💙", "💜",
+    "🖤", "🤍", "🤎", "😢", "😭", "😤", "😡", "🤯", "😴", "😷", "🤒", "🤕",
+    "🤒", "😵", "😵‍💫", "🤪", "😬", "🫠", "🫶", "👀", "🙈", "🙉", "🙊", "💀",
+  ];
+
+  useEffect(() => {
+    const raw = localStorage.getItem(RECENT_EMOJI_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      if (Array.isArray(parsed)) {
+        setRecentEmojis(parsed.slice(0, 24));
+      }
+    } catch {
+      setRecentEmojis([]);
+    }
+  }, []);
+
+  const pushRecentEmoji = (emoji: string) => {
+    setRecentEmojis((prev) => {
+      const next = [emoji, ...prev.filter((item) => item !== emoji)].slice(0, 24);
+      localStorage.setItem(RECENT_EMOJI_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const loadStatuses = async () => {
+    const cacheKey = user?.id ? `statuses:${user.id}` : "statuses:guest";
+    const cached = readCache<{
+      unviewed: StatusGroupDto[];
+      viewed: StatusGroupDto[];
+      muted: { id: string; name: string; avatar?: string | null }[];
+    }>(cacheKey, 60_000);
+    if (cached) {
+      setUnviewed(cached.unviewed || []);
+      setViewed(cached.viewed || []);
+      setMuted(cached.muted || []);
+      setLoading(false);
+      preloadImages([
+        ...cached.unviewed.map((group) => group.user.avatar),
+        ...cached.viewed.map((group) => group.user.avatar),
+        ...cached.muted.map((m) => m.avatar),
+      ]);
+      return;
+    }
+
     setLoading(true);
     const response = await api.getStatuses();
     if (response.success && response.data) {
@@ -31,6 +84,16 @@ export default function Status() {
       setViewed(response.data.viewed || []);
       setMuted(response.data.muted || []);
       setError("");
+      writeCache(cacheKey, {
+        unviewed: response.data.unviewed || [],
+        viewed: response.data.viewed || [],
+        muted: response.data.muted || [],
+      });
+      preloadImages([
+        ...(response.data.unviewed || []).map((group) => group.user.avatar),
+        ...(response.data.viewed || []).map((group) => group.user.avatar),
+        ...(response.data.muted || []).map((m) => m.avatar),
+      ]);
     } else {
       setError(response.error || "Failed to load status");
     }
@@ -39,7 +102,7 @@ export default function Status() {
 
   useEffect(() => {
     loadStatuses();
-  }, []);
+  }, [user?.id]);
 
   const handleCreate = async () => {
     if (!text.trim() && !file) {
@@ -66,6 +129,7 @@ export default function Status() {
     );
     setActiveIndex(firstUnseenIndex >= 0 ? firstUnseenIndex : 0);
     setStoryTick((prev) => prev + 1);
+    setMediaReady(false);
     const unseen = group.statuses.filter((s) => !s.viewedAt && group.user.id !== user?.id);
     await Promise.all(unseen.map((status) => api.markStatusViewed(status.id)));
     if (unseen.length) {
@@ -87,25 +151,45 @@ export default function Status() {
   const storyDurationMs = activeStatus?.mediaType?.startsWith("video/") ? 10000 : 6500;
 
   useEffect(() => {
+    if (!activeStatus) {
+      setMediaReady(false);
+      return;
+    }
+    if (activeStatus.mediaUrl && activeStatus.mediaType?.startsWith("image/")) {
+      setMediaReady(false);
+      return;
+    }
+    if (activeStatus.mediaUrl && activeStatus.mediaType?.startsWith("video/")) {
+      setMediaReady(false);
+      return;
+    }
+    setMediaReady(true);
+  }, [activeStatus]);
+
+  useEffect(() => {
     if (!openGroup) return;
     if (!activeStatus) return;
+    if (!mediaReady) return;
     const timer = window.setTimeout(() => {
       if (!openGroup) return;
       if (activeIndex < openGroup.statuses.length - 1) {
         setActiveIndex((prev) => prev + 1);
         setStoryTick((prev) => prev + 1);
+        setMediaReady(false);
       } else {
         setOpenGroup(null);
       }
     }, storyDurationMs);
     return () => window.clearTimeout(timer);
-  }, [openGroup, activeIndex, storyDurationMs, activeStatus]);
+  }, [openGroup, activeIndex, storyDurationMs, activeStatus, mediaReady]);
 
   const handleNext = () => {
     if (!openGroup) return;
+    if (!mediaReady) return;
     if (activeIndex < openGroup.statuses.length - 1) {
       setActiveIndex((prev) => prev + 1);
       setStoryTick((prev) => prev + 1);
+      setMediaReady(false);
     } else {
       setOpenGroup(null);
     }
@@ -113,9 +197,11 @@ export default function Status() {
 
   const handlePrev = () => {
     if (!openGroup) return;
+    if (!mediaReady) return;
     if (activeIndex > 0) {
       setActiveIndex((prev) => prev - 1);
       setStoryTick((prev) => prev + 1);
+      setMediaReady(false);
     }
   };
 
@@ -127,6 +213,7 @@ export default function Status() {
     setReplyError("");
     setReplySending(false);
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (!mediaReady) return;
       if (event.key === "Escape") {
         setOpenGroup(null);
         return;
@@ -143,7 +230,7 @@ export default function Status() {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [openGroup, handleNext, handlePrev]);
+  }, [openGroup, handleNext, handlePrev, mediaReady]);
 
   const handleReplySend = async () => {
     if (!openGroup || !replyText.trim()) return;
@@ -209,6 +296,8 @@ export default function Status() {
                         src={user.avatar}
                         alt={user.name}
                         className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       user?.name?.[0]?.toUpperCase()
@@ -297,6 +386,8 @@ export default function Status() {
                                 src={group.user.avatar}
                                 alt={group.user.name}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               group.user.name[0].toUpperCase()
@@ -350,6 +441,8 @@ export default function Status() {
                                 src={group.user.avatar}
                                 alt={group.user.name}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               group.user.name[0].toUpperCase()
@@ -400,6 +493,8 @@ export default function Status() {
                               src={m.avatar}
                               alt={m.name}
                               className="w-full h-full rounded-full object-cover"
+                              loading="lazy"
+                              decoding="async"
                             />
                           ) : (
                             m.name[0].toUpperCase()
@@ -443,7 +538,7 @@ export default function Status() {
                     className="h-full bg-white"
                     style={{
                       width: isDone ? "100%" : isActive ? "100%" : "0%",
-                      animation: isActive ? `status-progress ${storyDurationMs}ms linear` : "none",
+                      animation: isActive && mediaReady ? `status-progress ${storyDurationMs}ms linear` : "none",
                     }}
                   />
                 </div>
@@ -460,6 +555,8 @@ export default function Status() {
                       src={openGroup.user.avatar}
                       alt={openGroup.user.name}
                       className="w-full h-full object-cover"
+                      loading="eager"
+                      decoding="async"
                     />
                   ) : (
                     openGroup.user.name[0].toUpperCase()
@@ -486,17 +583,19 @@ export default function Status() {
 
           <button
             onClick={handlePrev}
-            className="absolute inset-y-0 left-0 w-1/3"
+            className={`absolute inset-y-0 left-0 w-1/3 ${mediaReady ? "" : "pointer-events-none"}`}
             aria-label="Previous status"
+            aria-disabled={!mediaReady}
           />
           <button
             onClick={handleNext}
-            className="absolute inset-y-0 right-0 w-1/3"
+            className={`absolute inset-y-0 right-0 w-1/3 ${mediaReady ? "" : "pointer-events-none"}`}
             aria-label="Next status"
+            aria-disabled={!mediaReady}
           />
 
           <div className="absolute inset-0 flex items-center justify-center px-6 pt-20 pb-24">
-            <div className="w-full max-w-xl">
+            <div className="w-full max-w-xl relative">
               {activeStatus?.text && (
                 <p className="text-lg font-medium mb-4">{activeStatus.text}</p>
               )}
@@ -505,18 +604,43 @@ export default function Status() {
                   src={activeStatus.mediaUrl}
                   alt="status"
                   className="w-full rounded-2xl object-cover max-h-[70vh]"
+                  loading="eager"
+                  decoding="async"
+                  onLoad={() => setMediaReady(true)}
+                  onError={() => setMediaReady(true)}
                 />
               )}
               {activeStatus?.mediaUrl && activeStatus.mediaType?.startsWith("video/") && (
-                <video className="w-full rounded-2xl max-h-[70vh]" controls>
+                <video
+                  className="w-full rounded-2xl max-h-[70vh]"
+                  controls
+                  preload="auto"
+                  onLoadedData={() => setMediaReady(true)}
+                  onCanPlay={() => setMediaReady(true)}
+                  onError={() => setMediaReady(true)}
+                >
                   <source src={activeStatus.mediaUrl} />
                 </video>
+              )}
+              {!mediaReady && activeStatus?.mediaUrl && (
+                <div className="absolute inset-0 rounded-2xl bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3">
+                  <div className="h-10 w-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  <p className="text-xs text-white/80">Loading status...</p>
+                </div>
               )}
             </div>
           </div>
 
           <div className="absolute bottom-4 left-0 right-0 px-4">
-            <div className="mx-auto max-w-xl flex items-center gap-3">
+            <div className="mx-auto max-w-xl relative flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker((prev) => !prev)}
+                className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white hover:bg-white/15"
+                aria-label="Emoji"
+              >
+                <Smile size={18} />
+              </button>
               <input
                 value={replyText}
                 onChange={(event) => setReplyText(event.target.value)}
@@ -526,6 +650,48 @@ export default function Status() {
                 disabled={openGroup.user.id === user?.id}
                 className="flex-1 bg-white/10 border border-white/15 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
               />
+              {showEmojiPicker && (
+                <div className="absolute bottom-14 left-0 z-20 w-72 rounded-2xl border border-white/20 bg-[#111b21] p-3 shadow-lg">
+                  {recentEmojis.length > 0 && (
+                    <>
+                      <div className="text-[11px] text-white/60 mb-2">Recent</div>
+                      <div className="grid grid-cols-8 gap-2 text-lg mb-3">
+                        {recentEmojis.map((emoji) => (
+                          <button
+                            key={`recent-${emoji}`}
+                            type="button"
+                            onClick={() => {
+                              setReplyText((prev) => `${prev}${emoji}`);
+                              pushRecentEmoji(emoji);
+                              setShowEmojiPicker(false);
+                            }}
+                            className="hover:bg-white/10 rounded"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <div className="text-[11px] text-white/60 mb-2">All</div>
+                  <div className="grid grid-cols-8 gap-2 text-lg">
+                    {emojiList.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => {
+                          setReplyText((prev) => `${prev}${emoji}`);
+                          pushRecentEmoji(emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                        className="hover:bg-white/10 rounded"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <button
                 className="w-10 h-10 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white disabled:opacity-50"
                 aria-label="Send reply"

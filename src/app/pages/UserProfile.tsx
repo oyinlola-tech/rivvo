@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router";
 import { api } from "../lib/api";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { UserPlus, MessageCircle, Flag, Ban } from "lucide-react";
+import { readCache, writeCache } from "../lib/cache";
+import { preloadImage } from "../lib/imageCache";
 
 export default function UserProfile() {
   const { id } = useParams();
@@ -14,6 +16,7 @@ export default function UserProfile() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportBlock, setReportBlock] = useState(false);
+  const [avatarPreviewOpen, setAvatarPreviewOpen] = useState(false);
   const reportSuggestions = [
     "Spam or scam",
     "Harassment or hate speech",
@@ -25,10 +28,21 @@ export default function UserProfile() {
   useEffect(() => {
     if (!id) return;
     const load = async () => {
+      const cacheKey = `profile:${id}`;
+      const cached = readCache<any>(cacheKey, 60_000);
+      if (cached) {
+        setProfile(cached);
+        setLoading(false);
+        preloadImage(cached.avatar);
+        return;
+      }
+
       setLoading(true);
       const response = await api.getUserPublicProfile(id);
       if (response.success && response.data) {
         setProfile(response.data);
+        writeCache(cacheKey, response.data);
+        preloadImage(response.data.avatar);
         setError("");
       } else {
         setError(response.error || "Unable to load profile");
@@ -143,13 +157,24 @@ export default function UserProfile() {
       <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6 px-6 pb-10">
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+            <button
+              type="button"
+              onClick={() => profile.avatar && setAvatarPreviewOpen(true)}
+              className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden"
+              aria-label="View profile photo"
+            >
               {profile.avatar ? (
-                <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                />
               ) : (
                 profile.name?.[0]?.toUpperCase()
               )}
-            </div>
+            </button>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold text-[#111b21]">{profile.name}</h2>
@@ -290,6 +315,30 @@ export default function UserProfile() {
               >
                 Submit report
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {avatarPreviewOpen && profile?.avatar && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
+          <div className="w-full max-w-md">
+            <div className="flex items-center justify-between text-white mb-4">
+              <div className="text-lg font-semibold">{profile.name}</div>
+              <button
+                onClick={() => setAvatarPreviewOpen(false)}
+                className="text-sm text-white/80"
+              >
+                Close
+              </button>
+            </div>
+            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-black">
+              <img
+                src={profile.avatar}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
