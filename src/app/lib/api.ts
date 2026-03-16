@@ -88,6 +88,9 @@ export interface MessageDto {
   sender: "me" | "them";
   senderId?: string;
   readAt?: string | null;
+  deliveredAt?: string | null;
+  editedAt?: string | null;
+  deletedForAllAt?: string | null;
   encrypted?: boolean;
   iv?: string | null;
   viewOnce?: boolean;
@@ -451,6 +454,15 @@ class ApiClient {
     return this.request(`/messages/conversations/${conversationId}${suffix}`);
   }
 
+  async getConversationPreview(
+    conversationId: string,
+    limit: number = 5
+  ): Promise<ApiResponse<{ id: string; text: string; timestamp: string | null; sender: "me" | "them" }[]>> {
+    const params = new URLSearchParams();
+    params.set("limit", String(limit));
+    return this.request(`/messages/conversations/${conversationId}/preview?${params.toString()}`);
+  }
+
   async sendMessage(
     conversationId: string,
     message: string,
@@ -474,6 +486,29 @@ class ApiClient {
         encrypted: true,
         viewOnce: Boolean(payload.viewOnce),
       }),
+    });
+  }
+
+  async editMessage(
+    conversationId: string,
+    messageId: string,
+    payload: { message?: string; ciphertext?: string; iv?: string; encrypted?: boolean }
+  ): Promise<ApiResponse<MessageDto>> {
+    return this.request(`/messages/conversations/${conversationId}/messages/${messageId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteMessage(
+    conversationId: string,
+    messageId: string,
+    scope: "self" | "all" = "self"
+  ): Promise<ApiResponse<{ message: string }>> {
+    const params = new URLSearchParams();
+    params.set("scope", scope);
+    return this.request(`/messages/conversations/${conversationId}/messages/${messageId}?${params.toString()}`, {
+      method: "DELETE",
     });
   }
 

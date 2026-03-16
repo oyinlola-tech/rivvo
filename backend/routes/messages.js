@@ -4,12 +4,15 @@ import auth from '../middleware/auth.js';
 import {
   getConversations,
   getMessages,
+  getConversationPreview,
   sendMessage,
   markConversationRead,
   getConversationPeer,
   viewOnceMessage,
   uploadAttachment,
-  getOrCreateConversation
+  getOrCreateConversation,
+  editMessage,
+  deleteMessage
 } from '../controllers/messagesController.js';
 import { uploadAttachments } from '../utils/upload.js';
 
@@ -17,8 +20,11 @@ const router = Router();
 
 router.get('/conversations', auth, asyncHandler(getConversations));
 router.get('/conversations/:id', auth, asyncHandler(getMessages));
+router.get('/conversations/:id/preview', auth, asyncHandler(getConversationPreview));
 router.post('/conversations/with/:userId', auth, asyncHandler(getOrCreateConversation));
 router.post('/conversations/:id', auth, asyncHandler(sendMessage));
+router.patch('/conversations/:id/messages/:messageId', auth, asyncHandler(editMessage));
+router.delete('/conversations/:id/messages/:messageId', auth, asyncHandler(deleteMessage));
 router.post(
   '/conversations/:id/attachments',
   auth,

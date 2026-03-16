@@ -179,12 +179,44 @@ export const getMessages = async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    `SELECT id, body, created_at, sender_id, read_at, is_encrypted, iv, view_once, view_once_viewed_at
+    `SELECT id, body, created_at, sender_id, delivered_at, read_at, is_encrypted, iv, view_once, view_once_viewed_at,
+            edited_at, deleted_for_sender_at, deleted_for_recipient_at, deleted_for_all_at
      FROM messages
      WHERE conversation_id = :conversation_id${sinceFilter}
      ORDER BY created_at ASC`,
     params
   );
+
+  const undeliveredIds = rows
+    .filter((row) => row.sender_id !== userId && !row.delivered_at)
+    .map((row) => row.id);
+  if (undeliveredIds.length) {
+    await pool.execute(
+      `UPDATE messages
+       SET delivered_at = NOW()
+       WHERE conversation_id = :conversation_id
+         AND sender_id <> :user_id
+         AND delivered_at IS NULL`,
+      { conversation_id: conversationId, user_id: userId }
+    );
+
+    const [participantRows] = await pool.execute(
+      `SELECT user_id FROM conversation_participants
+       WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
+      { conversation_id: conversationId, user_id: userId }
+    );
+
+    const io = req.app.get('io');
+    if (io && participantRows.length) {
+      participantRows.forEach((row) => {
+        io.to(`user:${row.user_id}`).emit('delivery_receipt', {
+          conversationId,
+          messageIds: undeliveredIds,
+          deliveredAt: new Date().toISOString()
+        });
+      });
+    }
+  }
 
   if (markRead) {
     await pool.execute(
@@ -206,14 +238,22 @@ export const getMessages = async (req, res) => {
   }
 
   const messages = rows
-    .filter((row) => !(row.view_once && row.sender_id !== userId && row.view_once_viewed_at))
+    .filter((row) => {
+      if (row.sender_id === userId && row.deleted_for_sender_at) return false;
+      if (row.sender_id !== userId && row.deleted_for_recipient_at) return false;
+      if (row.view_once && row.sender_id !== userId && row.view_once_viewed_at) return false;
+      return true;
+    })
     .map((row) => ({
       id: row.id,
-      text: row.body,
+      text: row.deleted_for_all_at ? '' : row.body,
       timestamp: new Date(row.created_at).toISOString(),
       sender: row.sender_id === userId ? 'me' : 'them',
       senderId: row.sender_id,
       readAt: row.read_at ? new Date(row.read_at).toISOString() : null,
+      deliveredAt: row.delivered_at ? new Date(row.delivered_at).toISOString() : null,
+      editedAt: row.edited_at ? new Date(row.edited_at).toISOString() : null,
+      deletedForAllAt: row.deleted_for_all_at ? new Date(row.deleted_for_all_at).toISOString() : null,
       encrypted: Boolean(row.is_encrypted),
       iv: row.iv || null,
       viewOnce: Boolean(row.view_once),
@@ -226,6 +266,74 @@ export const getMessages = async (req, res) => {
     messages,
     serverTime: new Date().toISOString()
   });
+};
+
+export const getConversationPreview = async (req, res) => {
+  const userId = req.user?.id;
+  const conversationId = req.params.id;
+  const limitRaw = Number(req.query.limit || 5);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 10) : 5;
+
+  if (!conversationId) {
+    return sendError(res, 400, 'Conversation id is required');
+  }
+
+  const isParticipant = await ensureParticipant(userId, conversationId);
+  if (!isParticipant) {
+    return sendError(res, 404, 'Conversation not found');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, body, created_at, sender_id, is_encrypted, view_once, view_once_viewed_at,
+            deleted_for_sender_at, deleted_for_recipient_at, deleted_for_all_at
+     FROM messages
+     WHERE conversation_id = :conversation_id
+     ORDER BY created_at DESC
+     LIMIT :limit`,
+    { conversation_id: conversationId, limit }
+  );
+
+  const previews = rows
+    .filter((row) => {
+      if (row.sender_id === userId && row.deleted_for_sender_at) return false;
+      if (row.sender_id !== userId && row.deleted_for_recipient_at) return false;
+      return true;
+    })
+    .reverse()
+    .map((row) => {
+      let text = row.body || '';
+      if (row.deleted_for_all_at) {
+        text = 'Message deleted';
+      } else if (row.view_once && !row.view_once_viewed_at && row.sender_id !== userId) {
+        text = 'View once message';
+      } else if (row.is_encrypted) {
+        text = 'Encrypted message';
+      } else {
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed?.type === 'attachment') {
+            if (parsed.kind === 'voice' || parsed.kind === 'audio') {
+              text = 'Voice note';
+            } else if (parsed.kind === 'media') {
+              text = 'Media attachment';
+            } else {
+              text = 'Attachment';
+            }
+          }
+        } catch {
+          // Keep text as-is.
+        }
+      }
+
+      return {
+        id: row.id,
+        text,
+        timestamp: row.created_at ? new Date(row.created_at).toISOString() : null,
+        sender: row.sender_id === userId ? 'me' : 'them'
+      };
+    });
+
+  return res.json(previews);
 };
 
 export const sendMessage = async (req, res) => {
@@ -344,6 +452,15 @@ export const sendMessage = async (req, res) => {
   }
 
   const recipientId = otherUserId;
+  let deliveredAt = null;
+  if (otherUserId && isUserOnline(otherUserId)) {
+    deliveredAt = new Date();
+    await pool.execute(
+      `UPDATE messages SET delivered_at = NOW() WHERE id = :id`,
+      { id: messageId }
+    );
+  }
+
   const payload = {
     id: messageId,
     text: finalMessage.trim(),
@@ -351,6 +468,7 @@ export const sendMessage = async (req, res) => {
     sender: 'me',
     senderId: userId,
     readAt: null,
+    deliveredAt: deliveredAt ? deliveredAt.toISOString() : null,
     encrypted: Boolean(encrypted),
     iv: iv || null,
     viewOnce: Boolean(viewOnce),
@@ -367,6 +485,13 @@ export const sendMessage = async (req, res) => {
       conversationId,
       message: { ...payload, sender: 'them' }
     });
+    if (deliveredAt) {
+      io.to(`user:${userId}`).emit('delivery_receipt', {
+        conversationId,
+        messageIds: [messageId],
+        deliveredAt: deliveredAt.toISOString()
+      });
+    }
   }
 
   return res.status(201).json(payload);
@@ -496,6 +621,163 @@ export const viewOnceMessage = async (req, res) => {
   return res.json({ message: 'View-once message viewed' });
 };
 
+export const editMessage = async (req, res) => {
+  const userId = req.user?.id;
+  const conversationId = req.params.id;
+  const messageId = req.params.messageId;
+  const { message, ciphertext, iv, encrypted } = req.body || {};
+
+  const finalMessage = ciphertext || message;
+  if (!conversationId || !messageId) {
+    return sendError(res, 400, 'Conversation id and message id are required');
+  }
+  if (!isNonEmptyString(finalMessage)) {
+    return sendError(res, 400, 'Message is required');
+  }
+
+  const isParticipant = await ensureParticipant(userId, conversationId);
+  if (!isParticipant) {
+    return sendError(res, 404, 'Conversation not found');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT sender_id, read_at, view_once
+     FROM messages
+     WHERE id = :id AND conversation_id = :conversation_id
+     LIMIT 1`,
+    { id: messageId, conversation_id: conversationId }
+  );
+
+  if (!rows.length) {
+    return sendError(res, 404, 'Message not found');
+  }
+
+  const existing = rows[0];
+  if (existing.sender_id !== userId) {
+    return sendError(res, 403, 'You can only edit your own messages');
+  }
+  if (existing.view_once) {
+    return sendError(res, 400, 'View-once messages cannot be edited');
+  }
+
+  if (existing.read_at) {
+    const readAt = new Date(existing.read_at).getTime();
+    if (Date.now() - readAt > 60 * 60 * 1000) {
+      return sendError(res, 403, 'Messages can only be edited within 1 hour of being read');
+    }
+  }
+
+  await pool.execute(
+    `UPDATE messages
+     SET body = :body,
+         iv = :iv,
+         is_encrypted = :is_encrypted,
+         edited_at = NOW()
+     WHERE id = :id`,
+    {
+      id: messageId,
+      body: finalMessage.trim(),
+      iv: iv || null,
+      is_encrypted: encrypted ? 1 : 0
+    }
+  );
+
+  const payload = {
+    id: messageId,
+    text: finalMessage.trim(),
+    iv: iv || null,
+    encrypted: Boolean(encrypted),
+    editedAt: new Date().toISOString()
+  };
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`conversation:${conversationId}`).emit('message_edited', {
+      conversationId,
+      message: payload
+    });
+  }
+
+  return res.json({ message: 'Message updated', ...payload });
+};
+
+export const deleteMessage = async (req, res) => {
+  const userId = req.user?.id;
+  const conversationId = req.params.id;
+  const messageId = req.params.messageId;
+  const scope = req.query.scope === 'all' ? 'all' : 'self';
+
+  if (!conversationId || !messageId) {
+    return sendError(res, 400, 'Conversation id and message id are required');
+  }
+
+  const isParticipant = await ensureParticipant(userId, conversationId);
+  if (!isParticipant) {
+    return sendError(res, 404, 'Conversation not found');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT sender_id, read_at
+     FROM messages
+     WHERE id = :id AND conversation_id = :conversation_id
+     LIMIT 1`,
+    { id: messageId, conversation_id: conversationId }
+  );
+
+  if (!rows.length) {
+    return sendError(res, 404, 'Message not found');
+  }
+
+  const existing = rows[0];
+  if (scope === 'all') {
+    if (existing.sender_id !== userId) {
+      return sendError(res, 403, 'You can only delete your own messages for everyone');
+    }
+    if (existing.read_at) {
+      const readAt = new Date(existing.read_at).getTime();
+      if (Date.now() - readAt > 60 * 60 * 1000) {
+        return sendError(res, 403, 'Messages can only be deleted for everyone within 1 hour of being read');
+      }
+    }
+
+    await pool.execute(
+      `UPDATE messages
+       SET deleted_for_all_at = NOW()
+       WHERE id = :id`,
+      { id: messageId }
+    );
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`conversation:${conversationId}`).emit('message_deleted', {
+        conversationId,
+        messageId,
+        deletedAt: new Date().toISOString()
+      });
+    }
+
+    return res.json({ message: 'Message deleted for everyone' });
+  }
+
+  if (existing.sender_id === userId) {
+    await pool.execute(
+      `UPDATE messages
+       SET deleted_for_sender_at = NOW()
+       WHERE id = :id`,
+      { id: messageId }
+    );
+  } else {
+    await pool.execute(
+      `UPDATE messages
+       SET deleted_for_recipient_at = NOW()
+       WHERE id = :id`,
+      { id: messageId }
+    );
+  }
+
+  return res.json({ message: 'Message deleted for you' });
+};
+
 export const getConversationPeer = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
@@ -555,6 +837,7 @@ export const getConversationPeer = async (req, res) => {
     badgeStatus: peer.badge_status,
     isModerator: Boolean(peer.is_moderator),
     isAdmin: Boolean(peer.is_admin),
+    online: isUserOnline(peer.id),
     publicKey: peer.public_key || null,
     streakCount: Number(peer.effective_streak_count || 0)
   });
@@ -575,7 +858,13 @@ const allowedAttachmentMimes = new Set([
   'audio/mpeg',
   'audio/mp3',
   'audio/webm',
-  'audio/ogg'
+  'audio/ogg',
+  'audio/opus',
+  'audio/wav',
+  'audio/x-wav',
+  'application/ogg',
+  'audio/x-opus+ogg',
+  'audio/mp4'
 ]);
 
 const allowedAttachmentKinds = new Set(['media', 'document', 'audio', 'voice']);

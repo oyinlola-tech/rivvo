@@ -130,6 +130,11 @@ export const initDb = async () => {
       body TEXT NOT NULL,
       iv VARCHAR(64) NULL,
       is_encrypted TINYINT(1) DEFAULT 0,
+      delivered_at DATETIME NULL,
+      edited_at DATETIME NULL,
+      deleted_for_sender_at DATETIME NULL,
+      deleted_for_recipient_at DATETIME NULL,
+      deleted_for_all_at DATETIME NULL,
       read_at DATETIME NULL,
       view_once TINYINT(1) DEFAULT 0,
       view_once_viewed_at DATETIME NULL,
@@ -195,6 +200,51 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE messages
       ADD COLUMN read_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE messages
+      ADD COLUMN delivered_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE messages
+      ADD COLUMN edited_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE messages
+      ADD COLUMN deleted_for_sender_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE messages
+      ADD COLUMN deleted_for_recipient_at DATETIME NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE messages
+      ADD COLUMN deleted_for_all_at DATETIME NULL
     `);
   } catch (error) {
     // Column likely exists already.

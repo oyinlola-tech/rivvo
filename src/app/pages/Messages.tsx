@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Flame } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Flame, Check, CheckCheck } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -30,6 +30,9 @@ interface Message {
   sender: "me" | "them";
   senderId?: string;
   readAt?: string | null;
+  deliveredAt?: string | null;
+  editedAt?: string | null;
+  deletedForAllAt?: string | null;
   encrypted?: boolean;
   iv?: string | null;
   viewOnce?: boolean;
@@ -41,6 +44,7 @@ interface PeerInfo {
   id: string;
   name: string;
   avatar?: string | null;
+  online?: boolean;
   verified: boolean;
   isVerifiedBadge: boolean;
   isModerator: boolean;
@@ -75,6 +79,8 @@ export default function Messages() {
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const attachmentUrlsRef = useRef<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +88,16 @@ export default function Messages() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const viewOnceTimeoutRef = useRef<number | null>(null);
+  const [reportMessageId, setReportMessageId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportBlock, setReportBlock] = useState(false);
+  const reportSuggestions = [
+    "Spam or scam",
+    "Harassment or hate speech",
+    "Impersonation",
+    "Inappropriate content",
+    "Other",
+  ];
 
   const contact = peer || {
     id: "",
@@ -92,8 +108,9 @@ export default function Messages() {
     isVerifiedBadge: true,
     isModerator: false,
     isAdmin: false,
-    streakCount: 0,
+    streakCount: undefined,
   };
+  const firstName = contact.name?.trim().split(" ")[0] || contact.name;
 
   useEffect(() => {
     if (id) {
@@ -147,6 +164,21 @@ export default function Messages() {
       });
     };
 
+    const handleDelivery = (payload: { conversationId: string; messageIds: string[]; deliveredAt: string }) => {
+      if (payload.conversationId !== id) return;
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.sender === "me" && payload.messageIds.includes(msg.id)
+            ? { ...msg, deliveredAt: payload.deliveredAt }
+            : msg
+        );
+        if (user?.id) {
+          saveMessages(user.id, id, updated);
+        }
+        return updated;
+      });
+    };
+
     const handleViewOnceViewed = (payload: { conversationId: string; messageId: string; readAt: string }) => {
       if (payload.conversationId !== id) return;
       setMessages((prev) => {
@@ -170,20 +202,89 @@ export default function Messages() {
       typingTimeoutRef.current = window.setTimeout(() => setIsTyping(false), 2000);
     };
 
+    const handleMessageEdited = async (payload: {
+      conversationId: string;
+      message: { id: string; text: string; iv?: string | null; encrypted?: boolean; editedAt?: string | null };
+    }) => {
+      if (payload.conversationId !== id) return;
+      let nextText = payload.message.text;
+      let encryptedFlag = Boolean(payload.message.encrypted);
+      if (payload.message.encrypted && payload.message.iv && sharedKey) {
+        try {
+          nextText = await decryptMessage(payload.message.text, payload.message.iv, sharedKey);
+        } catch {
+          nextText = "Encrypted message";
+        }
+        encryptedFlag = payload.message.encrypted ? true : false;
+      }
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === payload.message.id
+            ? {
+                ...msg,
+                text: nextText,
+                iv: payload.message.iv || null,
+                encrypted: encryptedFlag,
+                editedAt: payload.message.editedAt || new Date().toISOString(),
+              }
+            : msg
+        );
+        if (user?.id) {
+          saveMessages(user.id, id, updated);
+        }
+        return updated;
+      });
+    };
+
+    const handleMessageDeleted = (payload: { conversationId: string; messageId: string; deletedAt: string }) => {
+      if (payload.conversationId !== id) return;
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === payload.messageId
+            ? { ...msg, deletedForAllAt: payload.deletedAt, text: "" }
+            : msg
+        );
+        if (user?.id) {
+          saveMessages(user.id, id, updated);
+        }
+        return updated;
+      });
+    };
+
     socket.emit("join_conversation", { conversationId: id });
     socket.on("new_message", handleIncoming);
     socket.on("read_receipt", handleRead);
+    socket.on("delivery_receipt", handleDelivery);
+    socket.on("message_edited", handleMessageEdited);
+    socket.on("message_deleted", handleMessageDeleted);
     socket.on("view_once_viewed", handleViewOnceViewed);
     socket.on("typing", handleTyping);
+    const handleUserOnline = (payload: { userId: string }) => {
+      if (payload.userId === peer?.id) {
+        setPeer((prev) => (prev ? { ...prev, online: true } : prev));
+      }
+    };
+    const handleUserOffline = (payload: { userId: string }) => {
+      if (payload.userId === peer?.id) {
+        setPeer((prev) => (prev ? { ...prev, online: false } : prev));
+      }
+    };
+    socket.on("user_online", handleUserOnline);
+    socket.on("user_offline", handleUserOffline);
 
     return () => {
       socket.emit("leave_conversation", { conversationId: id });
       socket.off("new_message", handleIncoming);
       socket.off("read_receipt", handleRead);
+      socket.off("delivery_receipt", handleDelivery);
+      socket.off("message_edited", handleMessageEdited);
+      socket.off("message_deleted", handleMessageDeleted);
       socket.off("view_once_viewed", handleViewOnceViewed);
       socket.off("typing", handleTyping);
+      socket.off("user_online", handleUserOnline);
+      socket.off("user_offline", handleUserOffline);
     };
-  }, [id, sharedKey, user?.id]);
+  }, [id, sharedKey, user?.id, peer?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -240,11 +341,12 @@ export default function Messages() {
         id: peerResponse.data.id,
         name: peerResponse.data.name,
         avatar: peerResponse.data.avatar,
+        online: peerResponse.data.online,
         verified: peerResponse.data.verified,
         isVerifiedBadge: peerResponse.data.isVerifiedBadge,
         isModerator: peerResponse.data.isModerator,
         isAdmin: peerResponse.data.isAdmin,
-        streakCount: peerResponse.data.streakCount
+        streakCount: peerResponse.data.streakCount || undefined
       });
       const keyPair = await getOrCreateKeyPair();
       const privateKey = await importPrivateKey(keyPair.privateKey);
@@ -256,11 +358,12 @@ export default function Messages() {
         id: peerResponse.data.id,
         name: peerResponse.data.name,
         avatar: peerResponse.data.avatar,
+        online: peerResponse.data.online,
         verified: peerResponse.data.verified,
         isVerifiedBadge: peerResponse.data.isVerifiedBadge,
         isModerator: peerResponse.data.isModerator,
         isAdmin: peerResponse.data.isAdmin,
-        streakCount: peerResponse.data.streakCount
+        streakCount: peerResponse.data.streakCount || undefined
       });
     } else if (!peerResponse.success) {
       setError(peerResponse.error || "Failed to load conversation details");
@@ -340,7 +443,14 @@ export default function Messages() {
     setError("");
 
     let response;
-    if (sharedKey) {
+    if (editingMessageId) {
+      if (sharedKey) {
+        const encrypted = await encryptMessage(newMessage, sharedKey);
+        response = await api.editMessage(id, editingMessageId, { ...encrypted, encrypted: true });
+      } else {
+        response = await api.editMessage(id, editingMessageId, { message: newMessage, encrypted: false });
+      }
+    } else if (sharedKey) {
       const encrypted = await encryptMessage(newMessage, sharedKey);
       response = await api.sendEncryptedMessage(id, { ...encrypted, viewOnce: viewOnceMode });
     } else {
@@ -354,7 +464,53 @@ export default function Messages() {
     }
 
     setViewOnceMode(false);
+    setEditingMessageId(null);
+    setEditingText("");
     await loadMessages();
+  };
+
+  const startEditMessage = async (message: Message) => {
+    if (message.sender !== "me") return;
+    if (message.viewOnce || message.attachment || message.deletedForAllAt) return;
+    if (message.encrypted && sharedKey && message.iv) {
+      try {
+        const text = await decryptMessage(message.text, message.iv, sharedKey);
+        setNewMessage(text);
+        setEditingText(text);
+      } catch {
+        setError("Unable to decrypt this message for editing");
+        return;
+      }
+    } else {
+      setNewMessage(message.text);
+      setEditingText(message.text);
+    }
+    setEditingMessageId(message.id);
+  };
+
+  const cancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingText("");
+    setNewMessage("");
+  };
+
+  const handleDeleteMessage = async (message: Message, scope: "self" | "all") => {
+    if (!id) return;
+    const response = await api.deleteMessage(id, message.id, scope);
+    if (!response.success) {
+      setError(response.error || "Failed to delete message");
+      return;
+    }
+    if (scope === "self") {
+      setMessages((prev) => prev.filter((msg) => msg.id !== message.id));
+      await deleteMessage(message.id);
+    } else {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === message.id ? { ...msg, deletedForAllAt: new Date().toISOString(), text: "" } : msg
+        )
+      );
+    }
   };
 
   const handleStartCall = async (type: "audio" | "video") => {
@@ -385,48 +541,22 @@ export default function Messages() {
     }, 1000);
   };
 
-  const handleReportUser = async () => {
-    if (!peer?.id || !id) return;
-    const reason = window.prompt("Why are you reporting this user?");
-    if (!reason) return;
-    const block = window.confirm("Block this user as well?");
-    const response = await api.reportUser({
-      reportedUserId: peer.id,
-      reason,
-      conversationId: id,
-      block,
-    });
-    if (!response.success) {
-      setError(response.error || "Failed to submit report");
-      return;
-    }
-    if (block) {
-      setError("User reported and blocked");
-    }
-  };
-
-  const handleBlockUser = async () => {
-    if (!peer?.id) return;
-    const confirmBlock = window.confirm("Block this user? They will not be able to message you.");
-    if (!confirmBlock) return;
-    const response = await api.blockUser(peer.id);
-    if (!response.success) {
-      setError(response.error || "Failed to block user");
-      return;
-    }
-    setError("User blocked");
-  };
-
   const handleReportMessage = async (messageId: string) => {
-    const reason = window.prompt("Why are you reporting this message?");
-    if (!reason) return;
-    const block = window.confirm("Block this user as well?");
-    const response = await api.reportMessage({ messageId, reason, block });
+    if (!reportReason.trim()) {
+      setError("Please select or enter a report reason.");
+      return;
+    }
+    const response = await api.reportMessage({ messageId, reason: reportReason.trim(), block: reportBlock });
     if (!response.success) {
       setError(response.error || "Failed to report message");
-    } else if (block) {
+    } else if (reportBlock) {
       setError("Message reported and user blocked");
+    } else {
+      setError("Message reported");
     }
+    setReportMessageId(null);
+    setReportReason("");
+    setReportBlock(false);
   };
 
   const handleViewOnce = async (message: Message) => {
@@ -490,6 +620,12 @@ export default function Messages() {
     "audio/mp3",
     "audio/webm",
     "audio/ogg",
+    "audio/opus",
+    "audio/wav",
+    "audio/x-wav",
+    "application/ogg",
+    "audio/x-opus+ogg",
+    "audio/mp4",
   ]);
 
   const MAX_FILE_SIZE = 40 * 1024 * 1024;
@@ -638,6 +774,22 @@ export default function Messages() {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  const getLastMessagePreview = () => {
+    if (!messages.length) return "No messages yet";
+    const last = messages[messages.length - 1];
+    if (last.viewOnce) return "View once message";
+    if (last.attachment) {
+      if (last.attachment.mime.startsWith("audio/")) return "Voice note";
+      if (last.attachment.mime.startsWith("image/")) return "Photo";
+      if (last.attachment.mime.startsWith("video/")) return "Video";
+      return last.attachment.name || "Attachment";
+    }
+    if (last.encrypted && (!last.text || last.text === "Encrypted message")) {
+      return "Encrypted message";
+    }
+    return last.text || "No messages yet";
+  };
+
   if (!id) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center">
@@ -674,7 +826,10 @@ export default function Messages() {
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold">{contact.name}</h2>
+            <h2 className="font-semibold">
+              <span className="md:hidden">{firstName}</span>
+              <span className="hidden md:inline">{contact.name}</span>
+            </h2>
             {(contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
               <VerificationBadge
                 type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
@@ -688,8 +843,9 @@ export default function Messages() {
               </span>
             )}
           </div>
-          <p className="text-xs text-[#667781]">
-            {"online" in contact && contact.online ? "Active now" : "Offline"}
+          <p className="text-xs text-[#667781] truncate">{getLastMessagePreview()}</p>
+          <p className="text-[11px] text-[#667781]">
+            {isTyping ? "Typing..." : contact.online ? "Active now" : "Offline"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -704,18 +860,6 @@ export default function Messages() {
             className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
           >
             <Video size={18} className="text-[#667781]" />
-          </button>
-          <button
-            onClick={handleReportUser}
-            className="px-3 py-2 rounded-full text-xs text-[#667781] hover:bg-black/5"
-          >
-            Report
-          </button>
-          <button
-            onClick={handleBlockUser}
-            className="px-3 py-2 rounded-full text-xs text-[#667781] hover:bg-black/5"
-          >
-            Block
           </button>
         </div>
       </div>
@@ -746,7 +890,9 @@ export default function Messages() {
                   }`}
                 >
                   <div className="space-y-1.5">
-                    {message.viewOnce ? (
+                    {message.deletedForAllAt ? (
+                      <p className="text-sm italic text-[#667781]">Message deleted</p>
+                    ) : message.viewOnce ? (
                       message.sender === "them" && !message.viewOnceViewedAt ? (
                         <button
                           onClick={() => handleViewOnce(message)}
@@ -808,14 +954,52 @@ export default function Messages() {
                       >
                         {formatTime(message.timestamp)}
                       </span>
-                      {message.sender === "me" && message.readAt ? (
-                        <span className="text-white/80">Seen</span>
+                      {message.sender === "me" ? (
+                        message.readAt ? (
+                          <CheckCheck size={14} className="text-[#4FC3F7]" />
+                        ) : message.deliveredAt ? (
+                          <CheckCheck size={14} className="text-[#667781]" />
+                        ) : (
+                          <Check size={14} className="text-[#667781]" />
+                        )
+                      ) : null}
+                      {message.editedAt && !message.deletedForAllAt ? (
+                        <span className="text-[10px] text-white/70">Edited</span>
                       ) : null}
                     </div>
                   </div>
-                  {message.sender === "them" && !message.viewOnce && (
+                  {message.sender === "me" &&
+                    !message.viewOnce &&
+                    !message.attachment &&
+                    !message.deletedForAllAt && (
+                      <div className="mt-1 flex gap-3 text-[11px]">
+                        <button
+                          onClick={() => startEditMessage(message)}
+                          className="underline text-[#667781]"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMessage(message, "self")}
+                          className="underline text-[#667781]"
+                        >
+                          Delete for me
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMessage(message, "all")}
+                          className="underline text-[#EA3736]"
+                        >
+                          Delete for everyone
+                        </button>
+                      </div>
+                    )}
+                  {message.sender === "them" && !message.viewOnce && !message.deletedForAllAt && (
                     <button
-                      onClick={() => handleReportMessage(message.id)}
+                      onClick={() => {
+                        setReportMessageId(message.id);
+                        setReportReason("");
+                        setReportBlock(false);
+                      }}
                       className="mt-1 text-[11px] underline text-[#667781]"
                     >
                       Report message
@@ -832,6 +1016,14 @@ export default function Messages() {
 
       {/* Input */}
       <div className="bg-background border-t border-border px-4 py-3">
+        {editingMessageId && (
+          <div className="mb-2 flex items-center justify-between rounded-lg bg-[#f0f2f5] px-3 py-2 text-xs text-[#667781]">
+            <span>Editing message</span>
+            <button onClick={cancelEdit} className="text-[#1a8c7a]">
+              Cancel
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
@@ -900,6 +1092,77 @@ export default function Messages() {
         {uploading && <p className="mt-2 text-xs text-gray-500">Uploading encrypted file...</p>}
         {recording && <p className="mt-2 text-xs text-red-600">Recording voice note...</p>}
       </div>
+
+      {reportMessageId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[#111b21]">Report message</h3>
+                <p className="text-sm text-[#667781]">Select a reason or type your own.</p>
+              </div>
+              <button
+                onClick={() => setReportMessageId(null)}
+                className="text-sm text-[#667781]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {reportSuggestions.map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setReportReason(item)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                    reportReason === item
+                      ? "bg-[#1a8c7a] text-white"
+                      : "bg-[#f0f2f5] text-[#111b21]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-2">Reason</label>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                rows={4}
+                className="w-full rounded-xl bg-[#f0f2f5] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
+                placeholder="Tell us what happened"
+              />
+            </div>
+
+            <label className="mt-4 flex items-center gap-2 text-sm text-[#667781]">
+              <input
+                type="checkbox"
+                checked={reportBlock}
+                onChange={(e) => setReportBlock(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-[#1a8c7a] focus:ring-[#1a8c7a]"
+              />
+              Also block this user
+            </label>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setReportMessageId(null)}
+                className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-[#667781]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReportMessage(reportMessageId)}
+                className="flex-1 rounded-xl bg-[#EA3736] px-4 py-2 text-sm font-medium text-white"
+              >
+                Submit report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -908,3 +1171,43 @@ export default function Messages() {
 
 
 
+    const handleMessageEdited = async (payload: {
+      conversationId: string;
+      message: { id: string; text: string; iv?: string | null; encrypted?: boolean; editedAt?: string | null };
+    }) => {
+      if (payload.conversationId !== id) return;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === payload.message.id
+            ? { ...msg, text: payload.message.text, iv: payload.message.iv || null, encrypted: payload.message.encrypted, editedAt: payload.message.editedAt || new Date().toISOString() }
+            : msg
+        )
+      );
+      if (user?.id) {
+        const updated = messages.map((msg) =>
+          msg.id === payload.message.id
+            ? { ...msg, text: payload.message.text, iv: payload.message.iv || null, encrypted: payload.message.encrypted, editedAt: payload.message.editedAt || new Date().toISOString() }
+            : msg
+        );
+        saveMessages(user.id, id, updated);
+      }
+    };
+
+    const handleMessageDeleted = (payload: { conversationId: string; messageId: string; deletedAt: string }) => {
+      if (payload.conversationId !== id) return;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === payload.messageId
+            ? { ...msg, deletedForAllAt: payload.deletedAt, text: "" }
+            : msg
+        )
+      );
+      if (user?.id) {
+        const updated = messages.map((msg) =>
+          msg.id === payload.messageId
+            ? { ...msg, deletedForAllAt: payload.deletedAt, text: "" }
+            : msg
+        );
+        saveMessages(user.id, id, updated);
+      }
+    };

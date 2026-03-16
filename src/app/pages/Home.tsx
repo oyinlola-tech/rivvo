@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { Search, Flame, Bell } from "lucide-react";
 import { api, ConversationDto } from "../lib/api";
@@ -13,6 +13,16 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const [previewMessages, setPreviewMessages] = useState<
+    { id: string; text: string; timestamp: string | null; sender: "me" | "them" }[]
+  >([]);
+  const [previewContact, setPreviewContact] = useState<ConversationDto["user"] | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const hoverTimerRef = useRef<number | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
@@ -91,6 +101,54 @@ export default function Home() {
     return date.toLocaleDateString();
   };
 
+  const openPreview = async (conversation: ConversationDto) => {
+    setPreviewLoading(true);
+    setPreviewError("");
+    setPreviewContact(conversation.user);
+    setPreviewMessages([]);
+    setPreviewOpen(true);
+    const response = await api.getConversationPreview(conversation.id, 5);
+    if (response.success && response.data) {
+      setPreviewMessages(response.data);
+    } else {
+      setPreviewError(response.error || "Unable to load preview");
+    }
+    setPreviewLoading(false);
+  };
+
+  const handleLongPressStart = (conversation: ConversationDto) => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+    }
+    longPressTriggeredRef.current = false;
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      openPreview(conversation);
+    }, 450);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+    }
+  };
+
+  const handleHoverStart = (conversation: ConversationDto) => {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = window.setTimeout(() => {
+      openPreview(conversation);
+    }, 350);
+  };
+
+  const handleHoverEnd = () => {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+    }
+    setPreviewOpen(false);
+  };
+
   return (
     <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
       {/* Header */}
@@ -148,6 +206,17 @@ export default function Home() {
                 key={conversation.id}
                 to={`/messages/${conversation.id}`}
                 className="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                onTouchStart={() => handleLongPressStart(conversation)}
+                onTouchEnd={handleLongPressEnd}
+                onTouchCancel={handleLongPressEnd}
+                onMouseEnter={() => handleHoverStart(conversation)}
+                onMouseLeave={handleHoverEnd}
+                onClick={(event) => {
+                  if (longPressTriggeredRef.current) {
+                    event.preventDefault();
+                    longPressTriggeredRef.current = false;
+                  }
+                }}
               >
                 <div className="flex items-center gap-4">
                   {/* Avatar */}
@@ -228,6 +297,51 @@ export default function Home() {
         )}
       </div>
 
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50 md:items-center md:justify-center">
+          <div className="w-full max-w-md rounded-t-3xl bg-white p-5 md:rounded-3xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-[#667781]">Preview</p>
+                <p className="text-base font-semibold text-[#111b21]">
+                  {previewContact?.name || "Conversation"}
+                </p>
+              </div>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="text-sm text-[#667781]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {previewLoading ? (
+                <div className="py-6 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1a8c7a]"></div>
+                </div>
+              ) : previewError ? (
+                <p className="text-sm text-red-600">{previewError}</p>
+              ) : previewMessages.length === 0 ? (
+                <p className="text-sm text-[#667781]">No messages yet.</p>
+              ) : (
+                previewMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`rounded-2xl px-4 py-2 text-sm ${
+                      msg.sender === "me"
+                        ? "bg-[#1a8c7a] text-white ml-8"
+                        : "bg-[#f0f2f5] text-[#111b21] mr-8"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
