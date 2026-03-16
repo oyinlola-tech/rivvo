@@ -116,6 +116,25 @@ export interface PeerDto {
   streakCount?: number;
 }
 
+export interface CallLogDto {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+    verified: boolean;
+    isVerifiedBadge: boolean;
+    badgeStatus?: "none" | "active" | "expired";
+    isModerator: boolean;
+    isAdmin: boolean;
+    online?: boolean;
+  };
+  type: "video" | "audio";
+  direction: "incoming" | "outgoing" | "missed";
+  timestamp: string;
+  duration?: number;
+}
+
 export interface DeviceDto {
   deviceId: string;
   deviceName?: string | null;
@@ -538,7 +557,7 @@ class ApiClient {
 
   // Calls endpoints
   async getCallHistory(): Promise<ApiResponse<any[]>> {
-    return this.request("/calls/history");
+    return this.request<CallLogDto[]>("/calls/history");
   }
 
   async initiateCall(userId: string, type: "audio" | "video"): Promise<ApiResponse<any>> {
@@ -551,6 +570,13 @@ class ApiClient {
   async endCall(callId: string) {
     return this.request(`/calls/${callId}/end`, {
       method: "POST",
+    });
+  }
+
+  async updateCallStatus(callId: string, status: "completed" | "missed") {
+    return this.request(`/calls/${callId}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status }),
     });
   }
 
@@ -776,7 +802,10 @@ class ApiClient {
   }
 
   // Admin endpoints
-  async getUsers(page: number = 1, limit: number = 20): Promise<ApiResponse<any>> {
+  async getUsers(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<ApiResponse<{ users: ApiUser[]; total: number; page: number; totalPages: number }>> {
     return this.request(`/admin/users?page=${page}&limit=${limit}`);
   }
 

@@ -115,6 +115,26 @@ io.on('connection', (socket) => {
     if (!to || !data) return;
     io.to(to).emit('call:signal', { from: socket.id, data });
   });
+
+  socket.on('call:ringing', ({ callId, toUserId }) => {
+    if (!callId || !toUserId) return;
+    io.to(`user:${toUserId}`).emit('call:ringing', { callId, fromUserId: userId });
+  });
+
+  socket.on('call:accept', ({ callId, toUserId }) => {
+    if (!callId || !toUserId) return;
+    io.to(`user:${toUserId}`).emit('call:accepted', { callId, fromUserId: userId });
+  });
+
+  socket.on('call:decline', ({ callId, toUserId }) => {
+    if (!callId || !toUserId) return;
+    io.to(`user:${toUserId}`).emit('call:declined', { callId, fromUserId: userId });
+  });
+
+  socket.on('call:cancel', ({ callId, toUserId }) => {
+    if (!callId || !toUserId) return;
+    io.to(`user:${toUserId}`).emit('call:cancelled', { callId, fromUserId: userId });
+  });
 });
 
 const start = async () => {

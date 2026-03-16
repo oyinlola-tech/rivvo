@@ -29,7 +29,12 @@ export default function AdminUsers() {
     setError("");
     const response = await api.getUsers();
     if (response.success && response.data) {
-      setUsers(response.data);
+      const nextUsers = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data.users)
+          ? response.data.users
+          : [];
+      setUsers(nextUsers);
     } else if (!response.success) {
       setError(response.error || "Failed to load users");
     }
@@ -74,7 +79,7 @@ export default function AdminUsers() {
     }
   };
 
-  const filteredUsers = users.filter(
+  const filteredUsers = (Array.isArray(users) ? users : []).filter(
     (user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())

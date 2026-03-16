@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router";
+import { useParams } from "react-router";`nimport { Mic, MicOff, Video, VideoOff, PhoneOff, Volume2, VolumeX, SwitchCamera } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { useAuth } from "../contexts/AuthContext";
@@ -45,6 +45,8 @@ export default function CallRoom() {
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [joined, setJoined] = useState(false);
+  const [speakerEnabled, setSpeakerEnabled] = useState(true);
+  const [usingFrontCamera, setUsingFrontCamera] = useState(true);
 
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
   const peerConnectionsRef = useRef<Map<string, PeerConnectionEntry>>(new Map());
@@ -54,6 +56,8 @@ export default function CallRoom() {
   const authToken = useMemo(() => localStorage.getItem("authToken"), []);
 
   const { videoRef: localVideoRef } = useVideoStream(localStream, true);
+  const primaryStream = remoteStreams[0]?.stream ?? null;
+  const { videoRef: primaryVideoRef } = useVideoStream(primaryStream, false);
 
   const updateRemoteStreams = () => {
     const next = Array.from(peerConnectionsRef.current.entries()).flatMap(([peerId]) => {
@@ -292,8 +296,50 @@ export default function CallRoom() {
     setCameraEnabled(next);
   };
 
+  const toggleSpeaker = async () => {
+    setSpeakerEnabled((prev) => !prev);
+    if ("setSinkId" in HTMLMediaElement.prototype) {
+      const sinkId = speakerEnabled ? "default" : "communications";
+      const elements = document.querySelectorAll("video, audio");
+      await Promise.all(
+        Array.from(elements).map(async (el) => {
+          const media = el as HTMLMediaElement;
+          if (typeof (media as any).setSinkId === "function") {
+            try {
+              await (media as any).setSinkId(sinkId);
+            } catch {
+              // ignore
+            }
+          }
+        })
+      );
+    }
+  };
+
+  const switchCamera = async () => {
+    if (callType !== "video") return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter((device) => device.kind === "videoinput");
+      if (videoInputs.length < 2) return;
+      const nextFacingMode = usingFrontCamera ? "environment" : "user";
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: nextFacingMode },
+        audio: true,
+      });
+      localStream?.getTracks().forEach((track) => track.stop());
+      setLocalStream(stream);
+      setUsingFrontCamera(!usingFrontCamera);
+    } catch {
+      // ignore
+    }
+  };
+
   const leaveCall = () => {
     socketRef.current?.emit("call:leave");
+    if (token) {
+      api.updateCallStatus(token, "completed").catch(() => undefined);
+    }
     if (window.opener) {
       window.close();
     } else {
@@ -303,79 +349,126 @@ export default function CallRoom() {
 
   const totalParticipants = 1 + remoteStreams.length;
 
+  const primaryPeer = remoteStreams[0];
+  const showGrid = remoteStreams.length > 1;
+
   return (
-    <div className="min-h-[100dvh] bg-[#111b21] text-white">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Call Room</h1>
-            <p className="text-sm text-gray-300">
-              {callScope ? `${callScope} call` : "Call"} - {callType} -{" "}
-              {totalParticipants}/{MAX_PARTICIPANTS} participants
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition"
-              onClick={toggleMic}
-            >
-              {micEnabled ? "Mute mic" : "Unmute mic"}
-            </button>
-            <button
-              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition disabled:opacity-40"
-              onClick={toggleCamera}
-              disabled={callType !== "video"}
-            >
-              {cameraEnabled ? "Stop video" : "Start video"}
-            </button>
-            <button
-              className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 transition"
-              onClick={leaveCall}
-            >
-              Leave call
-            </button>
-          </div>
+    <div className="min-h-[100dvh] bg-black text-white flex flex-col">
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+        <div>
+          <p className="text-lg font-semibold">
+            {callScope ? `${callScope} call` : "Call"} {callType === "video" ? "video" : "audio"}
+          </p>
+          <p className="text-xs text-white/70">{error ? error : status}</p>
         </div>
+        <div className="text-xs text-white/50">
+          {totalParticipants}/{MAX_PARTICIPANTS}
+        </div>
+      </div>
 
-        {error && (
-          <div className="bg-red-500/20 border border-red-500/40 rounded-xl p-4 text-sm">
-            {error}
-          </div>
-        )}
-
-        {!error && status && (
-          <div className="text-sm text-gray-300">{status}</div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-black/30 rounded-2xl p-4 flex flex-col gap-2">
-            <div className="text-xs uppercase tracking-wide text-gray-400">You</div>
-            <div className="relative rounded-xl overflow-hidden bg-black">
+      <div className="flex-1 relative px-4 pb-4">
+        {!showGrid && (
+          <div className="w-full h-full rounded-3xl overflow-hidden bg-black relative">
+            {primaryPeer ? (
+              <video
+                ref={primaryVideoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white/60">
+                Waiting for participant...
+              </div>
+            )}
+            <div className="absolute bottom-4 right-4 w-28 h-40 rounded-2xl overflow-hidden bg-black shadow-xl border border-white/10">
               <video
                 ref={localVideoRef}
-                className="w-full aspect-video object-cover"
+                className="w-full h-full object-cover"
                 autoPlay
                 playsInline
                 muted
               />
-              {callType === "audio" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-sm">
-                  Audio only
+              {!cameraEnabled && callType === "video" && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs">
+                  Camera off
                 </div>
               )}
+              {callType === "audio" && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs">
+                  Audio
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {showGrid && (
+          <div className="grid grid-cols-2 gap-3 h-full">
+            <div className="rounded-2xl overflow-hidden bg-black relative">
+              <video
+                ref={localVideoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+                muted
+              />
               {!cameraEnabled && callType === "video" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-sm">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs">
                   Camera off
                 </div>
               )}
             </div>
-            <div className="text-sm">{localName}</div>
+            {remoteStreams.map((peer) => (
+              <RemoteTile key={peer.peerId} peerId={peer.peerId} name={peer.name} stream={peer.stream} />
+            ))}
           </div>
+        )}
+      </div>
 
-          {remoteStreams.map((peer) => (
-            <RemoteTile key={peer.peerId} peerId={peer.peerId} name={peer.name} stream={peer.stream} />
-          ))}
-        </div>
+      <div className="px-6 pb-8 pt-4 flex items-center justify-center gap-6">
+        <button
+          className={`w-14 h-14 rounded-full flex items-center justify-center ${
+            micEnabled ? "bg-white/10" : "bg-red-500"
+          }`}
+          onClick={toggleMic}
+          aria-label="Toggle mic"
+        >
+          {micEnabled ? <Mic size={22} /> : <MicOff size={22} />}
+        </button>
+        <button
+          className="w-14 h-14 rounded-full flex items-center justify-center bg-white/10"
+          onClick={switchCamera}
+          aria-label="Switch camera"
+        >
+          <SwitchCamera size={22} />
+        </button>
+        <button
+          className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center"
+          onClick={leaveCall}
+          aria-label="End call"
+        >
+          <PhoneOff size={24} />
+        </button>
+        <button
+          className={`w-14 h-14 rounded-full flex items-center justify-center ${
+            speakerEnabled ? "bg-white/10" : "bg-red-500"
+          }`}
+          onClick={toggleSpeaker}
+          aria-label="Toggle speaker"
+        >
+          {speakerEnabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
+        </button>
+        <button
+          className={`w-14 h-14 rounded-full flex items-center justify-center ${
+            cameraEnabled ? "bg-white/10" : "bg-red-500"
+          } ${callType !== "video" ? "opacity-40" : ""}`}
+          onClick={toggleCamera}
+          disabled={callType !== "video"}
+          aria-label="Toggle camera"
+        >
+          {cameraEnabled ? <Video size={22} /> : <VideoOff size={22} />}
+        </button>
       </div>
     </div>
   );
@@ -413,5 +506,7 @@ function RemoteTile({
     </div>
   );
 }
+
+
 
 

@@ -1,13 +1,23 @@
 ﻿import { useState } from "react";
 import { Outlet, Link, useLocation, Navigate } from "react-router";
-import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard, MoreHorizontal } from "lucide-react";
+import { MessageCircle, Phone, Users, Settings, CircleDot, LayoutDashboard, MoreHorizontal, PhoneCall, PhoneOff, Video } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationsSheet from "../components/NotificationsSheet";
+import { CallProvider, useCall } from "../contexts/CallContext";
 
 export default function MainLayout() {
+  return (
+    <CallProvider>
+      <MainLayoutContent />
+    </CallProvider>
+  );
+}
+
+function MainLayoutContent() {
   const location = useLocation();
   const { user, loading, verificationPending } = useAuth();
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+  const { outgoingCall, incomingCall, acceptCall, declineCall, cancelCall, missedToast, outgoingSecondsLeft } = useCall();
 
   if (loading) {
     return (
@@ -175,6 +185,71 @@ export default function MainLayout() {
         </div>
         )}
       </div>
+      {(outgoingCall || incomingCall) && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center px-6">
+          <div className="w-full max-w-sm text-white text-center space-y-6">
+            <div className="mx-auto w-24 h-24 rounded-full bg-white/10 overflow-hidden flex items-center justify-center text-3xl font-semibold">
+              {(incomingCall?.fromUser.avatar || outgoingCall?.toUser.avatar) ? (
+                <img
+                  src={incomingCall?.fromUser.avatar || outgoingCall?.toUser.avatar}
+                  alt={incomingCall?.fromUser.name || outgoingCall?.toUser.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (incomingCall?.fromUser.name || outgoingCall?.toUser.name || "U")[0]
+              )}
+            </div>
+            <div>
+              <p className="text-xl font-semibold">
+                {incomingCall?.fromUser.name || outgoingCall?.toUser.name}
+              </p>
+              <p className="text-sm text-white/70 mt-1">
+                {incomingCall
+                  ? `${incomingCall.type === "video" ? "Video" : "Voice"} call`
+                  : outgoingCall?.status === "ringing"
+                    ? "Ringing..."
+                    : "Calling..."}
+              </p>
+              {outgoingCall && outgoingSecondsLeft !== null && (
+                <p className="text-xs text-white/60 mt-1">{outgoingSecondsLeft}s</p>
+              )}
+            </div>
+            {incomingCall ? (
+              <div className="flex items-center justify-center gap-6">
+                <button
+                  onClick={declineCall}
+                  className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center"
+                  aria-label="Decline"
+                >
+                  <PhoneOff size={24} />
+                </button>
+                <button
+                  onClick={acceptCall}
+                  className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center"
+                  aria-label="Accept"
+                >
+                  {incomingCall.type === "video" ? <Video size={24} /> : <PhoneCall size={24} />}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-6">
+                <button
+                  onClick={cancelCall}
+                  className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center"
+                  aria-label="Cancel call"
+                >
+                  <PhoneOff size={24} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {missedToast && (
+        <div className="fixed bottom-6 left-1/2 z-[70] -translate-x-1/2 rounded-full bg-black/80 text-white px-4 py-2 text-sm shadow-lg">
+          {missedToast.text}
+        </div>
+      )}
     </div>
   );
 }

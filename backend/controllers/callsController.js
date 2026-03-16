@@ -42,6 +42,7 @@ export const getCallHistory = async (req, res) => {
     return {
       id: row.id,
       user: {
+        id: row.user_id,
         name: row.name,
         avatar: row.avatar || null,
         verified: Boolean(row.verified),
@@ -94,9 +95,38 @@ export const initiateCall = async (req, res) => {
 
   const io = req.app.get('io');
   if (io) {
+    const [callerRows] = await pool.execute(
+      `SELECT
+          id,
+          name,
+          avatar,
+          verified,
+          is_moderator,
+          is_admin,
+          CASE
+            WHEN is_verified_badge = 1 AND verified_badge_expires_at > NOW()
+            THEN 1 ELSE 0
+          END AS is_verified_badge_active
+       FROM users
+       WHERE id = :id
+       LIMIT 1`,
+      { id: callerId }
+    );
+    const caller = callerRows?.[0];
     io.to(`user:${userId}`).emit('incoming_call', {
       callId,
       fromUserId: callerId,
+      fromUser: caller
+        ? {
+            id: caller.id,
+            name: caller.name,
+            avatar: caller.avatar || null,
+            verified: Boolean(caller.verified),
+            isVerifiedBadge: Boolean(caller.is_verified_badge_active),
+            isModerator: Boolean(caller.is_moderator),
+            isAdmin: Boolean(caller.is_admin)
+          }
+        : null,
       type
     });
   }
@@ -136,4 +166,52 @@ export const endCall = async (req, res) => {
   );
 
   return res.json({ message: 'Call ended' });
+};
+
+export const updateCallStatus = async (req, res) => {
+  const userId = req.user?.id;
+  const callId = req.params.id;
+  const { status } = req.body || {};
+
+  if (!callId) {
+    return sendError(res, 400, 'Call id is required');
+  }
+  if (!isOneOf(status, ['completed', 'missed'])) {
+    return sendError(res, 400, 'Invalid status');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, status, caller_id, callee_id
+     FROM calls
+     WHERE id = :id
+     LIMIT 1`,
+    { id: callId }
+  );
+  const call = rows[0];
+  if (!call || (call.caller_id !== userId && call.callee_id !== userId)) {
+    return sendError(res, 404, 'Call not found');
+  }
+  if (call.status !== 'ongoing') {
+    return sendError(res, 400, 'Call already ended');
+  }
+
+  if (status === 'completed') {
+    await pool.execute(
+      `UPDATE calls
+       SET status = 'completed',
+           duration = TIMESTAMPDIFF(SECOND, created_at, NOW())
+       WHERE id = :id`,
+      { id: callId }
+    );
+  } else {
+    await pool.execute(
+      `UPDATE calls
+       SET status = 'missed',
+           duration = NULL
+       WHERE id = :id`,
+      { id: callId }
+    );
+  }
+
+  return res.json({ message: 'Call status updated' });
 };

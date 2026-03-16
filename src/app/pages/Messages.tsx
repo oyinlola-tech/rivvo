@@ -22,6 +22,7 @@ import {
   saveMessages,
   setConversationSync
 } from "../lib/messageStore";
+import { useCall } from "../contexts/CallContext";
 import { preloadImage } from "../lib/imageCache";
 
 interface Message {
@@ -67,6 +68,7 @@ export default function Messages() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { startCall } = useCall();
   const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
   const mediaBase = apiBase.replace(/\/api\/?$/, "");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -116,7 +118,13 @@ export default function Messages() {
     "😉", "😌", "😋", "😜", "🤗", "🤔", "🫡", "🤝", "🙌", "👍", "👎", "👏",
     "🙏", "💪", "🔥", "🎉", "✨", "💯", "❤️", "🧡", "💛", "💚", "💙", "💜",
     "🖤", "🤍", "🤎", "😢", "😭", "😤", "😡", "🤯", "😴", "😷", "🤒", "🤕",
-    "🤒", "😵", "😵‍💫", "🤪", "😬", "🫠", "🫶", "👀", "🙈", "🙉", "🙊", "💀",
+    "😵", "😵‍💫", "🤪", "😬", "🫠", "🫶", "👀", "🙈", "🙉", "🙊", "💀", "🤖",
+    "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾",
+    "👋", "🤞", "✌️", "🤟", "🤘", "👌", "🤙", "💅", "🫰", "🫵",
+    "👶", "🧒", "👦", "👧", "🧑", "👨", "👩", "🧔", "👵", "🧓",
+    "🎂", "🎁", "🎈", "🎊", "🎮", "🎵", "🎧", "🎯", "⚽", "🏀", "🏆",
+    "🚗", "✈️", "🚀", "🛸", "🌍", "🌙", "⭐", "☀️", "⛈️", "🔥",
+    "🍕", "🍔", "🍟", "🍣", "🍩", "🍪", "🍫", "☕", "🧋", "🍹",
   ];
 
   useEffect(() => {
@@ -582,27 +590,18 @@ export default function Messages() {
       setError("Unable to start call: missing participant.");
       return;
     }
-
     setError("");
-    const response = await api.initiateCall(peer.id, type);
-    if (!response.success || !response.data?.callId || !response.data?.roomUrl) {
-      setError(response.error || "Failed to start call");
-      return;
-    }
-
-    const callWindow = window.open(response.data.roomUrl, "_blank", "noopener,noreferrer");
-    if (!callWindow) {
-      setError("Popup blocked. Please allow popups to start a call.");
-      return;
-    }
-
-    const callId = response.data.callId;
-    const watcher = window.setInterval(async () => {
-      if (callWindow.closed) {
-        window.clearInterval(watcher);
-        await api.endCall(callId);
-      }
-    }, 1000);
+    await startCall(
+      {
+        id: peer.id,
+        name: peer.name,
+        avatar: peer.avatar ?? null,
+        isVerifiedBadge: peer.isVerifiedBadge,
+        isModerator: peer.isModerator,
+        isAdmin: peer.isAdmin,
+      },
+      type
+    );
   };
 
   const handleReportMessage = async (messageId: string) => {
@@ -690,6 +689,7 @@ export default function Messages() {
     "application/ogg",
     "audio/x-opus+ogg",
     "audio/mp4",
+    "audio/m4a",
   ]);
 
   const MAX_FILE_SIZE = 40 * 1024 * 1024;
@@ -700,12 +700,20 @@ export default function Messages() {
     return "document";
   };
 
+  const normalizeMime = (value: string) => value.split(";")[0].trim();
+
   const validateFile = (file: File) => {
     if (file.size > MAX_FILE_SIZE) {
       setError("File size must be 40MB or less");
       return false;
     }
-    if (!ALLOWED_MIMES.has(file.type)) {
+    const normalized = normalizeMime(file.type || "");
+    const ext = file.name.toLowerCase();
+    const isAudioByExt = ext.endsWith(".ogg") || ext.endsWith(".opus") || ext.endsWith(".webm") || ext.endsWith(".m4a") || ext.endsWith(".mp3");
+    if (!normalized && isAudioByExt) {
+      return true;
+    }
+    if (!ALLOWED_MIMES.has(normalized)) {
       setError("Unsupported file type");
       return false;
     }
@@ -791,8 +799,8 @@ export default function Messages() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const preferredMimeTypes = [
-        "audio/webm;codecs=opus",
         "audio/ogg;codecs=opus",
+        "audio/webm;codecs=opus",
         "audio/webm",
         "audio/ogg",
         "audio/mp4",
@@ -812,7 +820,7 @@ export default function Messages() {
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
-        const finalType = recorder.mimeType || "audio/webm";
+        const finalType = normalizeMime(recorder.mimeType || "audio/ogg");
         const extension =
           finalType.includes("ogg")
             ? "ogg"

@@ -4,10 +4,12 @@ import { openNotificationsSheet } from "../lib/notificationsSheet";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { api } from "../lib/api";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { useCall } from "../contexts/CallContext";
 
 interface CallLog {
   id: string;
   user: {
+    id: string;
     name: string;
     avatar?: string;
     verified: boolean;
@@ -31,6 +33,7 @@ export default function Calls() {
   const [groupId, setGroupId] = useState("");
   const [callLink, setCallLink] = useState("");
   const { unreadCount } = useNotifications();
+  const { startCall } = useCall();
 
   useEffect(() => {
     loadCalls();
@@ -97,6 +100,14 @@ export default function Calls() {
       default:
         return <Phone size={16} />;
     }
+  };
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds || seconds <= 0) return null;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins === 0) return `${secs}s`;
+    return `${mins}m ${secs.toString().padStart(2, "0")}s`;
   };
 
   return (
@@ -191,6 +202,8 @@ export default function Calls() {
                         src={call.user.avatar}
                         alt={call.user.name}
                         className="w-full h-full rounded-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       call.user.name[0].toUpperCase()
@@ -209,15 +222,53 @@ export default function Calls() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-[#667781]">
                       {getCallIcon(call.direction)}
-                      <span>{formatTime(call.timestamp)}</span>
+                      <span className={call.direction === "missed" ? "text-[#EA3736]" : ""}>
+                        {formatTime(call.timestamp)}
+                      </span>
+                      {formatDuration(call.duration) && (
+                        <span className="text-xs text-[#8899a6]">• {formatDuration(call.duration)}</span>
+                      )}
+                      <span className="text-xs text-[#8899a6]">
+                        • {call.type === "video" ? "Video" : "Voice"}
+                      </span>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                    <button
+                      onClick={() =>
+                        startCall(
+                          {
+                            id: call.user.id,
+                            name: call.user.name,
+                            avatar: call.user.avatar ?? null,
+                            isVerifiedBadge: call.user.isVerifiedBadge,
+                            isModerator: call.user.isModerator,
+                            isAdmin: call.user.isAdmin,
+                          },
+                          "audio"
+                        )
+                      }
+                      className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+                    >
                       <Phone size={20} className="text-[#667781]" />
                     </button>
-                    <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                    <button
+                      onClick={() =>
+                        startCall(
+                          {
+                            id: call.user.id,
+                            name: call.user.name,
+                            avatar: call.user.avatar ?? null,
+                            isVerifiedBadge: call.user.isVerifiedBadge,
+                            isModerator: call.user.isModerator,
+                            isAdmin: call.user.isAdmin,
+                          },
+                          "video"
+                        )
+                      }
+                      className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
+                    >
                       <Video size={20} className="text-[#667781]" />
                     </button>
                   </div>
