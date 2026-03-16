@@ -62,6 +62,8 @@ app.use(
 
 app.use('/api', apiRateLimiter, routes);
 
+// Rate-limit static file access and SPA fallback to avoid filesystem DoS.
+app.use(apiRateLimiter);
 app.use(express.static(frontendDistPath));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
