@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { Search, UserPlus, Bell } from "lucide-react";
 import { api } from "../lib/api";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { VerificationBadge } from "../components/VerificationBadge";
 
 interface Contact {
@@ -166,9 +166,23 @@ export default function Contacts() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-white">Contacts</h1>
-            <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-              <UserPlus className="text-white" size={24} />
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/"
+                aria-label="Notifications"
+                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white"
+              >
+                <Bell size={20} />
+              </Link>
+              <button className="relative w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+                <UserPlus className="text-white" size={24} />
+                {incomingRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F04A4C] text-white text-[10px] flex items-center justify-center">
+                    {incomingRequests.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="relative">

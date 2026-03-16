@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { api } from "../lib/api";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Bell } from "lucide-react";
 
 interface Group {
   id: string;
@@ -87,12 +87,21 @@ export default function Groups() {
       <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Groups</h1>
-          <button
-            onClick={() => setShowCreate((prev) => !prev)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white"
-          >
-            <Plus size={16} /> Create
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              aria-label="Notifications"
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+            >
+              <Bell size={20} />
+            </Link>
+            <button
+              onClick={() => setShowCreate((prev) => !prev)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white"
+            >
+              <Plus size={16} /> Create
+            </button>
+          </div>
         </div>
         <div className="mt-4 flex gap-2">
           {(["my", "discover"] as const).map((value) => (
@@ -206,6 +215,7 @@ export default function Groups() {
     </div>
   );
 }
+
 
 
 

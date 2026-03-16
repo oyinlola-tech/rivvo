@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
-import { Search, Plus, Flame } from "lucide-react";
+import { Search, Plus, Flame, Bell } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -31,6 +31,9 @@ export default function Home() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewChat, setShowNewChat] = useState(false);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<any[]>([]);
   const [userLoading, setUserLoading] = useState(false);
@@ -42,6 +45,12 @@ export default function Home() {
 
   useEffect(() => {
     loadConversations();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => loadRequestCounts();
+    window.addEventListener("contact_requests_updated", handler as EventListener);
+    return () => window.removeEventListener("contact_requests_updated", handler as EventListener);
   }, []);
 
 
@@ -129,6 +138,32 @@ export default function Home() {
     setUserLoading(false);
   };
 
+  const loadRequestCounts = async () => {
+    setRequestsLoading(true);
+    const [incoming, outgoing] = await Promise.all([
+      api.getContactRequests("incoming"),
+      api.getContactRequests("outgoing"),
+    ]);
+    if (incoming.success && incoming.data) {
+      setIncomingRequests(incoming.data);
+    }
+    if (outgoing.success && outgoing.data) {
+      setOutgoingRequests(outgoing.data);
+    }
+    setRequestsLoading(false);
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    await api.acceptContactRequest(requestId);
+    await loadRequestCounts();
+    await loadConversations();
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    await api.rejectContactRequest(requestId);
+    await loadRequestCounts();
+  };
+
   const loadContacts = async () => {
     if (contactsLoading || contacts.length) return;
     setContactsLoading(true);
@@ -155,6 +190,7 @@ export default function Home() {
   useEffect(() => {
     if (showNewChat) {
       loadContacts();
+      loadRequestCounts();
     }
   }, [showNewChat]);
 
@@ -168,11 +204,16 @@ export default function Home() {
               <h1 className="text-2xl font-bold text-white">Messages</h1>
             </div>
             <button
-              className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+              className="relative w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
               onClick={() => setShowNewChat(true)}
-              aria-label="Start new chat"
+              aria-label="Notifications"
             >
-              <Plus className="text-white" size={24} />
+              <Bell className="text-white" size={22} />
+              {incomingRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F04A4C] text-white text-[10px] flex items-center justify-center">
+                  {incomingRequests.length}
+                </span>
+              )}
             </button>
           </div>
 
@@ -294,7 +335,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 bg-black/40 md:ml-64">
           <div className="absolute inset-x-0 bottom-0 bg-background rounded-t-3xl shadow-xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[#111b21]">New chat</h2>
+              <h2 className="text-lg font-semibold text-[#111b21]">Notifications</h2>
               <button
                 onClick={() => {
                   setShowNewChat(false);
@@ -306,6 +347,62 @@ export default function Home() {
               >
                 Close
               </button>
+            </div>
+            <div className="mb-4">
+              <div className="text-xs uppercase tracking-wide text-[#667781] mb-2">
+                Friend requests
+              </div>
+              {requestsLoading ? (
+                <div className="py-3 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1a8c7a]"></div>
+                </div>
+              ) : incomingRequests.length === 0 ? (
+                <p className="text-sm text-[#667781]">No new requests.</p>
+              ) : (
+                <div className="space-y-2">
+                  {incomingRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-semibold overflow-hidden">
+                        {request.user?.avatar ? (
+                          <img
+                            src={request.user.avatar}
+                            alt={request.user.name}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          request.user?.name?.[0]?.toUpperCase()
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-[#111b21]">{request.user?.name}</p>
+                        <p className="text-xs text-[#667781]">{request.user?.email}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleAcceptRequest(request.id)}
+                          className="px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => handleRejectRequest(request.id)}
+                          className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mb-2">
+              <div className="text-xs uppercase tracking-wide text-[#667781] mb-2">
+                Start a new chat
+              </div>
             </div>
             <div className="relative mb-4">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />

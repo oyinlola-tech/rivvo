@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState } from "react";
 import { api, StatusGroupDto } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
-import { Eye, EyeOff, VolumeX, X, Plus, Image as ImageIcon, SendHorizontal } from "lucide-react";
+import { Eye, EyeOff, VolumeX, X, Plus, Image as ImageIcon, SendHorizontal, Bell } from "lucide-react";
+import { Link } from "react-router";
 
 export default function Status() {
   const { user } = useAuth();
@@ -170,8 +171,19 @@ export default function Status() {
     <>
       <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
       <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
-        <h1 className="text-2xl font-bold text-white">Status</h1>
-        <p className="text-xs text-white/70 mt-1">Share quick updates with your contacts</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Status</h1>
+            <p className="text-xs text-white/70 mt-1">Share quick updates with your contacts</p>
+          </div>
+          <Link
+            to="/"
+            aria-label="Notifications"
+            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+          >
+            <Bell size={20} />
+          </Link>
+        </div>
       </div>
 
       <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6 px-6 pb-10">

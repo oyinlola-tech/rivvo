@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
-import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Link as LinkIcon } from "lucide-react";
+import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Link as LinkIcon, Bell } from "lucide-react";
+import { Link } from "react-router";
 import { api } from "../lib/api";
 import { VerificationBadge } from "../components/VerificationBadge";
 
@@ -100,7 +101,16 @@ export default function Calls() {
     <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
       {/* Header */}
       <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
-        <h1 className="text-2xl font-bold text-white">Calls</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-white">Calls</h1>
+          <Link
+            to="/"
+            aria-label="Notifications"
+            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+          >
+            <Bell size={20} />
+          </Link>
+        </div>
       </div>
 
       {/* Calls List */}
