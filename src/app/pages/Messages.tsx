@@ -85,6 +85,12 @@ export default function Messages() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
+  const [avatarTransform, setAvatarTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const avatarTouchStartRef = useRef<number | null>(null);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
+  const pinchStartRef = useRef<{ dist: number; scale: number } | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; originX: number; originY: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const attachmentUrlsRef = useRef<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -477,6 +483,9 @@ export default function Messages() {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !id) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
 
     let tempId: string | null = null;
     if (!editingMessageId) {
@@ -509,17 +518,22 @@ export default function Messages() {
       response = await api.sendMessage(id, newMessage, viewOnceMode);
     }
 
-    if (!response.success) {
-      setError(response.error || "Failed to send message");
-      if (tempId) {
-        setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+    try {
+      if (!response.success) {
+        setError(response.error || "Failed to send message");
+        if (tempId) {
+          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+        }
+        return;
       }
-      return;
-    }
 
-    setViewOnceMode(false);
-    setEditingMessageId(null);
-    await loadMessages();
+      setViewOnceMode(false);
+      setEditingMessageId(null);
+      await loadMessages();
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
+    }
   };
 
   const startEditMessage = async (message: Message) => {
@@ -878,6 +892,7 @@ export default function Messages() {
           <button
             onClick={() => {
               if (contact.avatar) {
+                setAvatarTransform({ scale: 1, x: 0, y: 0 });
                 setShowAvatarPreview(true);
                 return;
               }
@@ -1244,7 +1259,8 @@ export default function Messages() {
           {newMessage.trim() ? (
             <button
               onClick={handleSend}
-              className="w-10 h-10 rounded-full bg-[#1a8c7a] flex items-center justify-center shadow-sm"
+              disabled={sending}
+              className="w-10 h-10 rounded-full bg-[#1a8c7a] flex items-center justify-center shadow-sm disabled:opacity-60"
             >
               <Send size={20} className="text-white" />
             </button>
@@ -1265,9 +1281,61 @@ export default function Messages() {
       </div>
 
       {showAvatarPreview && contact?.avatar && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
-          <div className="w-full max-w-md">
-            <div className="flex items-center justify-between text-white mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            style={{ animation: "modal-fade 180ms ease-out" }}
+            onClick={() => setShowAvatarPreview(false)}
+          />
+          <div
+            className="relative w-full max-w-md text-white"
+            style={{ animation: "modal-zoom 200ms ease-out" }}
+            onTouchStart={(event) => {
+              if (event.touches.length === 2) {
+                const [a, b] = event.touches;
+                const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+                pinchStartRef.current = { dist, scale: avatarTransform.scale };
+                return;
+              }
+              const touch = event.touches[0];
+              avatarTouchStartRef.current = touch?.clientY ?? null;
+              if (avatarTransform.scale > 1 && touch) {
+                dragStartRef.current = {
+                  x: touch.clientX,
+                  y: touch.clientY,
+                  originX: avatarTransform.x,
+                  originY: avatarTransform.y,
+                };
+              }
+            }}
+            onTouchMove={(event) => {
+              if (event.touches.length === 2 && pinchStartRef.current) {
+                const [a, b] = event.touches;
+                const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+                const nextScale = Math.min(3, Math.max(1, (dist / pinchStartRef.current.dist) * pinchStartRef.current.scale));
+                setAvatarTransform((prev) => ({ ...prev, scale: nextScale }));
+                return;
+              }
+              const touch = event.touches[0];
+              if (dragStartRef.current && touch) {
+                const nextX = dragStartRef.current.originX + (touch.clientX - dragStartRef.current.x);
+                const nextY = dragStartRef.current.originY + (touch.clientY - dragStartRef.current.y);
+                setAvatarTransform((prev) => ({ ...prev, x: nextX, y: nextY }));
+                return;
+              }
+              if (avatarTouchStartRef.current === null) return;
+              const currentY = touch?.clientY ?? 0;
+              if (currentY - avatarTouchStartRef.current > 120 && avatarTransform.scale <= 1.01) {
+                setShowAvatarPreview(false);
+              }
+            }}
+            onTouchEnd={() => {
+              avatarTouchStartRef.current = null;
+              pinchStartRef.current = null;
+              dragStartRef.current = null;
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
               <div className="text-lg font-semibold">{contact.name}</div>
               <button
                 onClick={() => setShowAvatarPreview(false)}
@@ -1276,13 +1344,21 @@ export default function Messages() {
                 Close
               </button>
             </div>
-            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-black">
+            <div className="w-full aspect-square rounded-3xl overflow-hidden bg-black shadow-2xl">
               <img
                 src={contact.avatar}
                 alt={contact.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-150"
                 loading="eager"
                 decoding="async"
+                style={{
+                  transform: `translate(${avatarTransform.x}px, ${avatarTransform.y}px) scale(${avatarTransform.scale})`,
+                }}
+                onClick={() =>
+                  setAvatarTransform((prev) =>
+                    prev.scale > 1 ? { scale: 1, x: 0, y: 0 } : { scale: 2, x: 0, y: 0 }
+                  )
+                }
               />
             </div>
             <div className="mt-4 flex justify-center">

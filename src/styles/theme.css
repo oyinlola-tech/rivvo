@@ -60,6 +60,7 @@
   --destructive-foreground: #ffffff;
   --border: #2a3942;
   --input: #202c33;
+  --input-background: #202c33;
   --ring: #2a3942;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -178,6 +179,18 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  input,
+  textarea,
+  select {
+    background-color: var(--input-background);
+    color: var(--foreground);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+  }
 }
 
 .splash-screen {
@@ -235,6 +248,26 @@
   }
   100% {
     opacity: 1;
+  }
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

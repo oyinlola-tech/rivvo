@@ -216,7 +216,7 @@ export default function Contacts() {
           <div className="divide-y divide-gray-100">
             {incomingRequests.map((request) => (
               <div key={request.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <div className="relative">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
                       {request.user.avatar ? (
@@ -230,7 +230,7 @@ export default function Contacts() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-[#111b21]">{request.user.name}</h3>
                       {(request.user.isVerifiedBadge || request.user.isModerator || request.user.isAdmin) && (
@@ -240,18 +240,18 @@ export default function Contacts() {
                         />
                       )}
                     </div>
-                    <p className="text-sm text-[#667781]">{request.user.email}</p>
+                    <p className="text-sm text-[#667781] truncate">{request.user.email}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                     <button
                       onClick={() => handleAcceptRequest(request.id)}
-                      className="px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm"
+                      className="w-full sm:w-auto px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm"
                     >
                       Accept
                     </button>
                     <button
                       onClick={() => handleRejectRequest(request.id)}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm"
+                      className="w-full sm:w-auto px-3 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm"
                     >
                       Decline
                     </button>

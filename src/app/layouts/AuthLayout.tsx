@@ -20,7 +20,6 @@ export default function AuthLayout() {
             Secure messaging for people who move fast and stay connected.
           </p>
         </div>
-        <div className="text-xs text-white/70">Photo: Unsplash</div>
       </div>
 
       <div className="flex min-h-[100dvh] items-center justify-center p-4 md:p-10">

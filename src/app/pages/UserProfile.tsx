@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../lib/api";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -17,6 +17,10 @@ export default function UserProfile() {
   const [reportReason, setReportReason] = useState("");
   const [reportBlock, setReportBlock] = useState(false);
   const [avatarPreviewOpen, setAvatarPreviewOpen] = useState(false);
+  const [avatarTransform, setAvatarTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const avatarTouchStartRef = useRef<number | null>(null);
+  const pinchStartRef = useRef<{ dist: number; scale: number } | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; originX: number; originY: number } | null>(null);
   const reportSuggestions = [
     "Spam or scam",
     "Harassment or hate speech",
@@ -159,7 +163,12 @@ export default function UserProfile() {
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => profile.avatar && setAvatarPreviewOpen(true)}
+              onClick={() => {
+                if (profile.avatar) {
+                  setAvatarTransform({ scale: 1, x: 0, y: 0 });
+                  setAvatarPreviewOpen(true);
+                }
+              }}
               className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden"
               aria-label="View profile photo"
             >
@@ -320,9 +329,61 @@ export default function UserProfile() {
         </div>
       )}
       {avatarPreviewOpen && profile?.avatar && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
-          <div className="w-full max-w-md">
-            <div className="flex items-center justify-between text-white mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            style={{ animation: "modal-fade 180ms ease-out" }}
+            onClick={() => setAvatarPreviewOpen(false)}
+          />
+          <div
+            className="relative w-full max-w-md text-white"
+            style={{ animation: "modal-zoom 200ms ease-out" }}
+            onTouchStart={(event) => {
+              if (event.touches.length === 2) {
+                const [a, b] = event.touches;
+                const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+                pinchStartRef.current = { dist, scale: avatarTransform.scale };
+                return;
+              }
+              const touch = event.touches[0];
+              avatarTouchStartRef.current = touch?.clientY ?? null;
+              if (avatarTransform.scale > 1 && touch) {
+                dragStartRef.current = {
+                  x: touch.clientX,
+                  y: touch.clientY,
+                  originX: avatarTransform.x,
+                  originY: avatarTransform.y,
+                };
+              }
+            }}
+            onTouchMove={(event) => {
+              if (event.touches.length === 2 && pinchStartRef.current) {
+                const [a, b] = event.touches;
+                const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+                const nextScale = Math.min(3, Math.max(1, (dist / pinchStartRef.current.dist) * pinchStartRef.current.scale));
+                setAvatarTransform((prev) => ({ ...prev, scale: nextScale }));
+                return;
+              }
+              const touch = event.touches[0];
+              if (dragStartRef.current && touch) {
+                const nextX = dragStartRef.current.originX + (touch.clientX - dragStartRef.current.x);
+                const nextY = dragStartRef.current.originY + (touch.clientY - dragStartRef.current.y);
+                setAvatarTransform((prev) => ({ ...prev, x: nextX, y: nextY }));
+                return;
+              }
+              if (avatarTouchStartRef.current === null) return;
+              const currentY = touch?.clientY ?? 0;
+              if (currentY - avatarTouchStartRef.current > 120 && avatarTransform.scale <= 1.01) {
+                setAvatarPreviewOpen(false);
+              }
+            }}
+            onTouchEnd={() => {
+              avatarTouchStartRef.current = null;
+              pinchStartRef.current = null;
+              dragStartRef.current = null;
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
               <div className="text-lg font-semibold">{profile.name}</div>
               <button
                 onClick={() => setAvatarPreviewOpen(false)}
@@ -331,13 +392,21 @@ export default function UserProfile() {
                 Close
               </button>
             </div>
-            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-black">
+            <div className="w-full aspect-square rounded-3xl overflow-hidden bg-black shadow-2xl">
               <img
                 src={profile.avatar}
                 alt={profile.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-150"
                 loading="eager"
                 decoding="async"
+                style={{
+                  transform: `translate(${avatarTransform.x}px, ${avatarTransform.y}px) scale(${avatarTransform.scale})`,
+                }}
+                onClick={() =>
+                  setAvatarTransform((prev) =>
+                    prev.scale > 1 ? { scale: 1, x: 0, y: 0 } : { scale: 2, x: 0, y: 0 }
+                  )
+                }
               />
             </div>
           </div>
