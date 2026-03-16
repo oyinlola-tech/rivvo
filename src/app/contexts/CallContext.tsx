@@ -113,7 +113,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     }
     setOutgoingCall({
       callId: response.data.callId,
-      type,
+      type: response.data.type || type,
       toUser: peer,
       roomUrl: response.data.roomUrl,
       status: "calling",

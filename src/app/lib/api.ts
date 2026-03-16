@@ -567,6 +567,12 @@ class ApiClient {
     });
   }
 
+  async getCallDetails(
+    callId: string
+  ): Promise<ApiResponse<{ callId: string; type: "audio" | "video"; scope: "direct" }>> {
+    return this.request(`/calls/${callId}`);
+  }
+
   async endCall(callId: string) {
     return this.request(`/calls/${callId}/end`, {
       method: "POST",

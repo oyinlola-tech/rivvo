@@ -32,7 +32,18 @@ function MainLayoutContent() {
 
     const handleIncoming = (payload: {
       conversationId: string;
-      message: { text: string; timestamp: string; senderId?: string; encrypted?: boolean; viewOnce?: boolean };
+      message: {
+        id?: string;
+        text: string;
+        timestamp: string;
+        sender?: "me" | "them";
+        senderId?: string;
+        encrypted?: boolean;
+        iv?: string | null;
+        viewOnce?: boolean;
+        viewOnceViewedAt?: string | null;
+        readAt?: string | null;
+      };
     }) => {
       if (payload.message.senderId && payload.message.senderId === user.id) {
         return;
@@ -58,7 +69,22 @@ function MainLayoutContent() {
       if (next.length) {
         writeCache(cacheKey, next);
       }
-      saveMessages(user.id, payload.conversationId, [payload.message]).catch(() => null);
+      if (payload.message.id && payload.message.sender) {
+        saveMessages(user.id, payload.conversationId, [
+          {
+            id: payload.message.id,
+            text: payload.message.text,
+            timestamp: payload.message.timestamp,
+            sender: payload.message.sender,
+            senderId: payload.message.senderId,
+            encrypted: payload.message.encrypted,
+            iv: payload.message.iv,
+            viewOnce: payload.message.viewOnce,
+            viewOnceViewedAt: payload.message.viewOnceViewedAt ?? null,
+            readAt: payload.message.readAt ?? null,
+          },
+        ]).catch(() => null);
+      }
     };
 
     socket.on("new_message", handleIncoming);
@@ -234,59 +260,68 @@ function MainLayoutContent() {
         )}
       </div>
       {(outgoingCall || incomingCall) && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center px-6">
-          <div className="w-full max-w-sm text-white text-center space-y-6">
-            <div className="mx-auto w-24 h-24 rounded-full bg-white/10 overflow-hidden flex items-center justify-center text-3xl font-semibold">
-              {(incomingCall?.fromUser.avatar || outgoingCall?.toUser.avatar) ? (
-                <img
-                  src={incomingCall?.fromUser.avatar || outgoingCall?.toUser.avatar}
-                  alt={incomingCall?.fromUser.name || outgoingCall?.toUser.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                (incomingCall?.fromUser.name || outgoingCall?.toUser.name || "U")[0]
-              )}
+        <div className="fixed inset-0 z-[60] bg-gradient-to-b from-black/90 via-black/80 to-black flex items-center justify-center px-6">
+          <div className="w-full max-w-sm text-white text-center space-y-8 animate-call-screen">
+            <div className="relative mx-auto w-28 h-28">
+              <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-call-pulse" />
+              <div className="absolute inset-2 rounded-full border border-white/30 animate-call-pulse delay-200" />
+              <div className="w-full h-full rounded-full bg-white/10 overflow-hidden flex items-center justify-center text-3xl font-semibold shadow-2xl">
+                {(incomingCall?.fromUser.avatar || outgoingCall?.toUser.avatar) ? (
+                  <img
+                    src={incomingCall?.fromUser.avatar || outgoingCall?.toUser.avatar}
+                    alt={incomingCall?.fromUser.name || outgoingCall?.toUser.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  (incomingCall?.fromUser.name || outgoingCall?.toUser.name || "U")[0]
+                )}
+              </div>
             </div>
             <div>
-              <p className="text-xl font-semibold">
+              <p className="text-2xl font-semibold tracking-tight">
                 {incomingCall?.fromUser.name || outgoingCall?.toUser.name}
               </p>
-              <p className="text-sm text-white/70 mt-1">
+              <p className="text-sm text-white/70 mt-2">
                 {incomingCall
-                  ? `${incomingCall.type === "video" ? "Video" : "Voice"} call`
+                  ? incomingCall.type === "video"
+                    ? "Incoming video call"
+                    : "Incoming voice call"
                   : outgoingCall?.status === "ringing"
-                    ? "Ringing..."
-                    : "Calling..."}
+                    ? "Ringing…"
+                    : "Calling…"}
               </p>
               {outgoingCall && outgoingSecondsLeft !== null && (
-                <p className="text-xs text-white/60 mt-1">{outgoingSecondsLeft}s</p>
+                <p className="text-xs text-white/50 mt-1">Ends in {outgoingSecondsLeft}s</p>
               )}
             </div>
             {incomingCall ? (
-              <div className="flex items-center justify-center gap-6">
+              <div className="flex items-center justify-center gap-10 pt-2">
                 <button
                   onClick={declineCall}
-                  className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center"
+                  className="w-16 h-16 rounded-full bg-red-500 flex flex-col items-center justify-center shadow-xl"
                   aria-label="Decline"
                 >
                   <PhoneOff size={24} />
+                  <span className="text-[10px] mt-1">Decline</span>
                 </button>
                 <button
                   onClick={acceptCall}
-                  className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center"
+                  className="w-16 h-16 rounded-full bg-green-500 flex flex-col items-center justify-center shadow-xl"
                   aria-label="Accept"
                 >
                   {incomingCall.type === "video" ? <Video size={24} /> : <PhoneCall size={24} />}
+                  <span className="text-[10px] mt-1">Accept</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-6">
+              <div className="flex items-center justify-center gap-6 pt-2">
                 <button
                   onClick={cancelCall}
-                  className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center"
+                  className="w-16 h-16 rounded-full bg-red-500 flex flex-col items-center justify-center shadow-xl"
                   aria-label="Cancel call"
                 >
                   <PhoneOff size={24} />
+                  <span className="text-[10px] mt-1">Cancel</span>
                 </button>
               </div>
             )}

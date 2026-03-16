@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Check, CheckCheck, Smile } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Paperclip, Mic, Camera, FileText, Download, Flame, Check, CheckCheck, Smile } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -972,7 +972,7 @@ export default function Messages() {
                 )}
                 {streakValue > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4e5] px-2 py-0.5 text-xs text-[#b45309]">
-                    <span aria-hidden="true">??</span>
+                    <Flame size={12} className="text-[#b45309]" />
                     {streakValue}
                   </span>
                 )}

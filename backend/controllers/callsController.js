@@ -131,7 +131,27 @@ export const initiateCall = async (req, res) => {
     });
   }
 
-  return res.status(201).json({ callId, roomUrl });
+  return res.status(201).json({ callId, roomUrl, type });
+};
+
+export const getCallDetails = async (req, res) => {
+  const callId = req.params.id;
+  const userId = req.user?.id;
+  if (!callId) {
+    return sendError(res, 400, 'Call ID is required');
+  }
+  const [rows] = await pool.execute(
+    `SELECT id, type, caller_id, callee_id
+     FROM calls
+     WHERE id = :id
+     LIMIT 1`,
+    { id: callId }
+  );
+  const call = rows[0];
+  if (!call || (call.caller_id !== userId && call.callee_id !== userId)) {
+    return sendError(res, 404, 'Call not found');
+  }
+  return res.json({ callId: call.id, type: call.type, scope: 'direct' });
 };
 
 export const endCall = async (req, res) => {

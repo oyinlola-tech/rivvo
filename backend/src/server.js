@@ -79,7 +79,9 @@ io.on('connection', (socket) => {
     if (!roomId) return;
     const roomKey = `call:${roomId}`;
     const room = io.sockets.adapter.rooms.get(roomKey);
-    if (room && room.size >= 10) {
+    const isDirectCall = /-/.test(roomId);
+    const maxParticipants = isDirectCall ? 2 : 10;
+    if (room && room.size >= maxParticipants) {
       socket.emit('call:full');
       return;
     }

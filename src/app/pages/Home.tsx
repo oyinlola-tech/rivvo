@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, Flame } from "lucide-react";
 import { api, ConversationDto } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -326,7 +326,7 @@ export default function Home() {
                       <div className="flex items-center gap-2">
                         {(conversation.streakCount ?? 0) > 0 && (
                           <div className="flex items-center gap-1 rounded-full bg-[#fff4e5] px-2 py-0.5 text-xs text-[#b45309]">
-                            <span aria-hidden="true">??</span>
+                            <Flame size={12} className="text-[#b45309]" />
                             {conversation.streakCount}
                           </div>
                         )}

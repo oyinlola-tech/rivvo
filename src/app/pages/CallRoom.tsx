@@ -19,6 +19,8 @@ const MAX_PARTICIPANTS = 10;
 type PeerConnectionEntry = {
   pc: RTCPeerConnection;
   pendingCandidates: RTCIceCandidateInit[];
+  audioSender?: RTCRtpSender;
+  videoSender?: RTCRtpSender;
 };
 
 function useVideoStream(stream: MediaStream | null, muted: boolean) {
@@ -48,6 +50,8 @@ export default function CallRoom() {
   const [joined, setJoined] = useState(false);
   const [speakerEnabled, setSpeakerEnabled] = useState(true);
   const [usingFrontCamera, setUsingFrontCamera] = useState(true);
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
+  const [callDuration, setCallDuration] = useState(0);
 
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
   const peerConnectionsRef = useRef<Map<string, PeerConnectionEntry>>(new Map());
@@ -72,16 +76,35 @@ export default function CallRoom() {
 
   const peerStreamsRef = useRef<Map<string, MediaStream>>(new Map());
 
+  const updateSendersWithStream = (entry: PeerConnectionEntry, stream: MediaStream | null) => {
+    const audioTrack = stream?.getAudioTracks()[0] ?? null;
+    const videoTrack = stream?.getVideoTracks()[0] ?? null;
+
+    if (entry.audioSender) {
+      entry.audioSender.replaceTrack(audioTrack).catch(() => undefined);
+    }
+    if (entry.videoSender) {
+      entry.videoSender.replaceTrack(videoTrack).catch(() => undefined);
+    }
+  };
+
   const createPeerConnection = (peerId: string) => {
     const existing = peerConnectionsRef.current.get(peerId);
     if (existing) return existing;
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
-    const entry: PeerConnectionEntry = { pc, pendingCandidates: [] };
+    const audioTransceiver = pc.addTransceiver("audio", { direction: "sendrecv" });
+    const videoTransceiver = pc.addTransceiver("video", {
+      direction: callType === "video" ? "sendrecv" : "inactive",
+    });
+    const entry: PeerConnectionEntry = {
+      pc,
+      pendingCandidates: [],
+      audioSender: audioTransceiver.sender,
+      videoSender: videoTransceiver.sender,
+    };
 
-    if (localStream) {
-      localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
-    }
+    updateSendersWithStream(entry, localStream);
 
     pc.onicecandidate = (event) => {
       if (event.candidate && socketRef.current) {
@@ -163,14 +186,23 @@ export default function CallRoom() {
 
     const loadCallInfo = async () => {
       try {
-        const response = await api.resolveCallLink(token);
+        if (/^[a-f0-9]{32}$/i.test(token)) {
+          const response = await api.resolveCallLink(token);
+          if (cancelled) return;
+          if (response.success && response.data) {
+            setCallType(response.data.type === "audio" ? "audio" : "video");
+            setCallScope(response.data.scope ?? "group");
+          }
+          return;
+        }
+        const response = await api.getCallDetails(token);
         if (cancelled) return;
         if (response.success && response.data) {
           setCallType(response.data.type === "audio" ? "audio" : "video");
-          setCallScope(response.data.scope ?? null);
+          setCallScope("direct");
         }
       } catch {
-        // Non-call-link tokens (direct calls) are supported; default to video.
+        // fallback to defaults
       }
     };
 
@@ -274,6 +306,20 @@ export default function CallRoom() {
   }, [authToken, localName, localStream, joined, token]);
 
   useEffect(() => {
+    peerConnectionsRef.current.forEach((entry) => {
+      if (entry.videoSender) {
+        const transceiver = entry.pc
+          .getTransceivers()
+          .find((t) => t.sender === entry.videoSender);
+        if (transceiver) {
+          transceiver.direction = callType === "video" ? "sendrecv" : "inactive";
+        }
+      }
+      updateSendersWithStream(entry, localStream);
+    });
+  }, [localStream, callType]);
+
+  useEffect(() => {
     return () => {
       localStream?.getTracks().forEach((track) => track.stop());
       peerConnectionsRef.current.forEach((entry) => entry.pc.close());
@@ -326,11 +372,19 @@ export default function CallRoom() {
       const nextFacingMode = usingFrontCamera ? "environment" : "user";
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: nextFacingMode },
-        audio: true,
+        audio: false,
       });
-      localStream?.getTracks().forEach((track) => track.stop());
-      setLocalStream(stream);
+      const nextVideoTrack = stream.getVideoTracks()[0];
+      if (!nextVideoTrack) return;
+      const audioTrack = localStream?.getAudioTracks()[0] ?? null;
+      const nextStream = new MediaStream([
+        ...(audioTrack ? [audioTrack] : []),
+        nextVideoTrack,
+      ]);
+      localStream?.getVideoTracks().forEach((track) => track.stop());
+      setLocalStream(nextStream);
       setUsingFrontCamera(!usingFrontCamera);
+      setCameraEnabled(true);
     } catch {
       // ignore
     }
@@ -348,27 +402,51 @@ export default function CallRoom() {
     }
   };
 
+  const maxParticipants = callScope === "group" ? MAX_PARTICIPANTS : 2;
   const totalParticipants = 1 + remoteStreams.length;
 
   const primaryPeer = remoteStreams[0];
-  const showGrid = remoteStreams.length > 1;
+  const showGrid = remoteStreams.length > 1 && callType === "video";
+
+  const formatDuration = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  useEffect(() => {
+    if (remoteStreams.length > 0) {
+      setStatus("Connected");
+      setCallStartedAt((prev) => prev ?? Date.now());
+    }
+  }, [remoteStreams.length]);
+
+  useEffect(() => {
+    if (!callStartedAt) return;
+    const interval = window.setInterval(() => {
+      setCallDuration(Math.floor((Date.now() - callStartedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [callStartedAt]);
 
   return (
     <div className="min-h-[100dvh] bg-black text-white flex flex-col">
       <div className="px-6 pt-6 pb-4 flex items-center justify-between">
         <div>
           <p className="text-lg font-semibold">
-            {callScope ? `${callScope} call` : "Call"} {callType === "video" ? "video" : "audio"}
+            {primaryPeer?.name || "Call"} {callType === "video" ? "video" : "audio"}
           </p>
-          <p className="text-xs text-white/70">{error ? error : status}</p>
+          <p className="text-xs text-white/70">
+            {error ? error : callStartedAt ? formatDuration(callDuration) : status}
+          </p>
         </div>
         <div className="text-xs text-white/50">
-          {totalParticipants}/{MAX_PARTICIPANTS}
+          {totalParticipants}/{maxParticipants}
         </div>
       </div>
 
       <div className="flex-1 relative px-4 pb-4">
-        {!showGrid && (
+        {!showGrid && callType === "video" && (
           <div className="w-full h-full rounded-3xl overflow-hidden bg-black relative">
             {primaryPeer ? (
               <video
@@ -395,31 +473,43 @@ export default function CallRoom() {
                   Camera off
                 </div>
               )}
-              {callType === "audio" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs">
-                  Audio
-                </div>
-              )}
+            </div>
+          </div>
+        )}
+
+        {!showGrid && callType === "audio" && (
+          <div className="w-full h-full rounded-3xl bg-black/40 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-28 h-28 rounded-full bg-white/10 flex items-center justify-center text-3xl font-semibold">
+                {(primaryPeer?.name || localName)[0]}
+              </div>
+              <p className="text-sm text-white/70">Voice call</p>
             </div>
           </div>
         )}
 
         {showGrid && (
           <div className="grid grid-cols-2 gap-3 h-full">
-            <div className="rounded-2xl overflow-hidden bg-black relative">
-              <video
-                ref={localVideoRef}
-                className="w-full h-full object-cover"
-                autoPlay
-                playsInline
-                muted
-              />
-              {!cameraEnabled && callType === "video" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs">
-                  Camera off
-                </div>
-              )}
-            </div>
+            {callType === "video" ? (
+              <div className="rounded-2xl overflow-hidden bg-black relative">
+                <video
+                  ref={localVideoRef}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                {!cameraEnabled && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs">
+                    Camera off
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-2xl overflow-hidden bg-black/40 flex items-center justify-center text-sm text-white/70">
+                You
+              </div>
+            )}
             {remoteStreams.map((peer) => (
               <RemoteTile key={peer.peerId} peerId={peer.peerId} name={peer.name} stream={peer.stream} />
             ))}
@@ -427,41 +517,48 @@ export default function CallRoom() {
         )}
       </div>
 
-      <div className="px-6 pb-8 pt-4 flex items-center justify-center gap-6">
+      <div className="px-6 pb-10 pt-4 flex items-center justify-center gap-5">
         <button
-          className={`w-14 h-14 rounded-full flex items-center justify-center ${
+          className={`w-14 h-14 rounded-full flex flex-col items-center justify-center ${
             micEnabled ? "bg-white/10" : "bg-red-500"
           }`}
           onClick={toggleMic}
           aria-label="Toggle mic"
         >
           {micEnabled ? <Mic size={22} /> : <MicOff size={22} />}
+          <span className="text-[10px] mt-1">{micEnabled ? "Mute" : "Muted"}</span>
         </button>
         <button
-          className="w-14 h-14 rounded-full flex items-center justify-center bg-white/10"
+          className={`w-14 h-14 rounded-full flex flex-col items-center justify-center bg-white/10 ${
+            callType !== "video" ? "opacity-40" : ""
+          }`}
           onClick={switchCamera}
           aria-label="Switch camera"
+          disabled={callType !== "video"}
         >
           <SwitchCamera size={22} />
+          <span className="text-[10px] mt-1">Switch</span>
         </button>
         <button
-          className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center"
+          className="w-16 h-16 rounded-full bg-red-500 flex flex-col items-center justify-center"
           onClick={leaveCall}
           aria-label="End call"
         >
           <PhoneOff size={24} />
+          <span className="text-[10px] mt-1">End</span>
         </button>
         <button
-          className={`w-14 h-14 rounded-full flex items-center justify-center ${
+          className={`w-14 h-14 rounded-full flex flex-col items-center justify-center ${
             speakerEnabled ? "bg-white/10" : "bg-red-500"
           }`}
           onClick={toggleSpeaker}
           aria-label="Toggle speaker"
         >
           {speakerEnabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
+          <span className="text-[10px] mt-1">Speaker</span>
         </button>
         <button
-          className={`w-14 h-14 rounded-full flex items-center justify-center ${
+          className={`w-14 h-14 rounded-full flex flex-col items-center justify-center ${
             cameraEnabled ? "bg-white/10" : "bg-red-500"
           } ${callType !== "video" ? "opacity-40" : ""}`}
           onClick={toggleCamera}
@@ -469,6 +566,7 @@ export default function CallRoom() {
           aria-label="Toggle camera"
         >
           {cameraEnabled ? <Video size={22} /> : <VideoOff size={22} />}
+          <span className="text-[10px] mt-1">Video</span>
         </button>
       </div>
     </div>
@@ -491,14 +589,15 @@ function RemoteTile({
     <div className="bg-black/30 rounded-2xl p-4 flex flex-col gap-2">
       <div className="text-xs uppercase tracking-wide text-gray-400">Participant</div>
       <div className="relative rounded-xl overflow-hidden bg-black">
-        <video
-          ref={videoRef}
-          className="w-full aspect-video object-cover"
-          autoPlay
-          playsInline
-        />
-        {!hasVideo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-sm">
+        {hasVideo ? (
+          <video
+            ref={videoRef}
+            className="w-full aspect-video object-cover"
+            autoPlay
+            playsInline
+          />
+        ) : (
+          <div className="w-full aspect-video flex items-center justify-center bg-black/70 text-sm">
             Audio only
           </div>
         )}
