@@ -6,6 +6,7 @@ import { openNotificationsSheet } from "../lib/notificationsSheet";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { readCache, writeCache } from "../lib/cache";
 import { preloadImages } from "../lib/imageCache";
+import EmojiPicker from "../components/EmojiPicker";
 
 export default function Status() {
   const { user } = useAuth();
@@ -26,36 +27,6 @@ export default function Status() {
   const [mediaReady, setMediaReady] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { unreadCount } = useNotifications();
-  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
-  const RECENT_EMOJI_KEY = "recentEmojis";
-  const emojiList = [
-    "😀", "😁", "😂", "🤣", "😊", "😍", "😘", "😎", "🥳", "🤩", "😇", "🙂",
-    "😉", "😌", "😋", "😜", "🤗", "🤔", "🫡", "🤝", "🙌", "👍", "👎", "👏",
-    "🙏", "💪", "🔥", "🎉", "✨", "💯", "❤️", "🧡", "💛", "💚", "💙", "💜",
-    "🖤", "🤍", "🤎", "😢", "😭", "😤", "😡", "🤯", "😴", "😷", "🤒", "🤕",
-    "🤒", "😵", "😵‍💫", "🤪", "😬", "🫠", "🫶", "👀", "🙈", "🙉", "🙊", "💀",
-  ];
-
-  useEffect(() => {
-    const raw = localStorage.getItem(RECENT_EMOJI_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as string[];
-      if (Array.isArray(parsed)) {
-        setRecentEmojis(parsed.slice(0, 24));
-      }
-    } catch {
-      setRecentEmojis([]);
-    }
-  }, []);
-
-  const pushRecentEmoji = (emoji: string) => {
-    setRecentEmojis((prev) => {
-      const next = [emoji, ...prev.filter((item) => item !== emoji)].slice(0, 24);
-      localStorage.setItem(RECENT_EMOJI_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
 
   const loadStatuses = async () => {
     const cacheKey = user?.id ? `statuses:${user.id}` : "statuses:guest";
@@ -651,45 +622,14 @@ export default function Status() {
                 className="flex-1 bg-white/10 border border-white/15 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
               />
               {showEmojiPicker && (
-                <div className="absolute bottom-14 left-0 z-20 w-72 rounded-2xl border border-white/20 bg-[#111b21] p-3 shadow-lg">
-                  {recentEmojis.length > 0 && (
-                    <>
-                      <div className="text-[11px] text-white/60 mb-2">Recent</div>
-                      <div className="grid grid-cols-8 gap-2 text-lg mb-3">
-                        {recentEmojis.map((emoji) => (
-                          <button
-                            key={`recent-${emoji}`}
-                            type="button"
-                            onClick={() => {
-                              setReplyText((prev) => `${prev}${emoji}`);
-                              pushRecentEmoji(emoji);
-                              setShowEmojiPicker(false);
-                            }}
-                            className="hover:bg-white/10 rounded"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  <div className="text-[11px] text-white/60 mb-2">All</div>
-                  <div className="grid grid-cols-8 gap-2 text-lg">
-                    {emojiList.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => {
-                          setReplyText((prev) => `${prev}${emoji}`);
-                          pushRecentEmoji(emoji);
-                          setShowEmojiPicker(false);
-                        }}
-                        className="hover:bg-white/10 rounded"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
+                <div className="absolute bottom-14 left-0 z-20">
+                  <EmojiPicker
+                    onSelect={(emoji) => {
+                      setReplyText((prev) => `${prev}${emoji}`);
+                      setShowEmojiPicker(false);
+                    }}
+                    variant="dark"
+                  />
                 </div>
               )}
               <button

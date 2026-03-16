@@ -24,6 +24,7 @@ import {
 } from "../lib/messageStore";
 import { useCall } from "../contexts/CallContext";
 import { preloadImage } from "../lib/imageCache";
+import EmojiPicker from "../components/EmojiPicker";
 
 interface Message {
   id: string;
@@ -85,7 +86,6 @@ export default function Messages() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [actionMessageId, setActionMessageId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const [avatarTransform, setAvatarTransform] = useState({ scale: 1, x: 0, y: 0 });
   const avatarTouchStartRef = useRef<number | null>(null);
@@ -112,41 +112,6 @@ export default function Messages() {
     "Inappropriate content",
     "Other",
   ];
-  const RECENT_EMOJI_KEY = "recentEmojis";
-  const emojiList = [
-    "😀", "😁", "😂", "🤣", "😊", "😍", "😘", "😎", "🥳", "🤩", "😇", "🙂",
-    "😉", "😌", "😋", "😜", "🤗", "🤔", "🫡", "🤝", "🙌", "👍", "👎", "👏",
-    "🙏", "💪", "🔥", "🎉", "✨", "💯", "❤️", "🧡", "💛", "💚", "💙", "💜",
-    "🖤", "🤍", "🤎", "😢", "😭", "😤", "😡", "🤯", "😴", "😷", "🤒", "🤕",
-    "😵", "😵‍💫", "🤪", "😬", "🫠", "🫶", "👀", "🙈", "🙉", "🙊", "💀", "🤖",
-    "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾",
-    "👋", "🤞", "✌️", "🤟", "🤘", "👌", "🤙", "💅", "🫰", "🫵",
-    "👶", "🧒", "👦", "👧", "🧑", "👨", "👩", "🧔", "👵", "🧓",
-    "🎂", "🎁", "🎈", "🎊", "🎮", "🎵", "🎧", "🎯", "⚽", "🏀", "🏆",
-    "🚗", "✈️", "🚀", "🛸", "🌍", "🌙", "⭐", "☀️", "⛈️", "🔥",
-    "🍕", "🍔", "🍟", "🍣", "🍩", "🍪", "🍫", "☕", "🧋", "🍹",
-  ];
-
-  useEffect(() => {
-    const raw = localStorage.getItem(RECENT_EMOJI_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as string[];
-      if (Array.isArray(parsed)) {
-        setRecentEmojis(parsed.slice(0, 24));
-      }
-    } catch {
-      setRecentEmojis([]);
-    }
-  }, []);
-
-  const pushRecentEmoji = (emoji: string) => {
-    setRecentEmojis((prev) => {
-      const next = [emoji, ...prev.filter((item) => item !== emoji)].slice(0, 24);
-      localStorage.setItem(RECENT_EMOJI_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
 
   const contact = peer;
   const firstName = contact?.name?.trim().split(" ")[0] || contact?.name || "";
@@ -1222,45 +1187,14 @@ export default function Messages() {
             className="flex-1 px-4 py-2.5 bg-[#f0f2f5] text-[#111b21] placeholder:text-[#667781] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a] dark:bg-[#1b1f23] dark:text-white dark:placeholder:text-white/60"
           />
           {showEmojiPicker && (
-            <div className="absolute bottom-14 left-0 z-20 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
-              {recentEmojis.length > 0 && (
-                <>
-                  <div className="text-[11px] text-[#667781] mb-2">Recent</div>
-                  <div className="grid grid-cols-8 gap-2 text-lg mb-3">
-                    {recentEmojis.map((emoji) => (
-                      <button
-                        key={`recent-${emoji}`}
-                        type="button"
-                        onClick={() => {
-                          handleTypingInput(`${newMessage}${emoji}`);
-                          pushRecentEmoji(emoji);
-                          setShowEmojiPicker(false);
-                        }}
-                        className="hover:bg-gray-100 rounded"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              <div className="text-[11px] text-[#667781] mb-2">All</div>
-              <div className="grid grid-cols-8 gap-2 text-lg">
-                {emojiList.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => {
-                      handleTypingInput(`${newMessage}${emoji}`);
-                      pushRecentEmoji(emoji);
-                      setShowEmojiPicker(false);
-                    }}
-                    className="hover:bg-gray-100 rounded"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
+            <div className="absolute bottom-14 left-0 z-20">
+              <EmojiPicker
+                onSelect={(emoji) => {
+                  handleTypingInput(`${newMessage}${emoji}`);
+                  setShowEmojiPicker(false);
+                }}
+                variant="light"
+              />
             </div>
           )}
           {newMessage.trim() ? (

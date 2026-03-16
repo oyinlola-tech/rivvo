@@ -180,6 +180,17 @@
     line-height: 1.5;
   }
 
+  emoji-picker {
+    --background: transparent;
+    --border-radius: 14px;
+    --category-font-color: var(--muted-foreground);
+    --input-border-color: var(--border);
+    --input-font-color: var(--foreground);
+    --input-placeholder-color: var(--muted-foreground);
+    --outline-color: var(--ring);
+    --skintone-border-color: var(--border);
+  }
+
   input,
   textarea,
   select {
