@@ -165,7 +165,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     setIncomingCall(null);
     ringtoneRef.current?.stop();
     clearTimeoutIfAny();
-    navigate(`/call/room/${incomingCall.callId}`);
+    navigate(`/call/room/${incomingCall.callId}?type=${incomingCall.type}`);
   };
 
   const declineCall = async () => {
@@ -213,7 +213,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
       setOutgoingSecondsLeft(null);
       ringbackRef.current?.stop();
       clearTimeoutIfAny();
-      navigate(`/call/room/${payload.callId}`);
+      navigate(`/call/room/${payload.callId}?type=${outgoingCall.type}`);
     };
 
     const handleDeclined = (payload: any) => {

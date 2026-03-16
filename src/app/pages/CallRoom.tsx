@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Volume2, VolumeX, SwitchCamera } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
@@ -36,6 +36,7 @@ function useVideoStream(stream: MediaStream | null, muted: boolean) {
 
 export default function CallRoom() {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [callType, setCallType] = useState<CallType>("video");
   const [callScope, setCallScope] = useState<"direct" | "group" | null>(null);
@@ -53,6 +54,7 @@ export default function CallRoom() {
   const [usingFrontCamera, setUsingFrontCamera] = useState(true);
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [callDuration, setCallDuration] = useState(0);
+  const endingRef = useRef(false);
 
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
   const socketIdRef = useRef<string | null>(null);
@@ -92,6 +94,13 @@ export default function CallRoom() {
     }
   };
 
+  const emitIfConnected = (event: string, payload: any) => {
+    const socket = socketRef.current;
+    if (socket && socket.connected) {
+      socket.emit(event, payload);
+    }
+  };
+
   const createPeerConnection = (peerId: string) => {
     const existing = peerConnectionsRef.current.get(peerId);
     if (existing) return existing;
@@ -116,8 +125,8 @@ export default function CallRoom() {
     }
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && socketRef.current) {
-        socketRef.current.emit("call:signal", {
+      if (event.candidate) {
+        emitIfConnected("call:signal", {
           to: peerId,
           data: { type: "candidate", candidate: event.candidate.toJSON() },
         });
@@ -146,7 +155,7 @@ export default function CallRoom() {
         makingOfferRef.current.set(peerId, true);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        socket.emit("call:signal", {
+        emitIfConnected("call:signal", {
           to: peerId,
           data: { type: "offer", sdp: pc.localDescription },
         });
@@ -171,10 +180,10 @@ export default function CallRoom() {
       makingOfferRef.current.set(peerId, true);
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socket.emit("call:signal", {
-        to: peerId,
-        data: { type: "offer", sdp: pc.localDescription },
-      });
+    emitIfConnected("call:signal", {
+      to: peerId,
+      data: { type: "offer", sdp: pc.localDescription },
+    });
     } catch {
       // ignore
     } finally {
@@ -216,7 +225,7 @@ export default function CallRoom() {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socketRef.current?.emit("call:signal", {
+      emitIfConnected("call:signal", {
         to: from,
         data: { type: "answer", sdp: pc.localDescription },
       });
@@ -253,6 +262,13 @@ export default function CallRoom() {
 
     const loadCallInfo = async () => {
       try {
+        const typeParam = searchParams.get("type");
+        if (typeParam === "audio" || typeParam === "video") {
+          setCallType(typeParam);
+          setCallScope("direct");
+          setCallInfoLoaded(true);
+          return;
+        }
         if (/^[a-f0-9]{32}$/i.test(token)) {
           const response = await api.resolveCallLink(token);
           if (cancelled) return;
@@ -281,7 +297,7 @@ export default function CallRoom() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, searchParams]);
 
   useEffect(() => {
     if (!token || !callInfoLoaded) return;
@@ -367,14 +383,35 @@ export default function CallRoom() {
     const handleSignalEvent = ({ from, data }: { from: string; data: any }) => {
       handleSignal(from, data).catch(() => undefined);
     };
+    const handleCallEnded = (payload: { callId: string }) => {
+      if (payload.callId !== token) return;
+      setStatus("Call ended");
+      endingRef.current = true;
+      emitIfConnected("call:leave", {});
+      if (window.opener) {
+        window.close();
+      } else {
+        window.location.assign("/calls");
+      }
+    };
 
     socket.on("call:full", handleFull);
     socket.on("call:peers", handlePeers);
     socket.on("call:peer-joined", handlePeerJoined);
     socket.on("call:peer-left", handlePeerLeft);
     socket.on("call:signal", handleSignalEvent);
+    socket.on("call:ended", handleCallEnded);
 
-    socket.emit("call:join", { roomId: token, name: localName });
+    if (!socket.connected) {
+      socket.connect();
+    }
+    if (socket.connected) {
+      socket.emit("call:join", { roomId: token, name: localName });
+    } else {
+      socket.once("connect", () => {
+        socket.emit("call:join", { roomId: token, name: localName });
+      });
+    }
     setStatus("Waiting for others...");
     setJoined(true);
 
@@ -385,7 +422,10 @@ export default function CallRoom() {
       socket.off("call:peer-joined", handlePeerJoined);
       socket.off("call:peer-left", handlePeerLeft);
       socket.off("call:signal", handleSignalEvent);
-      socket.emit("call:leave");
+      socket.off("call:ended", handleCallEnded);
+      if (socket.connected) {
+        socket.emit("call:leave");
+      }
       setJoined(false);
     };
   }, [authToken, localName, localStream, joined, token]);
@@ -476,7 +516,9 @@ export default function CallRoom() {
   };
 
   const leaveCall = () => {
-    socketRef.current?.emit("call:leave");
+    if (endingRef.current) return;
+    endingRef.current = true;
+    emitIfConnected("call:leave", {});
     if (token) {
       api.updateCallStatus(token, "completed").catch(() => undefined);
     }

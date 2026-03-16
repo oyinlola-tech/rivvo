@@ -185,6 +185,14 @@ export const endCall = async (req, res) => {
     { id: callId }
   );
 
+  const io = req.app.get('io');
+  if (io) {
+    const otherUserId = call.caller_id === userId ? call.callee_id : call.caller_id;
+    if (otherUserId) {
+      io.to(`user:${otherUserId}`).emit('call:ended', { callId });
+    }
+  }
+
   return res.json({ message: 'Call ended' });
 };
 
@@ -223,6 +231,13 @@ export const updateCallStatus = async (req, res) => {
        WHERE id = :id`,
       { id: callId }
     );
+    const io = req.app.get('io');
+    if (io) {
+      const otherUserId = call.caller_id === userId ? call.callee_id : call.caller_id;
+      if (otherUserId) {
+        io.to(`user:${otherUserId}`).emit('call:ended', { callId });
+      }
+    }
   } else {
     await pool.execute(
       `UPDATE calls
