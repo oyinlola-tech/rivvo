@@ -87,7 +87,7 @@ ADMIN_EMAIL=admin@rivvo.com
 ADMIN_PASSWORD=change_this_admin_password
 ADMIN_NAME=Rivvo Admin
 ```
-SMTP is required to deliver OTPs, welcome emails, password reset, and support messages.
+SMTP is required to deliver OTPs, welcome emails, and password reset emails.
 
 Flutterwave (verification payments):
 ```
