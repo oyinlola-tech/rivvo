@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router";`nimport { Mic, MicOff, Video, VideoOff, PhoneOff, Volume2, VolumeX, SwitchCamera } from "lucide-react";
+import { useParams } from "react-router";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Volume2, VolumeX, SwitchCamera } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { useAuth } from "../contexts/AuthContext";
