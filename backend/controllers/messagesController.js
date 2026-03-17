@@ -68,6 +68,15 @@ export const getConversations = async (req, res) => {
   if (!userId) {
     return sendError(res, 401, 'Unauthorized');
   }
+
+  await pool.execute(
+    `INSERT IGNORE INTO conversation_participants (conversation_id, user_id)
+     SELECT g.conversation_id, gm.user_id
+     FROM group_members gm
+     JOIN groups g ON g.id = gm.group_id
+     WHERE gm.user_id = :user_id AND gm.status = 'active' AND g.conversation_id IS NOT NULL`,
+    { user_id: userId }
+  );
   const [rows] = await pool.execute(
     `SELECT
         c.id AS conversation_id,

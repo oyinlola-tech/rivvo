@@ -421,13 +421,15 @@ export const initDb = async () => {
       owner_id CHAR(36) NOT NULL,
       name VARCHAR(120) NOT NULL,
       description TEXT NULL,
+      handle VARCHAR(40) NULL,
       avatar VARCHAR(512) NULL,
       banner VARCHAR(512) NULL,
       is_private TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_groups_owner (owner_id),
       INDEX idx_groups_public (is_private),
-      INDEX idx_groups_conversation (conversation_id)
+      INDEX idx_groups_conversation (conversation_id),
+      UNIQUE KEY uq_groups_handle (handle)
     )
   `);
 
@@ -812,6 +814,24 @@ export const initDb = async () => {
     `);
   } catch (error) {
     // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD COLUMN handle VARCHAR(40) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD UNIQUE KEY uq_groups_handle (handle)
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
   }
 
   try {

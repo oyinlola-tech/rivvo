@@ -12,6 +12,7 @@ interface Group {
   isPrivate?: boolean;
   ownerId?: string;
   role?: string;
+  handle?: string | null;
 }
 
 export default function Groups() {
@@ -230,7 +231,8 @@ export default function Groups() {
                       </span>
                     </div>
                     <p className="text-sm text-[#667781]">
-                      {group.role || "member"} • {group.isPrivate ? "Invite only" : "Open to all"}
+                      {group.handle ? `@${group.handle}` : group.role || "member"} •{" "}
+                      {group.isPrivate ? "Invite only" : "Open to all"}
                     </p>
                   </div>
                 </button>
@@ -254,7 +256,9 @@ export default function Groups() {
                         Public
                       </span>
                     </div>
-                    <p className="text-sm text-[#667781]">{group.description || "No description"}</p>
+                    <p className="text-sm text-[#667781]">
+                      {group.handle ? `@${group.handle}` : group.description || "No description"}
+                    </p>
                   </div>
                 </div>
                 <button

@@ -697,6 +697,7 @@ class ApiClient {
     name: string;
     description?: string;
     isPrivate: boolean;
+    handle?: string;
   }): Promise<ApiResponse<{ id: string }>> {
     return this.request("/groups", {
       method: "POST",
@@ -726,6 +727,19 @@ class ApiClient {
     return response;
   }
 
+  async getGroupByHandle(handle: string): Promise<ApiResponse<any>> {
+    const response = await this.request(`/groups/handle/${encodeURIComponent(handle)}`);
+    if (response.success && response.data) {
+      if (response.data.avatar) {
+        response.data.avatar = withMediaBase(response.data.avatar) || response.data.avatar;
+      }
+      if (response.data.banner) {
+        response.data.banner = withMediaBase(response.data.banner) || response.data.banner;
+      }
+    }
+    return response;
+  }
+
   async listGroupMembers(groupId: string): Promise<ApiResponse<any[]>> {
     return this.request(`/groups/${groupId}/members`);
   }
@@ -743,6 +757,13 @@ class ApiClient {
 
   async leaveGroup(groupId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/groups/${groupId}/leave`, { method: "POST" });
+  }
+
+  async updateGroupHandle(groupId: string, handle: string | null): Promise<ApiResponse<{ message: string; handle: string | null }>> {
+    return this.request(`/groups/${groupId}/handle`, {
+      method: "PATCH",
+      body: JSON.stringify({ handle }),
+    });
   }
 
   async uploadGroupAvatar(groupId: string, file: File): Promise<ApiResponse<{ message: string; avatar: string }>> {

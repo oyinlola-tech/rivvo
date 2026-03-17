@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 interface Member {
   id: string;
   name: string;
+  username?: string | null;
   email: string;
   role: "owner" | "admin" | "member";
   status: "active" | "pending";
@@ -31,6 +32,11 @@ export default function GroupDetail() {
   const [bannerUploading, setBannerUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
+  const [handleValue, setHandleValue] = useState("");
+  const [handleEditing, setHandleEditing] = useState(false);
+  const [handleSaving, setHandleSaving] = useState(false);
+  const [handleError, setHandleError] = useState("");
+  const [showMembers, setShowMembers] = useState(false);
 
   const loadAll = async () => {
     if (!groupId) return;
@@ -58,6 +64,14 @@ export default function GroupDetail() {
     loadAll();
   }, [groupId]);
 
+  useEffect(() => {
+    if (group?.handle !== undefined && group?.handle !== null) {
+      setHandleValue(group.handle);
+    } else {
+      setHandleValue("");
+    }
+  }, [group?.handle]);
+
   if (!groupId) return null;
 
   const membership = group?.membership;
@@ -65,6 +79,7 @@ export default function GroupDetail() {
   const isAdmin = membership?.role === "admin" || membership?.role === "owner";
   const canInvite = group?.isPrivate ? isAdmin : Boolean(membership?.status === "active");
   const memberIds = new Set(members.map((member) => member.id));
+  const canViewMembers = group ? (!group.isPrivate || isAdmin) : false;
 
   const handleCreateInvite = async () => {
     const response = await api.createGroupInvite(groupId);
@@ -168,6 +183,21 @@ export default function GroupDetail() {
     event.target.value = "";
   };
 
+  const handleSaveHandle = async () => {
+    if (!groupId) return;
+    setHandleSaving(true);
+    setHandleError("");
+    const trimmed = handleValue.trim();
+    const response = await api.updateGroupHandle(groupId, trimmed ? trimmed : null);
+    if (response.success) {
+      setGroup((prev: any) => ({ ...prev, handle: response.data?.handle ?? null }));
+      setHandleEditing(false);
+    } else if (!response.success) {
+      setHandleError(response.error || "Failed to update handle");
+    }
+    setHandleSaving(false);
+  };
+
   const handleApprove = async (requestId: string) => {
     const response = await api.approveJoin(groupId, requestId);
     if (response.success) {
@@ -214,6 +244,9 @@ export default function GroupDetail() {
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-white">{group?.name || "Group"}</h1>
+              {group?.handle && (
+                <p className="text-xs text-white/60">@{group.handle}</p>
+              )}
               <div className="flex items-center gap-2 text-xs text-white/70">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
@@ -307,6 +340,57 @@ export default function GroupDetail() {
           <div className="mt-10">
             <h2 className="font-semibold mb-1 text-[#111b21]">About</h2>
             <p className="text-sm text-[#667781]">{group?.description || "No description"}</p>
+            <div className="mt-3 flex items-center gap-3">
+              <span className="text-xs text-[#667781]">Handle</span>
+              {handleEditing && isAdmin ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    className="px-3 py-1 border border-black/10 rounded-full text-xs"
+                    placeholder="groupname"
+                    value={handleValue}
+                    onChange={(e) => setHandleValue(e.target.value)}
+                  />
+                  <button
+                    onClick={handleSaveHandle}
+                    className="px-3 py-1 rounded-full bg-[#1a8c7a] text-white text-xs"
+                    disabled={handleSaving}
+                  >
+                    {handleSaving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setHandleEditing(false);
+                      setHandleValue(group?.handle || "");
+                      setHandleError("");
+                    }}
+                    className="px-3 py-1 rounded-full border border-black/10 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#111b21]">
+                    {group?.handle ? `@${group.handle}` : "Not set"}
+                  </span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setHandleEditing(true)}
+                      className="text-xs px-2 py-0.5 rounded-full border border-black/10"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {handleError && <p className="text-xs text-red-600 mt-2">{handleError}</p>}
+            <button
+              onClick={() => setShowMembers(true)}
+              className="mt-3 text-xs text-[#1a8c7a]"
+            >
+              View members
+            </button>
           </div>
         </div>
 
@@ -403,53 +487,65 @@ export default function GroupDetail() {
           </div>
         )}
 
-        <div className="px-6 pb-10">
-          <h3 className="font-semibold mb-2 text-[#111b21]">Members</h3>
-          <div className="space-y-2">
-            {members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center text-sm font-semibold">
-                    {(member.name || "M").slice(0, 1).toUpperCase()}
+        {showMembers ? (
+          canViewMembers ? (
+          <div className="px-6 pb-10">
+            <h3 className="font-semibold mb-2 text-[#111b21]">Members</h3>
+            <div className="space-y-2">
+              {members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center text-sm font-semibold">
+                      {(member.name || "M").slice(0, 1).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium text-[#111b21]">{member.name}</p>
+                      <p className="text-xs text-[#667781]">
+                        {member.username ? `@${member.username}` : member.email}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-[#111b21]">{member.name}</p>
-                    <p className="text-xs text-[#667781]">{member.email}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 rounded-full bg-[#f0f2f5] text-[#667781]">
+                      {member.role}
+                    </span>
+                    {isOwner && member.role === "member" && (
+                      <button
+                        onClick={() => handlePromote(member.id)}
+                        className="text-xs px-2 py-1 rounded-full border border-black/10 flex items-center gap-1"
+                      >
+                        <Shield size={12} /> Make admin
+                      </button>
+                    )}
+                    {isOwner && member.role === "admin" && (
+                      <button
+                        onClick={() => handleDemote(member.id)}
+                        className="text-xs px-2 py-1 rounded-full border border-black/10"
+                      >
+                        Remove admin
+                      </button>
+                    )}
+                    {isAdmin && member.role !== "owner" && member.id !== user?.id && (
+                      <button
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="text-xs px-2 py-1 rounded-full border border-black/10 text-red-600"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-1 rounded-full bg-[#f0f2f5] text-[#667781]">
-                    {member.role}
-                  </span>
-                  {isOwner && member.role === "member" && (
-                    <button
-                      onClick={() => handlePromote(member.id)}
-                      className="text-xs px-2 py-1 rounded-full border border-black/10 flex items-center gap-1"
-                    >
-                      <Shield size={12} /> Make admin
-                    </button>
-                  )}
-                  {isOwner && member.role === "admin" && (
-                    <button
-                      onClick={() => handleDemote(member.id)}
-                      className="text-xs px-2 py-1 rounded-full border border-black/10"
-                    >
-                      Remove admin
-                    </button>
-                  )}
-                  {isAdmin && member.role !== "owner" && member.id !== user?.id && (
-                    <button
-                      onClick={() => handleRemoveMember(member.id)}
-                      className="text-xs px-2 py-1 rounded-full border border-black/10 text-red-600"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+          ) : (
+          <div className="px-6 pb-10">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-black/5 text-sm text-[#667781]">
+              Members are visible to group admins and owners only.
+            </div>
+          </div>
+          )
+        ) : null}
         {membership?.status === "active" && membership?.role !== "owner" && (
           <div className="px-6 pb-10">
             <button
@@ -510,15 +606,13 @@ export default function GroupDetail() {
                     >
                       <div>
                         <p className="text-sm font-medium text-[#111b21]">{user.name}</p>
-                        <p className="text-xs text-[#667781]">{user.email}</p>
+                        <p className="text-xs text-[#667781]">
+                          {user.username ? `@${user.username}` : user.email}
+                        </p>
                       </div>
                       <button
                         onClick={() => handleAddMember(user.id)}
                         disabled={alreadyMember || addingMemberId === user.id}
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const [bannerUploading, setBannerUploading] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const bannerInputRef = useRef<HTMLInputElement | null>(null);
                         className={`text-xs px-3 py-1 rounded-full ${
                           alreadyMember
                             ? "bg-[#f0f2f5] text-[#667781]"
@@ -528,10 +622,6 @@ export default function GroupDetail() {
                         {alreadyMember
                           ? "Added"
                           : addingMemberId === user.id
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const [bannerUploading, setBannerUploading] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const bannerInputRef = useRef<HTMLInputElement | null>(null);
                           ? "Adding..."
                           : "Add"}
                       </button>

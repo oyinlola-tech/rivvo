@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import pool from '../config/db.js';
-import { sendError, requireFields, isNonEmptyString } from '../utils/validation.js';
+import { sendError, requireFields, isNonEmptyString, normalizeUsername, isUsername } from '../utils/validation.js';
 
 const isGroupMember = async (groupId, userId) => {
   const [rows] = await pool.execute(
@@ -61,7 +61,7 @@ const addConversationParticipant = async (conversationId, userId) => {
 
 export const createGroup = async (req, res) => {
   const userId = req.user?.id;
-  const { name, description, isPrivate } = req.body || {};
+  const { name, description, isPrivate, handle } = req.body || {};
   const missing = requireFields(req.body, ['name']);
   if (missing.length) {
     return sendError(res, 400, 'name is required');
@@ -70,18 +70,35 @@ export const createGroup = async (req, res) => {
     return sendError(res, 400, 'name is required');
   }
 
+  let normalizedHandle = null;
+  if (typeof handle === 'string' && handle.trim().length > 0) {
+    const rawHandle = handle.trim().startsWith('@') ? handle.trim().slice(1) : handle;
+    normalizedHandle = normalizeUsername(rawHandle);
+    if (!isUsername(normalizedHandle)) {
+      return sendError(res, 400, 'Invalid group handle');
+    }
+    const [existing] = await pool.execute(
+      `SELECT id FROM groups WHERE handle = :handle LIMIT 1`,
+      { handle: normalizedHandle }
+    );
+    if (existing.length) {
+      return sendError(res, 409, 'Handle already in use');
+    }
+  }
+
   const groupId = uuid();
   const conversationId = uuid();
   await pool.execute(`INSERT INTO conversations (id) VALUES (:id)`, { id: conversationId });
   await pool.execute(
-    `INSERT INTO groups (id, conversation_id, owner_id, name, description, is_private)
-     VALUES (:id, :conversation_id, :owner_id, :name, :description, :is_private)`,
+    `INSERT INTO groups (id, conversation_id, owner_id, name, description, handle, is_private)
+     VALUES (:id, :conversation_id, :owner_id, :name, :description, :handle, :is_private)`,
     {
       id: groupId,
       conversation_id: conversationId,
       owner_id: userId,
       name,
       description: description || null,
+      handle: normalizedHandle,
       is_private: isPrivate ? 1 : 0
     }
   );
@@ -94,13 +111,13 @@ export const createGroup = async (req, res) => {
 
   await addConversationParticipant(conversationId, userId);
 
-  return res.status(201).json({ id: groupId, conversationId });
+  return res.status(201).json({ id: groupId, conversationId, handle: normalizedHandle });
 };
 
 export const listGroups = async (req, res) => {
   const userId = req.user?.id;
   const [rows] = await pool.execute(
-    `SELECT g.id, g.name, g.description, g.is_private, g.owner_id, g.avatar, g.banner, gm.role
+    `SELECT g.id, g.name, g.description, g.is_private, g.owner_id, g.avatar, g.banner, g.handle, gm.role
      FROM group_members gm
      JOIN groups g ON g.id = gm.group_id
      WHERE gm.user_id = :user_id AND gm.status = 'active'
@@ -116,6 +133,7 @@ export const listGroups = async (req, res) => {
     ownerId: row.owner_id,
     avatar: row.avatar || null,
     banner: row.banner || null,
+    handle: row.handle || null,
     role: row.role
   }));
 
@@ -125,7 +143,7 @@ export const listGroups = async (req, res) => {
 export const searchPublicGroups = async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const [rows] = await pool.execute(
-    `SELECT id, name, description
+    `SELECT id, name, description, handle, avatar
      FROM groups
      WHERE is_private = 0 AND name LIKE :query
      ORDER BY created_at DESC
@@ -139,7 +157,7 @@ export const getGroup = async (req, res) => {
   const userId = req.user?.id;
   const { groupId } = req.params;
   const [rows] = await pool.execute(
-    `SELECT id, name, description, is_private, owner_id, conversation_id, avatar, banner
+    `SELECT id, name, description, is_private, owner_id, conversation_id, avatar, banner, handle
      FROM groups
      WHERE id = :id`,
     { id: groupId }
@@ -162,8 +180,23 @@ export const getGroup = async (req, res) => {
 
 export const listMembers = async (req, res) => {
   const { groupId } = req.params;
+  const userId = req.user?.id;
+  const [groups] = await pool.execute(
+    `SELECT id, is_private FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  if (!groups.length) {
+    return sendError(res, 404, 'Group not found');
+  }
+  const isPrivate = Boolean(groups[0].is_private);
+  if (isPrivate) {
+    const membership = await isGroupMember(groupId, userId);
+    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+      return sendError(res, 403, 'Admin access required');
+    }
+  }
   const [rows] = await pool.execute(
-    `SELECT u.id, u.name, u.email, gm.role, gm.status
+    `SELECT u.id, u.name, u.username, u.email, gm.role, gm.status
      FROM group_members gm
      JOIN users u ON u.id = gm.user_id
      WHERE gm.group_id = :group_id
@@ -173,6 +206,7 @@ export const listMembers = async (req, res) => {
   const members = rows.map((row) => ({
     id: row.id,
     name: row.name,
+    username: row.username || null,
     email: row.email,
     role: row.role,
     status: row.status
@@ -537,4 +571,76 @@ export const uploadGroupBanner = async (req, res) => {
     { banner: bannerUrl, id: groupId }
   );
   return res.json({ message: 'Group banner updated', banner: bannerUrl });
+};
+
+export const updateGroupHandle = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const { handle } = req.body || {};
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+
+  if (handle === null || handle === undefined || handle === '') {
+    await pool.execute(`UPDATE groups SET handle = NULL WHERE id = :id`, { id: groupId });
+    return res.json({ message: 'Handle cleared', handle: null });
+  }
+
+  const rawHandle = typeof handle === 'string' && handle.trim().startsWith('@')
+    ? handle.trim().slice(1)
+    : handle;
+  const normalizedHandle = normalizeUsername(rawHandle);
+  if (!isUsername(normalizedHandle)) {
+    return sendError(res, 400, 'Invalid group handle');
+  }
+
+  const [existing] = await pool.execute(
+    `SELECT id FROM groups WHERE handle = :handle AND id <> :id LIMIT 1`,
+    { handle: normalizedHandle, id: groupId }
+  );
+  if (existing.length) {
+    return sendError(res, 409, 'Handle already in use');
+  }
+
+  await pool.execute(
+    `UPDATE groups SET handle = :handle WHERE id = :id`,
+    { handle: normalizedHandle, id: groupId }
+  );
+  return res.json({ message: 'Handle updated', handle: normalizedHandle });
+};
+
+export const getGroupByHandle = async (req, res) => {
+  const userId = req.user?.id;
+  const rawHandle = typeof req.params.handle === 'string' && req.params.handle.startsWith('@')
+    ? req.params.handle.slice(1)
+    : req.params.handle;
+  const handle = normalizeUsername(rawHandle || '');
+  if (!handle || !isUsername(handle)) {
+    return sendError(res, 400, 'Invalid group handle');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, name, description, is_private, owner_id, conversation_id, avatar, banner, handle
+     FROM groups
+     WHERE handle = :handle
+     LIMIT 1`,
+    { handle }
+  );
+  if (!rows.length) {
+    return sendError(res, 404, 'Group not found');
+  }
+
+  const group = rows[0];
+  if (group.is_private) {
+    const membership = await isGroupMember(group.id, userId);
+    if (!membership || membership.status !== 'active') {
+      return sendError(res, 403, 'Private group');
+    }
+  }
+
+  return res.json({
+    ...group,
+    isPrivate: Boolean(group.is_private)
+  });
 };

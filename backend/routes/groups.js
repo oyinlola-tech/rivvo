@@ -19,7 +19,9 @@ import {
   removeMember,
   leaveGroup,
   uploadGroupAvatar,
-  uploadGroupBanner
+  uploadGroupBanner,
+  updateGroupHandle,
+  getGroupByHandle
 } from '../controllers/groupsController.js';
 import { upload } from '../utils/upload.js';
 
@@ -30,11 +32,13 @@ router.get('/public', asyncHandler(searchPublicGroups));
 router.use(auth);
 router.post('/', asyncHandler(createGroup));
 router.get('/', asyncHandler(listGroups));
+router.get('/handle/:handle', asyncHandler(getGroupByHandle));
 router.get('/:groupId', asyncHandler(getGroup));
 router.get('/:groupId/members', asyncHandler(listMembers));
 router.post('/:groupId/members', asyncHandler(addMember));
 router.delete('/:groupId/members/:memberId', asyncHandler(removeMember));
 router.post('/:groupId/leave', asyncHandler(leaveGroup));
+router.patch('/:groupId/handle', asyncHandler(updateGroupHandle));
 router.post('/:groupId/invites', asyncHandler(createInvite));
 router.post('/invites/:token/join', asyncHandler(joinByInvite));
 router.post('/:groupId/join', asyncHandler(joinPublic));

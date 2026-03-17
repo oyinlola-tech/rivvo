@@ -21,6 +21,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
+import GroupHandle from "./pages/GroupHandle";
 import UserProfile from "./pages/UserProfile";
 import InviteUser from "./pages/InviteUser";
 import InviteGroup from "./pages/InviteGroup";
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
       { path: "calls", Component: Calls },
       { path: "groups", Component: Groups },
       { path: "groups/:groupId", Component: GroupDetail },
+      { path: "g/:handle", Component: GroupHandle },
       { path: "status", Component: Status },
       { path: "contacts", Component: Contacts },
       { path: "settings", Component: Settings },
