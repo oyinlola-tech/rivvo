@@ -14,7 +14,8 @@ import {
   approveJoin,
   rejectJoin,
   promoteAdmin,
-  demoteAdmin
+  demoteAdmin,
+  addMember
 } from '../controllers/groupsController.js';
 
 const router = Router();
@@ -26,6 +27,7 @@ router.post('/', asyncHandler(createGroup));
 router.get('/', asyncHandler(listGroups));
 router.get('/:groupId', asyncHandler(getGroup));
 router.get('/:groupId/members', asyncHandler(listMembers));
+router.post('/:groupId/members', asyncHandler(addMember));
 router.post('/:groupId/invites', asyncHandler(createInvite));
 router.post('/invites/:token/join', asyncHandler(joinByInvite));
 router.post('/:groupId/join', asyncHandler(joinPublic));

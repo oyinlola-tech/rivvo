@@ -52,6 +52,17 @@ const hasMutualContact = async (userId, otherUserId) => {
   return rows.length > 0;
 };
 
+const getGroupByConversation = async (conversationId) => {
+  const [rows] = await pool.execute(
+    `SELECT id, name, is_private
+     FROM groups
+     WHERE conversation_id = :conversation_id
+     LIMIT 1`,
+    { conversation_id: conversationId }
+  );
+  return rows[0] || null;
+};
+
 export const getConversations = async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
@@ -364,6 +375,9 @@ export const sendMessage = async (req, res) => {
     return sendError(res, 404, 'Conversation not found');
   }
 
+  const groupConversation = await getGroupByConversation(conversationId);
+  const isGroupConversation = Boolean(groupConversation);
+
   const [participantRows] = await pool.execute(
     `SELECT user_id FROM conversation_participants
      WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
@@ -371,16 +385,18 @@ export const sendMessage = async (req, res) => {
   );
 
   const otherUserId = participantRows[0]?.user_id;
-  if (!otherUserId) {
+  if (!otherUserId && !isGroupConversation) {
     return sendError(res, 400, 'Conversation is missing participant');
   }
 
-  const mutual = await hasMutualContact(userId, otherUserId);
-  if (!mutual) {
-    return sendError(res, 403, 'Contact request not accepted');
+  if (!isGroupConversation) {
+    const mutual = await hasMutualContact(userId, otherUserId);
+    if (!mutual) {
+      return sendError(res, 403, 'Contact request not accepted');
+    }
   }
 
-  if (otherUserId) {
+  if (otherUserId && !isGroupConversation) {
     const [blockRows] = await pool.execute(
       `SELECT 1 FROM blocks
        WHERE (blocker_id = :user_id AND blocked_id = :other_user_id)
@@ -415,55 +431,57 @@ export const sendMessage = async (req, res) => {
     { conversation_id: conversationId, user_id: userId }
   );
 
-  const [otherLastRows] = await pool.execute(
-    `SELECT last_message_at
-     FROM conversation_participants
-     WHERE conversation_id = :conversation_id AND user_id = :other_user_id
-     LIMIT 1`,
-    { conversation_id: conversationId, other_user_id: otherUserId }
-  );
+  if (!isGroupConversation) {
+    const [otherLastRows] = await pool.execute(
+      `SELECT last_message_at
+       FROM conversation_participants
+       WHERE conversation_id = :conversation_id AND user_id = :other_user_id
+       LIMIT 1`,
+      { conversation_id: conversationId, other_user_id: otherUserId }
+    );
 
-  const [streakRows] = await pool.execute(
-    `SELECT streak_count, last_mutual_at
-     FROM conversations
-     WHERE id = :conversation_id
-     LIMIT 1`,
-    { conversation_id: conversationId }
-  );
+    const [streakRows] = await pool.execute(
+      `SELECT streak_count, last_mutual_at
+       FROM conversations
+       WHERE id = :conversation_id
+       LIMIT 1`,
+      { conversation_id: conversationId }
+    );
 
-  const now = new Date();
-  const otherLast = otherLastRows[0]?.last_message_at ? new Date(otherLastRows[0].last_message_at) : null;
-  const lastMutual = streakRows[0]?.last_mutual_at ? new Date(streakRows[0].last_mutual_at) : null;
-  let streakCount = Number(streakRows[0]?.streak_count || 0);
-  const DAY_MS = 24 * 60 * 60 * 1000;
+    const now = new Date();
+    const otherLast = otherLastRows[0]?.last_message_at ? new Date(otherLastRows[0].last_message_at) : null;
+    const lastMutual = streakRows[0]?.last_mutual_at ? new Date(streakRows[0].last_mutual_at) : null;
+    let streakCount = Number(streakRows[0]?.streak_count || 0);
+    const DAY_MS = 24 * 60 * 60 * 1000;
 
-  if (lastMutual && now.getTime() - lastMutual.getTime() >= DAY_MS) {
-    streakCount = 0;
-  }
+    if (lastMutual && now.getTime() - lastMutual.getTime() >= DAY_MS) {
+      streakCount = 0;
+    }
 
-  const otherRecent = otherLast && now.getTime() - otherLast.getTime() <= DAY_MS;
-  if (otherRecent) {
-    if (!lastMutual || now.getTime() - lastMutual.getTime() >= DAY_MS) {
-      streakCount += 1;
+    const otherRecent = otherLast && now.getTime() - otherLast.getTime() <= DAY_MS;
+    if (otherRecent) {
+      if (!lastMutual || now.getTime() - lastMutual.getTime() >= DAY_MS) {
+        streakCount += 1;
+        await pool.execute(
+          `UPDATE conversations
+           SET streak_count = :streak_count, last_mutual_at = NOW()
+           WHERE id = :conversation_id`,
+          { streak_count: streakCount, conversation_id: conversationId }
+        );
+      }
+    } else if (lastMutual && now.getTime() - lastMutual.getTime() >= DAY_MS) {
       await pool.execute(
         `UPDATE conversations
-         SET streak_count = :streak_count, last_mutual_at = NOW()
+         SET streak_count = :streak_count, last_mutual_at = NULL
          WHERE id = :conversation_id`,
         { streak_count: streakCount, conversation_id: conversationId }
       );
     }
-  } else if (lastMutual && now.getTime() - lastMutual.getTime() >= DAY_MS) {
-    await pool.execute(
-      `UPDATE conversations
-       SET streak_count = :streak_count, last_mutual_at = NULL
-       WHERE id = :conversation_id`,
-      { streak_count: streakCount, conversation_id: conversationId }
-    );
   }
 
   const recipientId = otherUserId;
   let deliveredAt = null;
-  if (otherUserId && isUserOnline(otherUserId)) {
+  if (otherUserId && !isGroupConversation && isUserOnline(otherUserId)) {
     deliveredAt = new Date();
     await pool.execute(
       `UPDATE messages SET delivered_at = NOW() WHERE id = :id`,
@@ -486,17 +504,24 @@ export const sendMessage = async (req, res) => {
   };
 
   const io = req.app.get('io');
-  if (io && recipientId) {
-    io.to(`user:${recipientId}`).emit('new_message', {
-      conversationId,
-      message: { ...payload, sender: 'them' }
-    });
-    if (deliveredAt) {
-      io.to(`user:${userId}`).emit('delivery_receipt', {
+  if (io) {
+    if (isGroupConversation) {
+      io.to(`conversation:${conversationId}`).emit('new_message', {
         conversationId,
-        messageIds: [messageId],
-        deliveredAt: deliveredAt.toISOString()
+        message: { ...payload, sender: 'them' }
       });
+    } else if (recipientId) {
+      io.to(`user:${recipientId}`).emit('new_message', {
+        conversationId,
+        message: { ...payload, sender: 'them' }
+      });
+      if (deliveredAt) {
+        io.to(`user:${userId}`).emit('delivery_receipt', {
+          conversationId,
+          messageIds: [messageId],
+          deliveredAt: deliveredAt.toISOString()
+        });
+      }
     }
   }
 
@@ -555,6 +580,8 @@ export const markConversationRead = async (req, res) => {
     return sendError(res, 404, 'Conversation not found');
   }
 
+  const isGroupConversation = Boolean(await getGroupByConversation(conversationId));
+
   await pool.execute(
     `UPDATE conversation_participants
      SET last_read_at = NOW()
@@ -572,20 +599,22 @@ export const markConversationRead = async (req, res) => {
     { conversation_id: conversationId, user_id: userId }
   );
 
-  const [participantRows] = await pool.execute(
-    `SELECT user_id FROM conversation_participants
-     WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
-    { conversation_id: conversationId, user_id: userId }
-  );
+  if (!isGroupConversation) {
+    const [participantRows] = await pool.execute(
+      `SELECT user_id FROM conversation_participants
+       WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
+      { conversation_id: conversationId, user_id: userId }
+    );
 
-  const otherUserId = participantRows[0]?.user_id;
-  const io = req.app.get('io');
-  if (io && otherUserId) {
-    io.to(`user:${otherUserId}`).emit('read_receipt', {
-      conversationId,
-      readerId: userId,
-      readAt: new Date().toISOString()
-    });
+    const otherUserId = participantRows[0]?.user_id;
+    const io = req.app.get('io');
+    if (io && otherUserId) {
+      io.to(`user:${otherUserId}`).emit('read_receipt', {
+        conversationId,
+        readerId: userId,
+        readAt: new Date().toISOString()
+      });
+    }
   }
 
   return res.json({ message: 'Conversation marked as read' });
@@ -601,6 +630,8 @@ export const viewOnceMessage = async (req, res) => {
     return sendError(res, 404, 'Conversation not found');
   }
 
+  const isGroupConversation = Boolean(await getGroupByConversation(conversationId));
+
   await pool.execute(
     `UPDATE messages
      SET view_once_viewed_at = NOW(), read_at = NOW()
@@ -608,20 +639,22 @@ export const viewOnceMessage = async (req, res) => {
     { id: messageId, conversation_id: conversationId, user_id: userId }
   );
 
-  const [participantRows] = await pool.execute(
-    `SELECT user_id FROM conversation_participants
-     WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
-    { conversation_id: conversationId, user_id: userId }
-  );
+  if (!isGroupConversation) {
+    const [participantRows] = await pool.execute(
+      `SELECT user_id FROM conversation_participants
+       WHERE conversation_id = :conversation_id AND user_id <> :user_id`,
+      { conversation_id: conversationId, user_id: userId }
+    );
 
-  const otherUserId = participantRows[0]?.user_id;
-  const io = req.app.get('io');
-  if (io && otherUserId) {
-    io.to(`user:${otherUserId}`).emit('view_once_viewed', {
-      conversationId,
-      messageId,
-      readAt: new Date().toISOString()
-    });
+    const otherUserId = participantRows[0]?.user_id;
+    const io = req.app.get('io');
+    if (io && otherUserId) {
+      io.to(`user:${otherUserId}`).emit('view_once_viewed', {
+        conversationId,
+        messageId,
+        readAt: new Date().toISOString()
+      });
+    }
   }
 
   return res.json({ message: 'View-once message viewed' });
@@ -793,6 +826,49 @@ export const deleteMessage = async (req, res) => {
 export const getConversationPeer = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
+
+  const [groupRows] = await pool.execute(
+    `SELECT g.id, g.name, g.is_private,
+            (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.status = 'active') AS member_count
+     FROM groups g
+     WHERE g.conversation_id = :conversation_id
+     LIMIT 1`,
+    { conversation_id: conversationId }
+  );
+
+  if (groupRows.length) {
+    const group = groupRows[0];
+    const [memberships] = await pool.execute(
+      `SELECT role, status FROM group_members
+       WHERE group_id = :group_id AND user_id = :user_id AND status = 'active'
+       LIMIT 1`,
+      { group_id: group.id, user_id: userId }
+    );
+    if (!memberships.length) {
+      return sendError(res, 404, 'Conversation not found');
+    }
+    await pool.execute(
+      `INSERT IGNORE INTO conversation_participants (conversation_id, user_id)
+       VALUES (:conversation_id, :user_id)`,
+      { conversation_id: conversationId, user_id: userId }
+    );
+    return res.json({
+      id: group.id,
+      name: group.name,
+      avatar: null,
+      verified: false,
+      isVerifiedBadge: false,
+      badgeStatus: 'none',
+      isModerator: false,
+      isAdmin: false,
+      online: false,
+      publicKey: null,
+      streakCount: 0,
+      isGroup: true,
+      isPrivate: Boolean(group.is_private),
+      memberCount: Number(group.member_count || 0)
+    });
+  }
 
   const isParticipant = await ensureParticipant(userId, conversationId);
   if (!isParticipant) {

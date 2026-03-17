@@ -417,13 +417,15 @@ export const initDb = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS groups (
       id CHAR(36) PRIMARY KEY,
+      conversation_id CHAR(36) NULL,
       owner_id CHAR(36) NOT NULL,
       name VARCHAR(120) NOT NULL,
       description TEXT NULL,
       is_private TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_groups_owner (owner_id),
-      INDEX idx_groups_public (is_private)
+      INDEX idx_groups_public (is_private),
+      INDEX idx_groups_conversation (conversation_id)
     )
   `);
 
@@ -778,6 +780,35 @@ export const initDb = async () => {
       ADD CONSTRAINT fk_groups_owner
       FOREIGN KEY (owner_id) REFERENCES users(id)
       ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD COLUMN conversation_id CHAR(36) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD INDEX idx_groups_conversation (conversation_id)
+    `);
+  } catch (error) {
+    // Index likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD CONSTRAINT fk_groups_conversation
+      FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+      ON DELETE SET NULL
     `);
   } catch (error) {
     // Constraint likely exists already.

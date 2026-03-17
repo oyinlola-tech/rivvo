@@ -114,6 +114,9 @@ export interface PeerDto {
   isAdmin: boolean;
   publicKey?: string | null;
   streakCount?: number;
+  isGroup?: boolean;
+  isPrivate?: boolean;
+  memberCount?: number;
 }
 
 export interface CallLogDto {
@@ -713,6 +716,13 @@ class ApiClient {
 
   async listGroupMembers(groupId: string): Promise<ApiResponse<any[]>> {
     return this.request(`/groups/${groupId}/members`);
+  }
+
+  async addGroupMember(groupId: string, memberId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}/members`, {
+      method: "POST",
+      body: JSON.stringify({ memberId }),
+    });
   }
 
   async createGroupInvite(groupId: string): Promise<ApiResponse<{ token: string; groupId: string }>> {

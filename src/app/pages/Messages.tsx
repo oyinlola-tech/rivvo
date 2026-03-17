@@ -54,6 +54,9 @@ interface PeerInfo {
   isModerator: boolean;
   isAdmin: boolean;
   streakCount?: number;
+  isGroup?: boolean;
+  isPrivate?: boolean;
+  memberCount?: number;
 }
 
 interface Attachment {
@@ -117,7 +120,8 @@ export default function Messages() {
 
   const contact = peer;
   const firstName = contact?.name?.trim().split(" ")[0] || contact?.name || "";
-  const canNavigateProfile = Boolean(contact?.id);
+  const canNavigateProfile = Boolean(contact?.id && !contact?.isGroup);
+  const isGroupChat = Boolean(contact?.isGroup);
   const streakValue = Math.max(contact?.streakCount ?? 0, localStreak);
 
   const handleMessageLongPressStart = (messageId: string) => {
@@ -389,37 +393,32 @@ export default function Messages() {
 
     let derivedKey: CryptoKey | null = null;
     const peerResponse = await api.getConversationPeer(id);
-    if (peerResponse.success && peerResponse.data?.publicKey) {
+    if (peerResponse.success && peerResponse.data) {
+      const peerData = peerResponse.data;
       setPeer({
-        id: peerResponse.data.id,
-        name: peerResponse.data.name,
-        avatar: peerResponse.data.avatar,
-        online: peerResponse.data.online,
-        verified: peerResponse.data.verified,
-        isVerifiedBadge: peerResponse.data.isVerifiedBadge,
-        isModerator: peerResponse.data.isModerator,
-        isAdmin: peerResponse.data.isAdmin,
-        streakCount: peerResponse.data.streakCount || undefined
+        id: peerData.id,
+        name: peerData.name,
+        avatar: peerData.avatar,
+        online: peerData.online,
+        verified: peerData.verified,
+        isVerifiedBadge: peerData.isVerifiedBadge,
+        isModerator: peerData.isModerator,
+        isAdmin: peerData.isAdmin,
+        streakCount: peerData.streakCount || undefined,
+        isGroup: peerData.isGroup,
+        isPrivate: peerData.isPrivate,
+        memberCount: peerData.memberCount
       });
-      preloadImage(peerResponse.data.avatar);
-      const keyPair = await getOrCreateKeyPair();
-      const privateKey = await importPrivateKey(keyPair.privateKey);
-      const peerPublic = await importPublicKey(JSON.parse(peerResponse.data.publicKey));
-      derivedKey = await deriveSharedKey(privateKey, peerPublic);
+      if (peerData.avatar) {
+        preloadImage(peerData.avatar);
+      }
+      if (peerData.publicKey && !peerData.isGroup) {
+        const keyPair = await getOrCreateKeyPair();
+        const privateKey = await importPrivateKey(keyPair.privateKey);
+        const peerPublic = await importPublicKey(JSON.parse(peerData.publicKey));
+        derivedKey = await deriveSharedKey(privateKey, peerPublic);
+      }
       setSharedKey(derivedKey);
-    } else if (peerResponse.success && peerResponse.data) {
-      setPeer({
-        id: peerResponse.data.id,
-        name: peerResponse.data.name,
-        avatar: peerResponse.data.avatar,
-        online: peerResponse.data.online,
-        verified: peerResponse.data.verified,
-        isVerifiedBadge: peerResponse.data.isVerifiedBadge,
-        isModerator: peerResponse.data.isModerator,
-        isAdmin: peerResponse.data.isAdmin,
-        streakCount: peerResponse.data.streakCount || undefined
-      });
-      preloadImage(peerResponse.data.avatar);
     } else if (!peerResponse.success) {
       setError(peerResponse.error || "Failed to load conversation details");
     }
@@ -928,6 +927,10 @@ export default function Messages() {
         {contact ? (
           <button
             onClick={() => {
+              if (contact.isGroup) {
+                navigate(`/groups/${contact.id}`);
+                return;
+              }
               if (contact.avatar) {
                 setAvatarTransform({ scale: 1, x: 0, y: 0 });
                 setShowAvatarPreview(true);
@@ -938,7 +941,7 @@ export default function Messages() {
               }
             }}
             className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold overflow-hidden"
-            aria-label={`View ${contact.name} profile`}
+            aria-label={`View ${contact.name} ${contact.isGroup ? "group" : "profile"}`}
             aria-disabled={!canNavigateProfile}
           >
             {contact.avatar ? (
@@ -964,13 +967,13 @@ export default function Messages() {
                   <span className="md:hidden">{firstName}</span>
                   <span className="hidden md:inline">{contact.name}</span>
                 </h2>
-                {(contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
+                {!isGroupChat && (contact.isVerifiedBadge || contact.isModerator || contact.isAdmin) && (
                   <VerificationBadge
                     type={contact.isModerator || contact.isAdmin ? "staff" : "user"}
                     size="sm"
                   />
                 )}
-                {streakValue > 0 && (
+                {!isGroupChat && streakValue > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4e5] px-2 py-0.5 text-xs text-[#b45309]">
                     <Flame size={12} className="text-[#b45309]" />
                     {streakValue}
@@ -982,11 +985,17 @@ export default function Messages() {
             )}
           </div>
           {contact ? (
-            <>
-              <p className="text-[11px] text-[#667781]">
-                {isTyping ? "Typing..." : contact.online ? "Active now" : "Offline"}
-              </p>
-            </>
+            <p className="text-[11px] text-[#667781]">
+              {isGroupChat
+                ? `${contact.isPrivate ? "Private group" : "Public group"} • ${
+                    contact.memberCount ? `${contact.memberCount} members` : "Group chat"
+                  }`
+                : isTyping
+                ? "Typing..."
+                : contact.online
+                ? "Active now"
+                : "Offline"}
+            </p>
           ) : (
             <>
               <div className="mt-2 h-3 w-40 rounded bg-gray-200 animate-pulse" aria-hidden="true" />
@@ -994,20 +1003,22 @@ export default function Messages() {
             </>
           )}
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleStartCall("audio")}
-            className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
-          >
-            <Phone size={18} className="text-[#667781]" />
-          </button>
-          <button
-            onClick={() => handleStartCall("video")}
-            className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
-          >
-            <Video size={18} className="text-[#667781]" />
-          </button>
-        </div>
+        {!isGroupChat && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleStartCall("audio")}
+              className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
+            >
+              <Phone size={18} className="text-[#667781]" />
+            </button>
+            <button
+              onClick={() => handleStartCall("video")}
+              className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
+            >
+              <Video size={18} className="text-[#667781]" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Messages */}

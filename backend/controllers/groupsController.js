@@ -20,6 +20,45 @@ const countAdmins = async (groupId) => {
   return Number(row?.total || 0);
 };
 
+const ensureGroupConversation = async (groupId, existingConversationId = null) => {
+  if (existingConversationId) {
+    return existingConversationId;
+  }
+  const [rows] = await pool.execute(
+    `SELECT conversation_id FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  if (!rows.length) {
+    return null;
+  }
+  if (rows[0].conversation_id) {
+    return rows[0].conversation_id;
+  }
+  const conversationId = uuid();
+  await pool.execute(`INSERT INTO conversations (id) VALUES (:id)`, { id: conversationId });
+  await pool.execute(
+    `UPDATE groups SET conversation_id = :conversation_id WHERE id = :id`,
+    { conversation_id: conversationId, id: groupId }
+  );
+  await pool.execute(
+    `INSERT IGNORE INTO conversation_participants (conversation_id, user_id)
+     SELECT :conversation_id, user_id
+     FROM group_members
+     WHERE group_id = :group_id AND status = 'active'`,
+    { conversation_id: conversationId, group_id: groupId }
+  );
+  return conversationId;
+};
+
+const addConversationParticipant = async (conversationId, userId) => {
+  if (!conversationId || !userId) return;
+  await pool.execute(
+    `INSERT IGNORE INTO conversation_participants (conversation_id, user_id)
+     VALUES (:conversation_id, :user_id)`,
+    { conversation_id: conversationId, user_id: userId }
+  );
+};
+
 export const createGroup = async (req, res) => {
   const userId = req.user?.id;
   const { name, description, isPrivate } = req.body || {};
@@ -32,11 +71,14 @@ export const createGroup = async (req, res) => {
   }
 
   const groupId = uuid();
+  const conversationId = uuid();
+  await pool.execute(`INSERT INTO conversations (id) VALUES (:id)`, { id: conversationId });
   await pool.execute(
-    `INSERT INTO groups (id, owner_id, name, description, is_private)
-     VALUES (:id, :owner_id, :name, :description, :is_private)`,
+    `INSERT INTO groups (id, conversation_id, owner_id, name, description, is_private)
+     VALUES (:id, :conversation_id, :owner_id, :name, :description, :is_private)`,
     {
       id: groupId,
+      conversation_id: conversationId,
       owner_id: userId,
       name,
       description: description || null,
@@ -50,7 +92,9 @@ export const createGroup = async (req, res) => {
     { group_id: groupId, user_id: userId }
   );
 
-  return res.status(201).json({ id: groupId });
+  await addConversationParticipant(conversationId, userId);
+
+  return res.status(201).json({ id: groupId, conversationId });
 };
 
 export const listGroups = async (req, res) => {
@@ -93,7 +137,7 @@ export const getGroup = async (req, res) => {
   const userId = req.user?.id;
   const { groupId } = req.params;
   const [rows] = await pool.execute(
-    `SELECT id, name, description, is_private, owner_id
+    `SELECT id, name, description, is_private, owner_id, conversation_id
      FROM groups
      WHERE id = :id`,
     { id: groupId }
@@ -102,9 +146,14 @@ export const getGroup = async (req, res) => {
     return sendError(res, 404, 'Group not found');
   }
   const membership = await isGroupMember(groupId, userId);
+  const conversationId = await ensureGroupConversation(groupId, rows[0].conversation_id);
+  if (membership?.status === 'active' && conversationId) {
+    await addConversationParticipant(conversationId, userId);
+  }
   return res.json({
     ...rows[0],
     isPrivate: Boolean(rows[0].is_private),
+    conversationId,
     membership
   });
 };
@@ -200,6 +249,8 @@ export const joinByInvite = async (req, res) => {
      ON DUPLICATE KEY UPDATE status = 'active'`,
     { group_id: invite.group_id, user_id: userId }
   );
+  const conversationId = await ensureGroupConversation(invite.group_id);
+  await addConversationParticipant(conversationId, userId);
   return res.json({ status: 'joined', groupId: invite.group_id });
 };
 
@@ -223,6 +274,8 @@ export const joinPublic = async (req, res) => {
      ON DUPLICATE KEY UPDATE status = 'active'`,
     { group_id: groupId, user_id: userId }
   );
+  const conversationId = await ensureGroupConversation(groupId);
+  await addConversationParticipant(conversationId, userId);
   return res.json({ status: 'joined' });
 };
 
@@ -280,6 +333,8 @@ export const approveJoin = async (req, res) => {
      ON DUPLICATE KEY UPDATE status = 'active'`,
     { group_id: groupId, user_id: requestUserId }
   );
+  const conversationId = await ensureGroupConversation(groupId);
+  await addConversationParticipant(conversationId, requestUserId);
 
   return res.json({ message: 'Approved' });
 };
@@ -342,4 +397,44 @@ export const demoteAdmin = async (req, res) => {
     { group_id: groupId, user_id: memberId }
   );
   return res.json({ message: 'Demoted' });
+};
+
+export const addMember = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const { memberId } = req.body || {};
+  if (!memberId) {
+    return sendError(res, 400, 'memberId is required');
+  }
+  const [groups] = await pool.execute(
+    `SELECT id, conversation_id FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  if (!groups.length) {
+    return sendError(res, 404, 'Group not found');
+  }
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+
+  const [users] = await pool.execute(
+    `SELECT id FROM users WHERE id = :id LIMIT 1`,
+    { id: memberId }
+  );
+  if (!users.length) {
+    return sendError(res, 404, 'User not found');
+  }
+
+  await pool.execute(
+    `INSERT INTO group_members (group_id, user_id, role, status)
+     VALUES (:group_id, :user_id, 'member', 'active')
+     ON DUPLICATE KEY UPDATE status = 'active'`,
+    { group_id: groupId, user_id: memberId }
+  );
+
+  const conversationId = await ensureGroupConversation(groupId, groups[0].conversation_id);
+  await addConversationParticipant(conversationId, memberId);
+
+  return res.status(201).json({ message: 'Member added' });
 };

@@ -86,10 +86,13 @@ export default function Groups() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
-      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
+    <div className="min-h-[100dvh] bg-[#0b141a] md:ml-64">
+      <div className="bg-[#111b21] sticky top-0 z-10 px-6 pt-5 pb-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Groups</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-white">Groups</h1>
+            <p className="text-xs text-white/60">WhatsApp-style communities</p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={openNotificationsSheet}
@@ -105,7 +108,7 @@ export default function Groups() {
             </button>
             <button
               onClick={() => setShowCreate((prev) => !prev)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white"
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#1a8c7a] text-white text-sm"
             >
               <Plus size={16} /> Create
             </button>
@@ -117,7 +120,7 @@ export default function Groups() {
               key={value}
               onClick={() => setTab(value)}
               className={`px-4 py-2 rounded-full text-sm ${
-                tab === value ? "bg-[#1a8c7a] text-white" : "bg-white/10 text-white"
+                tab === value ? "bg-[#1a8c7a] text-white" : "bg-white/10 text-white/80"
               }`}
             >
               {value === "my" ? "My groups" : "Discover"}
@@ -126,35 +129,54 @@ export default function Groups() {
         </div>
       </div>
 
-      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-120px)] pt-6">
+      <div className="bg-[#f0f2f5] rounded-t-[40px] min-h-[calc(100dvh-120px)] pt-6">
         {error && <p className="px-6 text-red-600 text-sm">{error}</p>}
 
         {showCreate && (
-          <div className="mx-6 mb-6 p-4 rounded-xl border border-gray-200">
-            <h2 className="font-semibold mb-2">Create Group</h2>
+          <div className="mx-6 mb-6 p-4 rounded-2xl bg-white shadow-sm border border-black/5">
+            <h2 className="font-semibold mb-2 text-[#111b21]">Create group</h2>
             <input
-              className="w-full px-3 py-2 border rounded-lg mb-2"
+              className="w-full px-3 py-2 border border-black/10 rounded-xl mb-2 bg-white"
               placeholder="Group name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             <textarea
-              className="w-full px-3 py-2 border rounded-lg mb-2"
+              className="w-full px-3 py-2 border border-black/10 rounded-xl mb-3 bg-white"
               placeholder="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-              />
-              Private group (join by invite + approval)
-            </label>
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setIsPrivate(false)}
+                className={`px-3 py-1.5 rounded-full text-xs border ${
+                  !isPrivate
+                    ? "bg-[#e7f6f3] border-[#1a8c7a] text-[#0a5c50]"
+                    : "bg-white border-black/10 text-[#667781]"
+                }`}
+              >
+                Public
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPrivate(true)}
+                className={`px-3 py-1.5 rounded-full text-xs border ${
+                  isPrivate
+                    ? "bg-[#fef3f2] border-[#f04a4c] text-[#a61f2a]"
+                    : "bg-white border-black/10 text-[#667781]"
+                }`}
+              >
+                Private
+              </button>
+              <span className="text-xs text-[#667781]">
+                {isPrivate ? "Invite + approval" : "Anyone can join"}
+              </span>
+            </div>
             <button
               onClick={handleCreate}
-              className="mt-3 px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
+              className="px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm"
             >
               Create
             </button>
@@ -166,7 +188,7 @@ export default function Groups() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
-                className="w-full pl-10 pr-3 py-2 border rounded-lg"
+                className="w-full pl-10 pr-3 py-2 border border-black/10 rounded-full bg-white"
                 placeholder="Search public groups"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -184,17 +206,33 @@ export default function Groups() {
           groups.length === 0 ? (
             <div className="text-center py-12 text-gray-500">No groups yet</div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="bg-white mx-4 rounded-2xl shadow-sm overflow-hidden">
               {groups.map((group) => (
                 <button
                   key={group.id}
                   onClick={() => navigate(`/groups/${group.id}`)}
-                  className="w-full px-6 py-4 text-left hover:bg-gray-50"
+                  className="w-full px-5 py-4 text-left hover:bg-[#f7f9fa] flex items-center gap-4"
                 >
-                  <h3 className="font-semibold text-[#111b21]">{group.name}</h3>
-                  <p className="text-sm text-[#667781]">
-                    {group.isPrivate ? "Private" : "Public"} â€¢ {group.role || "member"}
-                  </p>
+                  <div className="w-12 h-12 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center font-semibold">
+                    {(group.name || "G").slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-[#111b21]">{group.name}</h3>
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded-full ${
+                          group.isPrivate
+                            ? "bg-[#fef3f2] text-[#a61f2a]"
+                            : "bg-[#e7f6f3] text-[#0a5c50]"
+                        }`}
+                      >
+                        {group.isPrivate ? "Private" : "Public"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#667781]">
+                      {group.role || "member"} • {group.isPrivate ? "Invite only" : "Open to all"}
+                    </p>
+                  </div>
                 </button>
               ))}
             </div>
@@ -202,16 +240,26 @@ export default function Groups() {
         ) : searchResults.length === 0 ? (
           <div className="text-center py-12 text-gray-500">No results</div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="bg-white mx-4 rounded-2xl shadow-sm overflow-hidden">
             {searchResults.map((group) => (
-              <div key={group.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-[#111b21]">{group.name}</h3>
-                  <p className="text-sm text-[#667781]">{group.description || "No description"}</p>
+              <div key={group.id} className="px-5 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center font-semibold">
+                    {(group.name || "G").slice(0, 1).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-[#111b21]">{group.name}</h3>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#e7f6f3] text-[#0a5c50]">
+                        Public
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#667781]">{group.description || "No description"}</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => handleJoinPublic(group.id)}
-                  className="px-4 py-2 rounded-lg bg-[#1a8c7a] text-white"
+                  className="px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm"
                 >
                   Join
                 </button>
