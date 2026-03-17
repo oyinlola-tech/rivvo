@@ -1,7 +1,8 @@
-﻿import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../lib/api";
 import { Copy, Shield, Lock, Globe, UserPlus, MessageCircle } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Member {
   id: string;
@@ -14,6 +15,7 @@ interface Member {
 export default function GroupDetail() {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [group, setGroup] = useState<any>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
@@ -25,6 +27,10 @@ export default function GroupDetail() {
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberError, setMemberError] = useState("");
   const [addingMemberId, setAddingMemberId] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadAll = async () => {
     if (!groupId) return;
@@ -110,6 +116,58 @@ export default function GroupDetail() {
     setAddingMemberId(null);
   };
 
+  const handleRemoveMember = async (memberId: string) => {
+    if (!groupId) return;
+    setError("");
+    const response = await api.removeGroupMember(groupId, memberId);
+    if (response.success) {
+      await loadAll();
+    } else if (!response.success) {
+      setError(response.error || "Failed to remove member");
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!groupId) return;
+    setError("");
+    const response = await api.leaveGroup(groupId);
+    if (response.success) {
+      navigate("/groups");
+    } else if (!response.success) {
+      setError(response.error || "Failed to leave group");
+    }
+  };
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!groupId) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    const response = await api.uploadGroupAvatar(groupId, file);
+    if (response.success && response.data?.avatar) {
+      setGroup((prev: any) => ({ ...prev, avatar: response.data.avatar }));
+    } else if (!response.success) {
+      setError(response.error || "Failed to upload avatar");
+    }
+    setAvatarUploading(false);
+    event.target.value = "";
+  };
+
+  const handleBannerChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!groupId) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setBannerUploading(true);
+    const response = await api.uploadGroupBanner(groupId, file);
+    if (response.success && response.data?.banner) {
+      setGroup((prev: any) => ({ ...prev, banner: response.data.banner }));
+    } else if (!response.success) {
+      setError(response.error || "Failed to upload banner");
+    }
+    setBannerUploading(false);
+    event.target.value = "";
+  };
+
   const handleApprove = async (requestId: string) => {
     const response = await api.approveJoin(groupId, requestId);
     if (response.success) {
@@ -193,10 +251,58 @@ export default function GroupDetail() {
 
         <div className="px-6 mb-6">
           <div className="relative overflow-hidden rounded-2xl bg-[#0f1a20]">
-            <div className="h-28 w-full bg-[radial-gradient(circle_at_top,_rgba(26,140,122,0.4),_transparent_60%),linear-gradient(135deg,_#0f1a20,_#1f2d33)]" />
-            <div className="absolute -bottom-6 left-6 w-14 h-14 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center font-semibold shadow-lg">
-              {(group?.name || "G").slice(0, 1).toUpperCase()}
+            {group?.banner ? (
+              <img
+                src={group.banner}
+                alt={`${group?.name || "Group"} banner`}
+                className="h-28 w-full object-cover"
+              />
+            ) : (
+              <div className="h-28 w-full bg-[radial-gradient(circle_at_top,_rgba(26,140,122,0.4),_transparent_60%),linear-gradient(135deg,_#0f1a20,_#1f2d33)]" />
+            )}
+            <div className="absolute -bottom-6 left-6 w-14 h-14 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center font-semibold shadow-lg overflow-hidden">
+              {group?.avatar ? (
+                <img
+                  src={group.avatar}
+                  alt={`${group?.name || "Group"} avatar`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (group?.name || "G").slice(0, 1).toUpperCase()
+              )}
             </div>
+            {isAdmin && (
+              <div className="absolute top-3 right-3 flex gap-2">
+                <button
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="px-3 py-1 rounded-full bg-black/40 text-white text-xs"
+                  disabled={bannerUploading}
+                >
+                  {bannerUploading ? "Uploading..." : "Change banner"}
+                </button>
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="px-3 py-1 rounded-full bg-black/40 text-white text-xs"
+                  disabled={avatarUploading}
+                >
+                  {avatarUploading ? "Uploading..." : "Change avatar"}
+                </button>
+              </div>
+            )}
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBannerChange}
+            />
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
           <div className="mt-10">
             <h2 className="font-semibold mb-1 text-[#111b21]">About</h2>
@@ -331,11 +437,29 @@ export default function GroupDetail() {
                       Remove admin
                     </button>
                   )}
+                  {isAdmin && member.role !== "owner" && member.id !== user?.id && (
+                    <button
+                      onClick={() => handleRemoveMember(member.id)}
+                      className="text-xs px-2 py-1 rounded-full border border-black/10 text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </div>
+        {membership?.status === "active" && membership?.role !== "owner" && (
+          <div className="px-6 pb-10">
+            <button
+              onClick={handleLeaveGroup}
+              className="w-full px-4 py-2 rounded-full border border-red-200 text-red-600 bg-white"
+            >
+              Leave group
+            </button>
+          </div>
+        )}
       </div>
 
       {showMemberPicker && (
@@ -391,6 +515,10 @@ export default function GroupDetail() {
                       <button
                         onClick={() => handleAddMember(user.id)}
                         disabled={alreadyMember || addingMemberId === user.id}
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
                         className={`text-xs px-3 py-1 rounded-full ${
                           alreadyMember
                             ? "bg-[#f0f2f5] text-[#667781]"
@@ -400,6 +528,10 @@ export default function GroupDetail() {
                         {alreadyMember
                           ? "Added"
                           : addingMemberId === user.id
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
                           ? "Adding..."
                           : "Add"}
                       </button>
@@ -414,7 +546,4 @@ export default function GroupDetail() {
     </div>
   );
 }
-
-
-
 

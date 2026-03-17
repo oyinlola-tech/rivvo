@@ -271,6 +271,10 @@ export default function Home() {
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
+                        if (conversation.user.isGroup) {
+                          navigate(`/groups/${conversation.user.id}`);
+                          return;
+                        }
                         navigate(`/users/${conversation.user.id}`);
                       }}
                       className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold overflow-hidden"
@@ -288,7 +292,7 @@ export default function Home() {
                         conversation.user.name[0].toUpperCase()
                       )}
                     </button>
-                    {conversation.user.online && (
+                    {conversation.user.online && !conversation.user.isGroup && (
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#0FE16D] rounded-full border-2 border-white"></div>
                     )}
                   </div>
@@ -300,13 +304,19 @@ export default function Home() {
                         <h3 className="font-semibold text-[#111b21] truncate">
                           {conversation.user.name}
                         </h3>
-                        {(conversation.user.isVerifiedBadge ||
+                        {!conversation.user.isGroup &&
+                          (conversation.user.isVerifiedBadge ||
                           conversation.user.isModerator ||
                           conversation.user.isAdmin) && (
                           <VerificationBadge
                             type={conversation.user.isModerator || conversation.user.isAdmin ? "staff" : "user"}
                             size="sm"
                           />
+                        )}
+                        {conversation.user.isGroup && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#e7f6f3] text-[#0a5c50]">
+                            Group
+                          </span>
                         )}
                       </div>
                       {conversation.lastMessage.timestamp && (
@@ -324,7 +334,7 @@ export default function Home() {
                           : "No messages yet"}
                       </p>
                       <div className="flex items-center gap-2">
-                        {(conversation.streakCount ?? 0) > 0 && (
+                        {!conversation.user.isGroup && (conversation.streakCount ?? 0) > 0 && (
                           <div className="flex items-center gap-1 rounded-full bg-[#fff4e5] px-2 py-0.5 text-xs text-[#b45309]">
                             <Flame size={12} className="text-[#b45309]" />
                             {conversation.streakCount}

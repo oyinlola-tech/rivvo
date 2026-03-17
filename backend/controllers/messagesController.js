@@ -71,6 +71,7 @@ export const getConversations = async (req, res) => {
   const [rows] = await pool.execute(
     `SELECT
         c.id AS conversation_id,
+        c.created_at AS conversation_created_at,
         u.id AS user_id,
         u.name,
         u.avatar,
@@ -146,7 +147,7 @@ export const getConversations = async (req, res) => {
     { user_id: userId }
   );
 
-  const conversations = rows.map((row) => ({
+  const directConversations = rows.map((row) => ({
     id: row.conversation_id,
     user: {
       id: row.user_id,
@@ -172,10 +173,108 @@ export const getConversations = async (req, res) => {
       timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : null,
       unreadCount: Number(row.unread_count || 0)
     },
-    streakCount: Number(row.effective_streak_count || 0)
+    streakCount: Number(row.effective_streak_count || 0),
+    _sortTimestamp: row.last_timestamp || row.conversation_created_at
   }));
 
-  return res.json(conversations);
+  const [groupRows] = await pool.execute(
+    `SELECT
+        c.id AS conversation_id,
+        c.created_at AS conversation_created_at,
+        g.id AS group_id,
+        g.name AS group_name,
+        g.avatar AS group_avatar,
+        g.is_private AS group_is_private,
+        (
+          SELECT COUNT(*)
+          FROM group_members gm2
+          WHERE gm2.group_id = g.id AND gm2.status = 'active'
+        ) AS member_count,
+        lm.body AS last_text,
+        lm.created_at AS last_timestamp,
+        lm.is_encrypted AS last_encrypted,
+        lm.view_once AS last_view_once,
+        lm.deleted_for_all_at AS last_deleted_all,
+        lm.deleted_for_sender_at AS last_deleted_for_sender,
+        lm.deleted_for_recipient_at AS last_deleted_for_recipient,
+        lm.sender_id AS last_sender_id,
+        cp.last_read_at AS last_read_at,
+        (
+          SELECT COUNT(*)
+          FROM messages m
+          WHERE m.conversation_id = c.id
+            AND m.sender_id <> :user_id
+            AND (
+              (m.view_once = 1 AND m.view_once_viewed_at IS NULL)
+              OR (m.view_once = 0 AND (cp.last_read_at IS NULL OR m.created_at > cp.last_read_at))
+            )
+        ) AS unread_count
+     FROM groups g
+     JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = :user_id AND gm.status = 'active'
+     JOIN conversations c ON c.id = g.conversation_id
+     LEFT JOIN conversation_participants cp
+       ON cp.conversation_id = c.id AND cp.user_id = :user_id
+     LEFT JOIN (
+       SELECT m1.conversation_id, m1.body, m1.created_at, m1.is_encrypted, m1.view_once, m1.sender_id,
+              m1.deleted_for_all_at, m1.deleted_for_sender_at, m1.deleted_for_recipient_at
+       FROM messages m1
+       JOIN (
+         SELECT conversation_id, MAX(created_at) AS max_created
+         FROM messages
+         GROUP BY conversation_id
+       ) mm
+         ON mm.conversation_id = m1.conversation_id AND mm.max_created = m1.created_at
+     ) lm ON lm.conversation_id = c.id
+     ORDER BY IFNULL(lm.created_at, c.created_at) DESC`,
+    { user_id: userId }
+  );
+
+  const groupConversations = groupRows.map((row) => {
+    const lastDeletedForUser =
+      row.last_sender_id === userId ? row.last_deleted_for_sender : row.last_deleted_for_recipient;
+    return {
+      id: row.conversation_id,
+      user: {
+        id: row.group_id,
+        name: row.group_name,
+        avatar: row.group_avatar || null,
+        online: false,
+        verified: false,
+        isVerifiedBadge: false,
+        badgeStatus: 'none',
+        isModerator: false,
+        isAdmin: false,
+        isGroup: true,
+        isPrivate: Boolean(row.group_is_private),
+        memberCount: Number(row.member_count || 0)
+      },
+      lastMessage: {
+        text: row.last_deleted_all
+          ? 'Message deleted'
+          : lastDeletedForUser
+            ? 'Message deleted'
+            : row.last_view_once
+              ? 'View once message'
+              : row.last_encrypted
+                ? 'Encrypted message'
+                : row.last_text || '',
+        timestamp: row.last_timestamp ? new Date(row.last_timestamp).toISOString() : null,
+        unreadCount: Number(row.unread_count || 0)
+      },
+      streakCount: 0,
+      _sortTimestamp: row.last_timestamp || row.conversation_created_at
+    };
+  });
+
+  const combined = [...directConversations, ...groupConversations]
+    .sort((a, b) => {
+      const at = a._sortTimestamp ? new Date(a._sortTimestamp).getTime() : 0;
+      const bt = b._sortTimestamp ? new Date(b._sortTimestamp).getTime() : 0;
+      return bt - at;
+    })
+    .map(({ _sortTimestamp, ...rest }) => rest);
+
+  return res.json(combined);
 };
 
 export const getMessages = async (req, res) => {
@@ -828,7 +927,7 @@ export const getConversationPeer = async (req, res) => {
   const conversationId = req.params.id;
 
   const [groupRows] = await pool.execute(
-    `SELECT g.id, g.name, g.is_private,
+    `SELECT g.id, g.name, g.is_private, g.avatar, g.banner,
             (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.status = 'active') AS member_count
      FROM groups g
      WHERE g.conversation_id = :conversation_id
@@ -855,7 +954,7 @@ export const getConversationPeer = async (req, res) => {
     return res.json({
       id: group.id,
       name: group.name,
-      avatar: null,
+      avatar: group.avatar || null,
       verified: false,
       isVerifiedBadge: false,
       badgeStatus: 'none',
@@ -866,7 +965,8 @@ export const getConversationPeer = async (req, res) => {
       streakCount: 0,
       isGroup: true,
       isPrivate: Boolean(group.is_private),
-      memberCount: Number(group.member_count || 0)
+      memberCount: Number(group.member_count || 0),
+      banner: group.banner || null
     });
   }
 

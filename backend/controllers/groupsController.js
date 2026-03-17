@@ -100,7 +100,7 @@ export const createGroup = async (req, res) => {
 export const listGroups = async (req, res) => {
   const userId = req.user?.id;
   const [rows] = await pool.execute(
-    `SELECT g.id, g.name, g.description, g.is_private, g.owner_id, gm.role
+    `SELECT g.id, g.name, g.description, g.is_private, g.owner_id, g.avatar, g.banner, gm.role
      FROM group_members gm
      JOIN groups g ON g.id = gm.group_id
      WHERE gm.user_id = :user_id AND gm.status = 'active'
@@ -114,6 +114,8 @@ export const listGroups = async (req, res) => {
     description: row.description,
     isPrivate: Boolean(row.is_private),
     ownerId: row.owner_id,
+    avatar: row.avatar || null,
+    banner: row.banner || null,
     role: row.role
   }));
 
@@ -137,7 +139,7 @@ export const getGroup = async (req, res) => {
   const userId = req.user?.id;
   const { groupId } = req.params;
   const [rows] = await pool.execute(
-    `SELECT id, name, description, is_private, owner_id, conversation_id
+    `SELECT id, name, description, is_private, owner_id, conversation_id, avatar, banner
      FROM groups
      WHERE id = :id`,
     { id: groupId }
@@ -437,4 +439,102 @@ export const addMember = async (req, res) => {
   await addConversationParticipant(conversationId, memberId);
 
   return res.status(201).json({ message: 'Member added' });
+};
+
+export const removeMember = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId, memberId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT role FROM group_members WHERE group_id = :group_id AND user_id = :user_id LIMIT 1`,
+    { group_id: groupId, user_id: memberId }
+  );
+  if (!rows.length) {
+    return sendError(res, 404, 'Member not found');
+  }
+  if (rows[0].role === 'owner') {
+    return sendError(res, 400, 'Owner cannot be removed');
+  }
+
+  await pool.execute(
+    `DELETE FROM group_members WHERE group_id = :group_id AND user_id = :user_id`,
+    { group_id: groupId, user_id: memberId }
+  );
+
+  await pool.execute(
+    `DELETE FROM conversation_participants
+     WHERE conversation_id = (SELECT conversation_id FROM groups WHERE id = :group_id)
+       AND user_id = :user_id`,
+    { group_id: groupId, user_id: memberId }
+  );
+
+  return res.json({ message: 'Member removed' });
+};
+
+export const leaveGroup = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership) {
+    return sendError(res, 404, 'Group membership not found');
+  }
+  if (membership.role === 'owner') {
+    return sendError(res, 400, 'Owner cannot leave the group');
+  }
+
+  await pool.execute(
+    `DELETE FROM group_members WHERE group_id = :group_id AND user_id = :user_id`,
+    { group_id: groupId, user_id: userId }
+  );
+
+  await pool.execute(
+    `DELETE FROM conversation_participants
+     WHERE conversation_id = (SELECT conversation_id FROM groups WHERE id = :group_id)
+       AND user_id = :user_id`,
+    { group_id: groupId, user_id: userId }
+  );
+
+  return res.json({ message: 'Left group' });
+};
+
+export const uploadGroupAvatar = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const file = req.file;
+  if (!file) {
+    return sendError(res, 400, 'Avatar file is required');
+  }
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+  const avatarUrl = `/uploads/groups/avatars/${file.filename}`;
+  await pool.execute(
+    `UPDATE groups SET avatar = :avatar WHERE id = :id`,
+    { avatar: avatarUrl, id: groupId }
+  );
+  return res.json({ message: 'Group avatar updated', avatar: avatarUrl });
+};
+
+export const uploadGroupBanner = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const file = req.file;
+  if (!file) {
+    return sendError(res, 400, 'Banner file is required');
+  }
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+  const bannerUrl = `/uploads/groups/banners/${file.filename}`;
+  await pool.execute(
+    `UPDATE groups SET banner = :banner WHERE id = :id`,
+    { banner: bannerUrl, id: groupId }
+  );
+  return res.json({ message: 'Group banner updated', banner: bannerUrl });
 };

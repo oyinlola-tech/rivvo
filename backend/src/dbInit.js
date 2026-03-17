@@ -421,6 +421,8 @@ export const initDb = async () => {
       owner_id CHAR(36) NOT NULL,
       name VARCHAR(120) NOT NULL,
       description TEXT NULL,
+      avatar VARCHAR(512) NULL,
+      banner VARCHAR(512) NULL,
       is_private TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_groups_owner (owner_id),
@@ -789,6 +791,24 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE groups
       ADD COLUMN conversation_id CHAR(36) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD COLUMN avatar VARCHAR(512) NULL
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD COLUMN banner VARCHAR(512) NULL
     `);
   } catch (error) {
     // Column likely exists already.

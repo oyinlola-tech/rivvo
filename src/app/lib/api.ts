@@ -72,6 +72,9 @@ export interface ConversationDto {
     badgeStatus?: "none" | "active" | "expired";
     isModerator: boolean;
     isAdmin: boolean;
+    isGroup?: boolean;
+    isPrivate?: boolean;
+    memberCount?: number;
   };
   lastMessage: {
     text: string;
@@ -711,7 +714,16 @@ class ApiClient {
   }
 
   async getGroup(groupId: string): Promise<ApiResponse<any>> {
-    return this.request(`/groups/${groupId}`);
+    const response = await this.request(`/groups/${groupId}`);
+    if (response.success && response.data) {
+      if (response.data.avatar) {
+        response.data.avatar = withMediaBase(response.data.avatar) || response.data.avatar;
+      }
+      if (response.data.banner) {
+        response.data.banner = withMediaBase(response.data.banner) || response.data.banner;
+      }
+    }
+    return response;
   }
 
   async listGroupMembers(groupId: string): Promise<ApiResponse<any[]>> {
@@ -723,6 +735,40 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify({ memberId }),
     });
+  }
+
+  async removeGroupMember(groupId: string, memberId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}/members/${memberId}`, { method: "DELETE" });
+  }
+
+  async leaveGroup(groupId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}/leave`, { method: "POST" });
+  }
+
+  async uploadGroupAvatar(groupId: string, file: File): Promise<ApiResponse<{ message: string; avatar: string }>> {
+    const form = new FormData();
+    form.append("avatar", file);
+    const response = await this.requestForm<{ message: string; avatar: string }>(
+      `/groups/${groupId}/avatar`,
+      form
+    );
+    if (response.success && response.data?.avatar) {
+      response.data.avatar = withMediaBase(response.data.avatar) || response.data.avatar;
+    }
+    return response;
+  }
+
+  async uploadGroupBanner(groupId: string, file: File): Promise<ApiResponse<{ message: string; banner: string }>> {
+    const form = new FormData();
+    form.append("banner", file);
+    const response = await this.requestForm<{ message: string; banner: string }>(
+      `/groups/${groupId}/banner`,
+      form
+    );
+    if (response.success && response.data?.banner) {
+      response.data.banner = withMediaBase(response.data.banner) || response.data.banner;
+    }
+    return response;
   }
 
   async createGroupInvite(groupId: string): Promise<ApiResponse<{ token: string; groupId: string }>> {
