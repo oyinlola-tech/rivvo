@@ -75,6 +75,7 @@ export const deleteUser = async (req, res) => {
   if (!userId) {
     return sendError(res, 400, 'userId is required');
   }
+  await pool.execute('DELETE FROM refresh_tokens WHERE user_id = :id', { id: userId });
   await pool.execute('DELETE FROM users WHERE id = :id', { id: userId });
   await logAdminAction(req.user?.id, 'delete_user', userId, null);
   return res.json({ message: 'User deleted successfully' });
@@ -209,6 +210,20 @@ export const updateUserStatus = async (req, res) => {
     id: userId,
     status
   });
+  if (status === 'suspended') {
+    await pool.execute(
+      `UPDATE users
+       SET token_version = token_version + 1
+       WHERE id = :id`,
+      { id: userId }
+    );
+    await pool.execute(
+      `UPDATE refresh_tokens
+       SET revoked_at = NOW()
+       WHERE user_id = :id AND revoked_at IS NULL`,
+      { id: userId }
+    );
+  }
 
   await logAdminAction(req.user?.id, 'update_user_status', userId, { status });
   return res.json({ message: 'User status updated' });

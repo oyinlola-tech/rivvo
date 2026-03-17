@@ -7,12 +7,25 @@ import { useAuth } from "../contexts/AuthContext";
 
 type CallType = "audio" | "video";
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-  ],
-};
+const ICE_SERVERS: RTCConfiguration = (() => {
+  const raw = (import.meta as any).env?.VITE_ICE_SERVERS;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return { iceServers: parsed };
+      }
+    } catch {
+      // ignore malformed config
+    }
+  }
+  return {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+    ],
+  };
+})();
 
 const MAX_PARTICIPANTS = 10;
 
@@ -400,8 +413,12 @@ export default function CallRoom() {
         window.location.assign("/calls");
       }
     };
+    const handleCallError = (payload: { message?: string }) => {
+      setError(payload?.message || "Unable to join call.");
+    };
 
     socket.on("call:full", handleFull);
+    socket.on("call:error", handleCallError);
     socket.on("call:peers", handlePeers);
     socket.on("call:peer-joined", handlePeerJoined);
     socket.on("call:peer-left", handlePeerLeft);
@@ -424,6 +441,7 @@ export default function CallRoom() {
     return () => {
       socket.off("connect");
       socket.off("call:full", handleFull);
+      socket.off("call:error", handleCallError);
       socket.off("call:peers", handlePeers);
       socket.off("call:peer-joined", handlePeerJoined);
       socket.off("call:peer-left", handlePeerLeft);

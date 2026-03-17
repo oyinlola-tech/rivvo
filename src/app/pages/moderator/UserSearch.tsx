@@ -28,42 +28,52 @@ export default function ModeratorUserSearch() {
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">User Search</h1>
-      <div className="flex gap-2 mb-6">
-        <input
-          className="flex-1 px-3 py-2 border rounded-lg"
-          placeholder="Search by name, email, or phone"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        />
-        <button onClick={handleSearch} className="px-4 py-2 rounded-lg bg-[#1a8c7a] text-white">
-          Search
-        </button>
-      </div>
-      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
-      {results.length === 0 ? (
-        <p className="text-gray-500">No results</p>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-100">
-          {results.map((user) => (
-            <div key={user.id} className="p-4 flex items-center justify-between">
-              <div>
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm text-gray-600">{user.email}</p>
-                {user.phone && <p className="text-xs text-gray-500">{user.phone}</p>}
-              </div>
-              <button
-                onClick={() => handleToggleStatus(user.id, user.status)}
-                className="px-3 py-1 rounded-lg border text-sm"
-              >
-                {user.status === "active" ? "Suspend" : "Unsuspend"}
-              </button>
-            </div>
-          ))}
+    <div className="min-h-screen bg-[#f0f2f5]">
+      <div className="bg-[#1a8c7a] text-white shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-white/70">Moderator</p>
+          <h1 className="text-2xl font-semibold">User Search</h1>
         </div>
-      )}
+      </div>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="flex gap-2 mb-6">
+          <input
+            className="flex-1 px-4 py-3 border border-[#d6dbe0] rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]/30"
+            placeholder="Search by name, email, or phone"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          />
+          <button
+            onClick={handleSearch}
+            className="px-5 py-3 rounded-full bg-[#1a8c7a] text-white text-sm font-medium"
+          >
+            Search
+          </button>
+        </div>
+        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+        {results.length === 0 ? (
+          <p className="text-gray-500">No results</p>
+        ) : (
+          <div className="bg-white rounded-2xl border border-[#e6e6e6] divide-y divide-[#eef0f2]">
+            {results.map((user) => (
+              <div key={user.id} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold">{user.name}</p>
+                  <p className="text-sm text-[#5f6d75]">{user.email}</p>
+                  {user.phone && <p className="text-xs text-[#7a8a93]">{user.phone}</p>}
+                </div>
+                <button
+                  onClick={() => handleToggleStatus(user.id, user.status)}
+                  className="px-4 py-2 rounded-full border border-[#d6dbe0] text-sm hover:bg-[#f7f9fa]"
+                >
+                  {user.status === "active" ? "Suspend" : "Unsuspend"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

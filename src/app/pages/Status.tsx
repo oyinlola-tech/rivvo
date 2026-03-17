@@ -229,8 +229,8 @@ export default function Status() {
 
   return (
     <>
-      <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
-      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
+      <div className="min-h-[100dvh] bg-[#f0f2f5] md:ml-64">
+      <div className="bg-[#1a8c7a] sticky top-0 z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Status</h1>
@@ -239,7 +239,7 @@ export default function Status() {
           <button
             onClick={openNotificationsSheet}
             aria-label="Notifications"
-            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+            className="relative w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"
           >
             <Bell size={20} />
             {unreadCount > 0 && (
@@ -251,7 +251,7 @@ export default function Status() {
         </div>
       </div>
 
-      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6 px-6 pb-10">
+      <div className="bg-white rounded-t-[32px] min-h-[calc(100dvh-100px)] pt-6 px-6 pb-10 border border-[#e6e6e6]">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[#111b21]">My Status</h2>
@@ -260,7 +260,7 @@ export default function Status() {
           <div className="rounded-2xl border border-gray-100 bg-[#f7f9f9] p-4 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1DA1F2]">
+                <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1a8c7a]">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold overflow-hidden">
                     {user?.avatar ? (
                       <img
@@ -350,7 +350,7 @@ export default function Status() {
                         key={group.user.id}
                         className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-white hover:bg-[#f7f9f9] shadow-sm"
                       >
-                        <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1DA1F2]">
+                        <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1a8c7a]">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                             {group.user.avatar ? (
                               <img
@@ -519,7 +519,7 @@ export default function Status() {
 
           <div className="absolute top-6 left-4 right-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1DA1F2]">
+              <div className="p-0.5 rounded-full bg-gradient-to-tr from-[#1a8c7a] to-[#1a8c7a]">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] overflow-hidden flex items-center justify-center text-xs font-bold">
                   {openGroup.user.avatar ? (
                     <img

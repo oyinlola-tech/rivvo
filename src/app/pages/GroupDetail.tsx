@@ -1,8 +1,17 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+﻿import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../lib/api";
 import { Copy, Shield, Lock, Globe, UserPlus, MessageCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  getOrCreateKeyPair,
+  importPrivateKey,
+  importPublicKey,
+  deriveSharedKey,
+  generateGroupKey,
+  exportRawKey,
+  encryptMessage,
+} from "../lib/crypto";
 
 interface Member {
   id: string;
@@ -37,6 +46,14 @@ export default function GroupDetail() {
   const [handleSaving, setHandleSaving] = useState(false);
   const [handleError, setHandleError] = useState("");
   const [showMembers, setShowMembers] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [keyStatus, setKeyStatus] = useState<{ version: number; hasKey: boolean }>({
+    version: 1,
+    hasKey: false,
+  });
+  const [keyRotateLoading, setKeyRotateLoading] = useState(false);
+  const [keyRotateError, setKeyRotateError] = useState("");
+  const autoRotateAttemptedRef = useRef(false);
 
   const loadAll = async () => {
     if (!groupId) return;
@@ -48,6 +65,9 @@ export default function GroupDetail() {
     ]);
     if (groupResp.success) {
       setGroup(groupResp.data);
+      if (groupResp.data?.keyVersion) {
+        setKeyStatus((prev) => ({ ...prev, version: Number(groupResp.data.keyVersion || 1) }));
+      }
     }
     if (membersResp.success) {
       setMembers(membersResp.data);
@@ -57,6 +77,15 @@ export default function GroupDetail() {
     }
     if (!groupResp.success) {
       setError(groupResp.error || "Failed to load group");
+    }
+    if (groupResp.success && groupResp.data?.membership?.status === "active") {
+      const keyResp = await api.getGroupKey(groupId);
+      if (keyResp.success && keyResp.data) {
+        setKeyStatus({
+          version: Number(keyResp.data.version || groupResp.data?.keyVersion || 1),
+          hasKey: Boolean(keyResp.data.wrappedKey),
+        });
+      }
     }
   };
 
@@ -80,6 +109,16 @@ export default function GroupDetail() {
   const canInvite = group?.isPrivate ? isAdmin : Boolean(membership?.status === "active");
   const memberIds = new Set(members.map((member) => member.id));
   const canViewMembers = group ? (!group.isPrivate || isAdmin) : false;
+
+  useEffect(() => {
+    if (!groupId) return;
+    if (!isAdmin) return;
+    if (keyStatus.hasKey) return;
+    if (keyRotateLoading) return;
+    if (autoRotateAttemptedRef.current) return;
+    autoRotateAttemptedRef.current = true;
+    handleRotateGroupKey();
+  }, [groupId, isAdmin, keyStatus.hasKey, keyRotateLoading]);
 
   const handleCreateInvite = async () => {
     const response = await api.createGroupInvite(groupId);
@@ -153,6 +192,21 @@ export default function GroupDetail() {
     }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!groupId) return;
+    const confirmed = window.confirm("Delete this group? This action cannot be undone.");
+    if (!confirmed) return;
+    setDeleteLoading(true);
+    setError("");
+    const response = await api.deleteGroup(groupId);
+    if (response.success) {
+      navigate("/groups");
+    } else if (!response.success) {
+      setError(response.error || "Failed to delete group");
+    }
+    setDeleteLoading(false);
+  };
+
   const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!groupId) return;
     const file = event.target.files?.[0];
@@ -198,6 +252,59 @@ export default function GroupDetail() {
     setHandleSaving(false);
   };
 
+  const handleRotateGroupKey = async () => {
+    if (!groupId) return;
+    setKeyRotateLoading(true);
+    setKeyRotateError("");
+    const membersResp = await api.getGroupKeyMembers(groupId);
+    if (!membersResp.success || !membersResp.data?.members?.length) {
+      setKeyRotateError(membersResp.error || "Unable to load members for rotation");
+      setKeyRotateLoading(false);
+      return;
+    }
+    const missingKeys = membersResp.data.members.filter((member) => !member.publicKey);
+    if (missingKeys.length) {
+      setKeyRotateError("Some members are missing encryption keys.");
+      setKeyRotateLoading(false);
+      return;
+    }
+
+    const keyPair = await getOrCreateKeyPair();
+    const privateKey = await importPrivateKey(keyPair.privateKey);
+    const groupKey = await generateGroupKey();
+    const rawKey = await exportRawKey(groupKey);
+
+    const shares = await Promise.all(
+      membersResp.data.members.map(async (member) => {
+        if (!member.publicKey) return null;
+        const memberPublic = await importPublicKey(JSON.parse(member.publicKey));
+        const derived = await deriveSharedKey(privateKey, memberPublic);
+        const wrapped = await encryptMessage(rawKey, derived);
+        return {
+          userId: member.userId,
+          wrappedKey: wrapped.ciphertext,
+          wrappedKeyIv: wrapped.iv,
+          senderPublicKey: JSON.stringify(keyPair.publicKey),
+        };
+      })
+    );
+    const validShares = shares.filter(Boolean) as {
+      userId: string;
+      wrappedKey: string;
+      wrappedKeyIv: string;
+      senderPublicKey: string;
+    }[];
+
+    const rotateResp = await api.rotateGroupKey(groupId, membersResp.data.version, validShares);
+    if (!rotateResp.success) {
+      setKeyRotateError(rotateResp.error || "Failed to rotate group key");
+      setKeyRotateLoading(false);
+      return;
+    }
+    setKeyStatus({ version: membersResp.data.version, hasKey: true });
+    setKeyRotateLoading(false);
+  };
+
   const handleApprove = async (requestId: string) => {
     const response = await api.approveJoin(groupId, requestId);
     if (response.success) {
@@ -235,11 +342,11 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#0b141a] md:ml-64">
-      <div className="bg-[#111b21] sticky top-0 z-10 px-6 pt-5 pb-4">
+    <div className="min-h-[100dvh] bg-[#1a8c7a] md:ml-64">
+      <div className="bg-[#1a8c7a] sticky top-0 z-10 px-6 pt-5 pb-4 border-b border-white/20">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center font-semibold">
+            <div className="w-12 h-12 rounded-full bg-white/20 text-white flex items-center justify-center font-semibold ring-2 ring-white/30">
               {(group?.name || "G").slice(0, 1).toUpperCase()}
             </div>
             <div>
@@ -256,6 +363,9 @@ export default function GroupDetail() {
                   {group?.isPrivate ? <Lock size={12} /> : <Globe size={12} />}
                   {group?.isPrivate ? "Private" : "Public"}
                 </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-white/80">
+                  E2E {keyStatus.hasKey ? `v${keyStatus.version}` : "pending"}
+                </span>
                 <span>{group?.isPrivate ? "Invite only" : "Open to all"}</span>
               </div>
             </div>
@@ -264,14 +374,14 @@ export default function GroupDetail() {
             {isAdmin && (
               <button
                 onClick={() => setShowMemberPicker(true)}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 text-white text-xs"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 text-white text-xs hover:bg-white/15"
               >
                 <UserPlus size={14} /> Add members
               </button>
             )}
             <button
               onClick={handleOpenChat}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 text-white text-xs"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 text-white text-xs hover:bg-white/15"
             >
               <MessageCircle size={14} /> Open chat
             </button>
@@ -279,11 +389,15 @@ export default function GroupDetail() {
         </div>
       </div>
 
-      <div className="bg-[#f0f2f5] rounded-t-[40px] min-h-[calc(100dvh-120px)] pt-6">
-        {error && <p className="px-6 text-red-600 text-sm">{error}</p>}
+      <div className="bg-[#f0f2f5] rounded-t-[32px] min-h-[calc(100dvh-120px)] pt-6">
+        {error && (
+          <div className="mx-6 mb-4 rounded-2xl border border-[#1a8c7a]/20 bg-[#1a8c7a]/10 px-4 py-3 text-sm text-[#1a8c7a]">
+            {error}
+          </div>
+        )}
 
         <div className="px-6 mb-6">
-          <div className="relative overflow-hidden rounded-2xl bg-[#0f1a20]">
+          <div className="relative overflow-hidden rounded-3xl bg-[#0f1a20] shadow-sm border border-black/5">
             {group?.banner ? (
               <img
                 src={group.banner}
@@ -293,7 +407,7 @@ export default function GroupDetail() {
             ) : (
               <div className="h-28 w-full bg-[radial-gradient(circle_at_top,_rgba(26,140,122,0.4),_transparent_60%),linear-gradient(135deg,_#0f1a20,_#1f2d33)]" />
             )}
-            <div className="absolute -bottom-6 left-6 w-14 h-14 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center font-semibold shadow-lg overflow-hidden">
+            <div className="absolute -bottom-6 left-6 w-16 h-16 rounded-full bg-[#1a8c7a]/20 text-white flex items-center justify-center font-semibold shadow-lg overflow-hidden ring-2 ring-white">
               {group?.avatar ? (
                 <img
                   src={group.avatar}
@@ -308,14 +422,14 @@ export default function GroupDetail() {
               <div className="absolute top-3 right-3 flex gap-2">
                 <button
                   onClick={() => bannerInputRef.current?.click()}
-                  className="px-3 py-1 rounded-full bg-black/40 text-white text-xs"
+                  className="px-3 py-1 rounded-full bg-black/40 text-white text-xs backdrop-blur"
                   disabled={bannerUploading}
                 >
                   {bannerUploading ? "Uploading..." : "Change banner"}
                 </button>
                 <button
                   onClick={() => avatarInputRef.current?.click()}
-                  className="px-3 py-1 rounded-full bg-black/40 text-white text-xs"
+                  className="px-3 py-1 rounded-full bg-black/40 text-white text-xs backdrop-blur"
                   disabled={avatarUploading}
                 >
                   {avatarUploading ? "Uploading..." : "Change avatar"}
@@ -337,15 +451,22 @@ export default function GroupDetail() {
               onChange={handleAvatarChange}
             />
           </div>
-          <div className="mt-10">
-            <h2 className="font-semibold mb-1 text-[#111b21]">About</h2>
-            <p className="text-sm text-[#667781]">{group?.description || "No description"}</p>
-            <div className="mt-3 flex items-center gap-3">
+          <div className="mt-10 bg-white rounded-3xl border border-black/5 shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-[#111b21]">About</h2>
+                <p className="text-sm text-[#667781] mt-1">{group?.description || "No description"}</p>
+              </div>
+              <div className="text-xs text-[#667781]">
+                {group?.isPrivate ? "Private group" : "Public group"}
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-3">
               <span className="text-xs text-[#667781]">Handle</span>
               {handleEditing && isAdmin ? (
                 <div className="flex items-center gap-2">
                   <input
-                    className="px-3 py-1 border border-black/10 rounded-full text-xs"
+                    className="px-3 py-1 border border-black/10 rounded-full text-xs bg-white"
                     placeholder="groupname"
                     value={handleValue}
                     onChange={(e) => setHandleValue(e.target.value)}
@@ -384,13 +505,19 @@ export default function GroupDetail() {
                 </div>
               )}
             </div>
-            {handleError && <p className="text-xs text-red-600 mt-2">{handleError}</p>}
-            <button
-              onClick={() => setShowMembers(true)}
-              className="mt-3 text-xs text-[#1a8c7a]"
-            >
-              View members
-            </button>
+            {handleError && <p className="text-xs text-[#1a8c7a] mt-2">{handleError}</p>}
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                onClick={() => setShowMembers(true)}
+                className="text-xs text-[#1a8c7a] underline-offset-4 hover:underline"
+              >
+                View members
+              </button>
+              {group?.handle && (
+                <span className="text-xs text-[#667781]">• /g/{group.handle}</span>
+              )}
+            </div>
+            {keyRotateError && <p className="text-xs text-[#1a8c7a] mt-2">{keyRotateError}</p>}
           </div>
         </div>
 
@@ -413,15 +540,17 @@ export default function GroupDetail() {
 
         {canInvite && (
           <div className="px-6 mb-6">
-            <button
-              onClick={handleCreateInvite}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm"
-            >
-              <Copy size={16} /> Generate invite link
-            </button>
-            {inviteLink && (
-              <p className="mt-2 text-xs text-[#667781] break-all">{inviteLink}</p>
-            )}
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleCreateInvite}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm"
+              >
+                <Copy size={16} /> Generate invite link
+              </button>
+              {inviteLink && (
+                <p className="text-xs text-[#667781] break-all">{inviteLink}</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -429,9 +558,9 @@ export default function GroupDetail() {
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-black/5">
             <div className="flex items-center gap-2 mb-2">
               {group?.isPrivate ? (
-                <Lock size={16} className="text-[#a61f2a]" />
+                <Lock size={16} className="text-[#1a8c7a]" />
               ) : (
-                <Globe size={16} className="text-[#0a5c50]" />
+                <Globe size={16} className="text-[#1a8c7a]" />
               )}
               <h3 className="font-semibold text-[#111b21]">
                 {group?.isPrivate ? "Private info" : "Public info"}
@@ -461,7 +590,7 @@ export default function GroupDetail() {
             ) : (
               <div className="space-y-2">
                 {requests.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+                  <div key={req.id} className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm border border-black/5">
                     <div>
                       <p className="font-medium text-[#111b21]">{req.name}</p>
                       <p className="text-xs text-[#667781]">{req.email}</p>
@@ -493,7 +622,7 @@ export default function GroupDetail() {
             <h3 className="font-semibold mb-2 text-[#111b21]">Members</h3>
             <div className="space-y-2">
               {members.map((member) => (
-                <div key={member.id} className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+                <div key={member.id} className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm border border-black/5">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#e7f6f3] text-[#0a5c50] flex items-center justify-center text-sm font-semibold">
                       {(member.name || "M").slice(0, 1).toUpperCase()}
@@ -528,7 +657,7 @@ export default function GroupDetail() {
                     {isAdmin && member.role !== "owner" && member.id !== user?.id && (
                       <button
                         onClick={() => handleRemoveMember(member.id)}
-                        className="text-xs px-2 py-1 rounded-full border border-black/10 text-red-600"
+                        className="text-xs px-2 py-1 rounded-full border border-black/10 text-[#111b21]"
                       >
                         Remove
                       </button>
@@ -550,9 +679,20 @@ export default function GroupDetail() {
           <div className="px-6 pb-10">
             <button
               onClick={handleLeaveGroup}
-              className="w-full px-4 py-2 rounded-full border border-red-200 text-red-600 bg-white"
+              className="w-full px-4 py-2 rounded-full border border-black/10 text-[#111b21] bg-white"
             >
               Leave group
+            </button>
+          </div>
+        )}
+        {membership?.status === "active" && membership?.role === "owner" && (
+          <div className="px-6 pb-10">
+            <button
+              onClick={handleDeleteGroup}
+              disabled={deleteLoading}
+              className="w-full px-4 py-2 rounded-full border border-black/10 text-[#111b21] bg-white disabled:opacity-60"
+            >
+              {deleteLoading ? "Deleting..." : "Delete group"}
             </button>
           </div>
         )}
@@ -590,7 +730,7 @@ export default function GroupDetail() {
                 Search
               </button>
             </div>
-            {memberError && <p className="text-xs text-red-600 mb-2">{memberError}</p>}
+            {memberError && <p className="text-xs text-[#1a8c7a] mb-2">{memberError}</p>}
             {memberLoading ? (
               <div className="py-6 text-center text-sm text-[#667781]">Searching...</div>
             ) : memberResults.length === 0 ? (

@@ -92,9 +92,9 @@ export default function Calls() {
   const getCallIcon = (direction: string) => {
     switch (direction) {
       case "incoming":
-        return <PhoneIncoming size={16} className="text-[#0FE16D]" />;
+        return <PhoneIncoming size={16} className="text-[#1a8c7a]" />;
       case "outgoing":
-        return <PhoneOutgoing size={16} className="text-[#0FE16D]" />;
+        return <PhoneOutgoing size={16} className="text-[#1a8c7a]" />;
       case "missed":
         return <PhoneMissed size={16} className="text-[#EA3736]" />;
       default:
@@ -111,15 +111,15 @@ export default function Calls() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
+    <div className="min-h-[100dvh] bg-[#f0f2f5] md:ml-64">
       {/* Header */}
-      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
+      <div className="bg-[#1a8c7a] sticky top-0 z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Calls</h1>
           <button
             onClick={openNotificationsSheet}
             aria-label="Notifications"
-            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+            className="relative w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"
           >
             <Bell size={20} />
             {unreadCount > 0 && (
@@ -132,14 +132,14 @@ export default function Calls() {
       </div>
 
       {/* Calls List */}
-      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6">
+      <div className="bg-white rounded-t-[32px] min-h-[calc(100dvh-100px)] pt-6 border border-[#e6e6e6]">
         <div className="px-6 mb-6">
           <h2 className="font-semibold text-lg mb-3">Create call link</h2>
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <select
               value={type}
               onChange={(e) => setType(e.target.value as "audio" | "video")}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="border border-[#d6dbe0] rounded-full px-3 py-2 text-sm"
             >
               <option value="audio">Audio</option>
               <option value="video">Video</option>
@@ -147,7 +147,7 @@ export default function Calls() {
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value as "direct" | "group")}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="border border-[#d6dbe0] rounded-full px-3 py-2 text-sm"
             >
               <option value="direct">1-to-1</option>
               <option value="group">Group</option>
@@ -156,7 +156,7 @@ export default function Calls() {
               <select
                 value={groupId}
                 onChange={(e) => setGroupId(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-sm"
+                className="border border-[#d6dbe0] rounded-full px-3 py-2 text-sm"
               >
                 <option value="">Select group</option>
                 {groups.map((group) => (
@@ -168,12 +168,12 @@ export default function Calls() {
             )}
             <button
               onClick={handleCreateCallLink}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm"
             >
               <LinkIcon size={16} /> Create link
             </button>
           </div>
-          {callLink && <p className="text-xs text-gray-600 break-all">{callLink}</p>}
+          {callLink && <p className="text-xs text-[#5f6d75] break-all">{callLink}</p>}
         </div>
         <div className="px-6 mb-4">
           <h2 className="font-semibold text-lg">Recent</h2>
@@ -192,11 +192,11 @@ export default function Calls() {
             <p className="text-gray-500">No call history</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[#eef0f2]">
             {calls.map((call) => (
-              <div key={call.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+              <div key={call.id} className="px-6 py-4 hover:bg-[#f7f9fa] transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 rounded-full bg-[#1a8c7a] flex items-center justify-center text-white font-bold">
                     {call.user.avatar ? (
                       <img
                         src={call.user.avatar}

@@ -20,7 +20,8 @@ export const createToken = (user) =>
       isVerifiedBadge: isBadgeActive(user),
       verifiedBadgeExpiresAt: user.verified_badge_expires_at ?? user.verifiedBadgeExpiresAt ?? null,
       isModerator: Boolean(user.is_moderator ?? user.isModerator),
-      isAdmin: Boolean(user.is_admin ?? user.isAdmin)
+      isAdmin: Boolean(user.is_admin ?? user.isAdmin),
+      tokenVersion: Number(user.token_version ?? user.tokenVersion ?? 0)
     },
     env.jwt.secret,
     { expiresIn: env.jwt.expiresIn }

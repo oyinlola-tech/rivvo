@@ -21,9 +21,14 @@ import {
   uploadGroupAvatar,
   uploadGroupBanner,
   updateGroupHandle,
-  getGroupByHandle
+  getGroupByHandle,
+  deleteGroup,
+  getGroupKeyShare,
+  listGroupKeyMembers,
+  rotateGroupKey
 } from '../controllers/groupsController.js';
 import { upload } from '../utils/upload.js';
+import { uploadRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -34,10 +39,14 @@ router.post('/', asyncHandler(createGroup));
 router.get('/', asyncHandler(listGroups));
 router.get('/handle/:handle', asyncHandler(getGroupByHandle));
 router.get('/:groupId', asyncHandler(getGroup));
+router.get('/:groupId/keys', asyncHandler(getGroupKeyShare));
+router.get('/:groupId/keys/members', asyncHandler(listGroupKeyMembers));
+router.post('/:groupId/keys/rotate', asyncHandler(rotateGroupKey));
 router.get('/:groupId/members', asyncHandler(listMembers));
 router.post('/:groupId/members', asyncHandler(addMember));
 router.delete('/:groupId/members/:memberId', asyncHandler(removeMember));
 router.post('/:groupId/leave', asyncHandler(leaveGroup));
+router.delete('/:groupId', asyncHandler(deleteGroup));
 router.patch('/:groupId/handle', asyncHandler(updateGroupHandle));
 router.post('/:groupId/invites', asyncHandler(createInvite));
 router.post('/invites/:token/join', asyncHandler(joinByInvite));
@@ -49,6 +58,7 @@ router.post('/:groupId/admins', asyncHandler(promoteAdmin));
 router.delete('/:groupId/admins/:memberId', asyncHandler(demoteAdmin));
 router.post(
   '/:groupId/avatar',
+  uploadRateLimiter,
   (req, res, next) => {
     req.uploadFolder = 'uploads/groups/avatars';
     next();
@@ -58,6 +68,7 @@ router.post(
 );
 router.post(
   '/:groupId/banner',
+  uploadRateLimiter,
   (req, res, next) => {
     req.uploadFolder = 'uploads/groups/banners';
     next();

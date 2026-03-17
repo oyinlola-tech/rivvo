@@ -196,16 +196,16 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
+    <div className="min-h-[100dvh] bg-[#f0f2f5] md:ml-64">
       {/* Header */}
-      <div className="bg-[#111b21] sticky top-0 z-10">
+      <div className="bg-[#1a8c7a] sticky top-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-white">Messages</h1>
             </div>
             <button
-              className="relative w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+              className="relative w-11 h-11 rounded-full bg-white/20 flex items-center justify-center"
               onClick={openNotificationsSheet}
               aria-label="Notifications"
             >
@@ -219,20 +219,20 @@ export default function Home() {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70" size={20} />
             <input
               type="text"
               placeholder="Search messages..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
+              className="w-full pl-12 pr-4 py-3 bg-white/15 border border-white/30 rounded-full text-white placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-white/40"
             />
           </div>
         </div>
       </div>
 
       {/* Conversations List */}
-      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-160px)] pt-6">
+      <div className="bg-white rounded-t-[32px] min-h-[calc(100dvh-160px)] pt-6 border border-[#e6e6e6]">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
@@ -246,12 +246,12 @@ export default function Home() {
             <p className="text-gray-500">No conversations found</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[#eef0f2]">
             {filteredConversations.map((conversation) => (
               <Link
                 key={conversation.id}
                 to={`/messages/${conversation.id}`}
-                className="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                className="block px-6 py-4 hover:bg-[#f7f9fa] transition-colors"
                 onTouchStart={() => handleLongPressStart(conversation)}
                 onTouchEnd={handleLongPressEnd}
                 onTouchCancel={handleLongPressEnd}
@@ -277,7 +277,7 @@ export default function Home() {
                         }
                         navigate(`/users/${conversation.user.id}`);
                       }}
-                      className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold overflow-hidden"
+                      className="w-14 h-14 rounded-full bg-[#1a8c7a] flex items-center justify-center text-white text-xl font-bold overflow-hidden"
                       aria-label={`View ${conversation.user.name} profile`}
                     >
                       {conversation.user.avatar ? (
@@ -293,7 +293,7 @@ export default function Home() {
                       )}
                     </button>
                     {conversation.user.online && !conversation.user.isGroup && (
-                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#0FE16D] rounded-full border-2 border-white"></div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#1a8c7a] rounded-full border-2 border-white"></div>
                     )}
                   </div>
 

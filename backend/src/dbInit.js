@@ -31,10 +31,20 @@ export const initDb = async () => {
       verified_badge_expires_at DATETIME NULL,
       is_moderator TINYINT(1) DEFAULT 0,
       is_admin TINYINT(1) DEFAULT 0,
+      token_version INT DEFAULT 0,
       status ENUM('active', 'suspended') DEFAULT 'active',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  try {
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN token_version INT DEFAULT 0
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
 
   if (env.admin?.email && env.admin?.password) {
     const [adminRows] = await pool.query(
@@ -424,12 +434,30 @@ export const initDb = async () => {
       handle VARCHAR(40) NULL,
       avatar VARCHAR(512) NULL,
       banner VARCHAR(512) NULL,
+      key_version INT DEFAULT 1,
       is_private TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_groups_owner (owner_id),
       INDEX idx_groups_public (is_private),
       INDEX idx_groups_conversation (conversation_id),
       UNIQUE KEY uq_groups_handle (handle)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS group_key_shares (
+      group_id CHAR(36) NOT NULL,
+      user_id CHAR(36) NOT NULL,
+      version INT NOT NULL,
+      wrapped_key TEXT NOT NULL,
+      wrapped_key_iv VARCHAR(64) NOT NULL,
+      sender_public_key TEXT NOT NULL,
+      sender_user_id CHAR(36) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (group_id, user_id, version),
+      INDEX idx_group_keys_group (group_id),
+      INDEX idx_group_keys_user (user_id),
+      INDEX idx_group_keys_version (version)
     )
   `);
 
@@ -829,6 +857,37 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE groups
       ADD UNIQUE KEY uq_groups_handle (handle)
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE groups
+      ADD COLUMN key_version INT DEFAULT 1
+    `);
+  } catch (error) {
+    // Column likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE group_key_shares
+      ADD CONSTRAINT fk_group_key_shares_group
+      FOREIGN KEY (group_id) REFERENCES groups(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE group_key_shares
+      ADD CONSTRAINT fk_group_key_shares_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
     `);
   } catch (error) {
     // Constraint likely exists already.

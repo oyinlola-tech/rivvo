@@ -1,9 +1,62 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from '../config/db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsRoot = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(__dirname, '..', 'uploads');
+const attachmentRetentionDays = Number(process.env.ATTACHMENT_RETENTION_DAYS || 365);
+
+const safeUnlink = (relativeUrl) => {
+  if (!relativeUrl || typeof relativeUrl !== 'string') return;
+  if (!relativeUrl.startsWith('/uploads/')) return;
+  const normalized = relativeUrl.replace(/^\/uploads\//, '');
+  const target = path.resolve(uploadsRoot, normalized);
+  if (!target.startsWith(uploadsRoot)) return;
+  fs.unlink(target, () => {});
+};
 
 const runCleanup = async () => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+
+    const [expiredStatuses] = await connection.execute(
+      `SELECT id, media_url
+       FROM statuses
+       WHERE expires_at < NOW()`
+    );
+    for (const row of expiredStatuses) {
+      if (row.media_url) {
+        safeUnlink(row.media_url);
+      }
+    }
+
+    const [orphanAttachments] = await connection.execute(
+      `SELECT ma.url
+       FROM message_attachments ma
+       LEFT JOIN conversations c ON c.id = ma.conversation_id
+       LEFT JOIN users u ON u.id = ma.user_id
+       WHERE c.id IS NULL OR u.id IS NULL`
+    );
+    for (const row of orphanAttachments) {
+      safeUnlink(row.url);
+    }
+
+    if (Number.isFinite(attachmentRetentionDays) && attachmentRetentionDays > 0) {
+      const [expiredAttachments] = await connection.execute(
+        `SELECT url
+         FROM message_attachments
+         WHERE created_at < DATE_SUB(NOW(), INTERVAL :days DAY)`,
+        { days: attachmentRetentionDays }
+      );
+      for (const row of expiredAttachments) {
+        safeUnlink(row.url);
+      }
+    }
 
     const steps = [
       {
@@ -35,6 +88,34 @@ const runCleanup = async () => {
         sql: `DELETE m FROM messages m
               LEFT JOIN users u ON u.id = m.sender_id
               WHERE u.id IS NULL`
+      },
+      {
+        label: 'message_attachments -> conversations/users',
+        sql: `DELETE ma FROM message_attachments ma
+              LEFT JOIN conversations c ON c.id = ma.conversation_id
+              LEFT JOIN users u ON u.id = ma.user_id
+              WHERE c.id IS NULL OR u.id IS NULL`
+      },
+      ...(Number.isFinite(attachmentRetentionDays) && attachmentRetentionDays > 0
+        ? [
+            {
+              label: 'message_attachments expired',
+              sql: `DELETE FROM message_attachments
+                    WHERE created_at < DATE_SUB(NOW(), INTERVAL ${Math.floor(
+                      attachmentRetentionDays
+                    )} DAY)`
+            }
+          ]
+        : []),
+      {
+        label: 'status_views -> statuses',
+        sql: `DELETE sv FROM status_views sv
+              LEFT JOIN statuses s ON s.id = sv.status_id
+              WHERE s.id IS NULL`
+      },
+      {
+        label: 'statuses expired',
+        sql: `DELETE FROM statuses WHERE expires_at < NOW()`
       },
       {
         label: 'contacts.user_id -> users',

@@ -37,10 +37,13 @@ const env = {
     from: process.env.SMTP_FROM 
   },
   callRoomBaseUrl: process.env.CALL_ROOM_BASE_URL,
+  callJoinBaseUrl: process.env.CALL_JOIN_BASE_URL,
   rateLimit: {
     windowMinutes: Number(process.env.RATE_LIMIT_WINDOW_MINUTES ),
     authMax: Number(process.env.RATE_LIMIT_AUTH_MAX),
-    apiMax: Number(process.env.RATE_LIMIT_API_MAX)
+    apiMax: Number(process.env.RATE_LIMIT_API_MAX),
+    messageMax: Number(process.env.RATE_LIMIT_MESSAGES_MAX || process.env.RATE_LIMIT_API_MAX),
+    uploadsMax: Number(process.env.RATE_LIMIT_UPLOADS_MAX || process.env.RATE_LIMIT_API_MAX)
   },
   flutterwave: {
     baseUrl: process.env.FLW_BASE_URL || 'https://api.flutterwave.com',

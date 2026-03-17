@@ -163,9 +163,9 @@ export default function Contacts() {
   });
 
   return (
-    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
+    <div className="min-h-[100dvh] bg-[#f0f2f5] md:ml-64">
       {/* Header */}
-      <div className="bg-[#111b21] sticky top-0 z-10">
+      <div className="bg-[#1a8c7a] sticky top-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-white">Contacts</h1>
@@ -173,7 +173,7 @@ export default function Contacts() {
               <button
                 onClick={openNotificationsSheet}
                 aria-label="Notifications"
-                className="relative w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white"
+                className="relative w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-white"
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
@@ -182,7 +182,7 @@ export default function Contacts() {
                   </span>
                 )}
               </button>
-              <button className="relative w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+              <button className="relative w-11 h-11 rounded-full bg-white/20 flex items-center justify-center">
                 <UserPlus className="text-white" size={24} />
                 {incomingRequests.length > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F04A4C] text-white text-[10px] flex items-center justify-center">
@@ -194,13 +194,13 @@ export default function Contacts() {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70" size={20} />
             <input
               type="text"
               placeholder="Search by name, @username, email, phone"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
+              className="w-full pl-12 pr-4 py-3 bg-white/15 border border-white/30 rounded-full text-white placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-white/40"
             />
           </div>
         </div>
@@ -208,14 +208,14 @@ export default function Contacts() {
 
       {/* Incoming Requests */}
       {!showSearchResults && incomingRequests.length > 0 && (
-        <div className="bg-background rounded-t-[40px] pt-6">
+        <div className="bg-white rounded-t-[32px] pt-6 border border-[#e6e6e6]">
           <div className="px-6 pb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[#111b21]">Requests</h2>
             <span className="text-xs text-[#667781]">{incomingRequests.length}</span>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[#eef0f2]">
             {incomingRequests.map((request) => (
-              <div key={request.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+              <div key={request.id} className="px-6 py-4 hover:bg-[#f7f9fa] transition-colors">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <div className="relative">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold">
@@ -245,13 +245,13 @@ export default function Contacts() {
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                     <button
                       onClick={() => handleAcceptRequest(request.id)}
-                      className="w-full sm:w-auto px-3 py-2 rounded-lg bg-[#1a8c7a] text-white text-sm"
+                      className="w-full sm:w-auto px-4 py-2 rounded-full bg-[#1a8c7a] text-white text-sm"
                     >
                       Accept
                     </button>
                     <button
                       onClick={() => handleRejectRequest(request.id)}
-                      className="w-full sm:w-auto px-3 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm"
+                      className="w-full sm:w-auto px-4 py-2 rounded-full bg-[#f0f2f5] text-[#5f6d75] text-sm"
                     >
                       Decline
                     </button>
@@ -265,7 +265,7 @@ export default function Contacts() {
 
       {/* Search Results */}
       {showSearchResults && (
-        <div className="bg-background rounded-t-[40px] pt-6">
+        <div className="bg-white rounded-t-[32px] pt-6 border border-[#e6e6e6]">
           {searching ? (
             <div className="flex items-center justify-center py-6">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
@@ -275,9 +275,9 @@ export default function Contacts() {
               <p className="text-gray-500">No users found</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-[#eef0f2]">
               {results.map((user) => (
-                <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div key={user.id} className="px-6 py-4 hover:bg-[#f7f9fa] transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <button
@@ -319,10 +319,10 @@ export default function Contacts() {
                         handleSendRequest(user.id);
                       }}
                       disabled={outgoingIds.has(user.id)}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                      className={`px-4 py-2 rounded-full text-sm transition-colors ${
                         outgoingIds.has(user.id)
-                          ? "bg-gray-200 text-gray-700"
-                          : "bg-[#1a8c7a] text-white hover:bg-[#1a8c7a]"
+                          ? "bg-[#f0f2f5] text-[#5f6d75]"
+                          : "bg-[#1a8c7a] text-white hover:bg-[#136a5c]"
                       }`}
                     >
                       {incomingByUser.has(user.id)
@@ -340,7 +340,7 @@ export default function Contacts() {
       )}
 
       {/* Contacts List */}
-      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-160px)] pt-6">
+      <div className="bg-white rounded-t-[32px] min-h-[calc(100dvh-160px)] pt-6 border border-[#e6e6e6]">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a8c7a]"></div>
@@ -354,9 +354,9 @@ export default function Contacts() {
             <p className="text-gray-500">No contacts found</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[#eef0f2]">
             {filteredContacts.map((contact) => (
-              <div key={contact.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+              <div key={contact.id} className="px-6 py-4 hover:bg-[#f7f9fa] transition-colors">
                 <div className="flex items-center gap-4">
                     <div className="relative">
                     <button
@@ -375,7 +375,7 @@ export default function Contacts() {
                       )}
                     </button>
                     {contact.online && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#0FE16D] rounded-full border-2 border-white"></div>
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#1a8c7a] rounded-full border-2 border-white"></div>
                     )}
                   </div>
 
@@ -393,10 +393,10 @@ export default function Contacts() {
                   </div>
                   <button
                     onClick={() => handleToggleMute(contact.id)}
-                    className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`px-4 py-2 rounded-full text-sm transition-colors ${
                       mutedIds.has(contact.id)
-                        ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        : "bg-[#1a8c7a] text-white hover:bg-[#1a8c7a]"
+                        ? "bg-[#f0f2f5] text-[#5f6d75] hover:bg-[#e6eaed]"
+                        : "bg-[#1a8c7a] text-white hover:bg-[#136a5c]"
                     }`}
                   >
                     {mutedIds.has(contact.id) ? "Unmute" : "Mute"}

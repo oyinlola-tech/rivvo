@@ -23,3 +23,19 @@ export const apiRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
+
+export const messageRateLimiter = rateLimit({
+  windowMs: env.rateLimit.windowMinutes * 60 * 1000,
+  max: env.rateLimit.messageMax,
+  keyGenerator: (req) => `${req.ip}:${req.user?.id || 'anon'}`,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+export const uploadRateLimiter = rateLimit({
+  windowMs: env.rateLimit.windowMinutes * 60 * 1000,
+  max: env.rateLimit.uploadsMax,
+  keyGenerator: (req) => `${req.ip}:${req.user?.id || 'anon'}`,
+  standardHeaders: true,
+  legacyHeaders: false
+});

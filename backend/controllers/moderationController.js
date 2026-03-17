@@ -179,6 +179,20 @@ export const updateUserStatus = async (req, res) => {
     id: userId,
     status
   });
+  if (status === 'suspended') {
+    await pool.execute(
+      `UPDATE users
+       SET token_version = token_version + 1
+       WHERE id = :id`,
+      { id: userId }
+    );
+    await pool.execute(
+      `UPDATE refresh_tokens
+       SET revoked_at = NOW()
+       WHERE user_id = :id AND revoked_at IS NULL`,
+      { id: userId }
+    );
+  }
 
   return res.json({ message: 'User status updated' });
 };

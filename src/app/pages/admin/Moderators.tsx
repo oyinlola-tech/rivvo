@@ -56,22 +56,27 @@ export default function AdminModerators() {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Moderators</h1>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1a8c7a] text-white rounded-lg hover:bg-[#1a8c7a] transition-colors"
-        >
-          <Plus size={20} />
-          <span>Add Moderator</span>
-        </button>
+    <div className="min-h-screen bg-[#f0f2f5]">
+      <div className="bg-[#1a8c7a] text-white shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/70">Admin</p>
+            <h1 className="text-2xl font-semibold">Moderators</h1>
+          </div>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white text-[#1a8c7a] rounded-full hover:bg-white/90 transition-colors text-sm font-medium"
+          >
+            <Plus size={18} />
+            <span>Add Moderator</span>
+          </button>
+        </div>
       </div>
 
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-6">Create Moderator</h2>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-[#e6e6e6]">
+            <h2 className="text-xl font-semibold mb-6">Create Moderator</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Name</label>
@@ -79,7 +84,7 @@ export default function AdminModerators() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
+                  className="w-full px-4 py-2 border border-[#d6dbe0] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]/30"
                   required
                 />
               </div>
@@ -89,7 +94,7 @@ export default function AdminModerators() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
+                  className="w-full px-4 py-2 border border-[#d6dbe0] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]/30"
                   required
                 />
               </div>
@@ -99,7 +104,7 @@ export default function AdminModerators() {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]"
+                  className="w-full px-4 py-2 border border-[#d6dbe0] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a8c7a]/30"
                   required
                   minLength={8}
                 />
@@ -108,14 +113,14 @@ export default function AdminModerators() {
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-[#d6dbe0] rounded-full hover:bg-[#f7f9fa] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="flex-1 px-4 py-2 bg-[#1a8c7a] text-white rounded-lg hover:bg-[#1a8c7a] transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#1a8c7a] text-white rounded-full hover:bg-[#136a5c] transition-colors disabled:opacity-50"
                 >
                   {createLoading ? "Creating..." : "Create"}
                 </button>
@@ -125,45 +130,47 @@ export default function AdminModerators() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
-          </div>
-        ) : moderators.length === 0 ? (
-          <div className="text-center py-12">
-            <Shield className="mx-auto mb-4 text-gray-400" size={48} />
-            <p className="text-gray-500">No moderators yet</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {moderators.map((moderator) => (
-              <div key={moderator.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold">
-                    {moderator.name[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-lg">{moderator.name}</h3>
-                      <VerificationBadge type="staff" size="sm" />
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-[#e6e6e6] overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a8c7a]"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600">{error}</p>
+            </div>
+          ) : moderators.length === 0 ? (
+            <div className="text-center py-12">
+              <Shield className="mx-auto mb-4 text-gray-400" size={48} />
+              <p className="text-gray-500">No moderators yet</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#eef0f2]">
+              {moderators.map((moderator) => (
+                <div key={moderator.id} className="p-6 hover:bg-[#f7f9fa] transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-[#1a8c7a] flex items-center justify-center text-white font-bold">
+                      {moderator.name[0].toUpperCase()}
                     </div>
-                    <p className="text-sm text-gray-600">{moderator.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">
-                      Joined {new Date(moderator.createdAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-lg">{moderator.name}</h3>
+                        <VerificationBadge type="staff" size="sm" />
+                      </div>
+                      <p className="text-sm text-[#5f6d75]">{moderator.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-[#7a8a93]">
+                        Joined {new Date(moderator.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

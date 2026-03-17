@@ -36,6 +36,9 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
+  if (file.mimetype === 'image/svg+xml') {
+    return cb(new Error('Unsupported file type'), false);
+  }
   if (file.mimetype?.startsWith('image/') || file.mimetype?.startsWith('video/')) {
     return cb(null, true);
   }

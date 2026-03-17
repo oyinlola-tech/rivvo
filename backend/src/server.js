@@ -80,6 +80,10 @@ io.on('connection', (socket) => {
     const roomKey = `call:${roomId}`;
     const room = io.sockets.adapter.rooms.get(roomKey);
     const isDirectCall = /-/.test(roomId);
+    if (isDirectCall && !userId) {
+      socket.emit('call:error', { message: 'Unauthorized call join' });
+      return;
+    }
     const maxParticipants = isDirectCall ? 2 : 10;
     if (room && room.size >= maxParticipants) {
       socket.emit('call:full');

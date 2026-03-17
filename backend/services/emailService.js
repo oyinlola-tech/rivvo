@@ -384,7 +384,9 @@ export const sendPasswordResetOtpEmail = async ({ to, code }) => {
   const mailer = getTransporter();
 
   if (!mailer) {
-    console.log(`Password reset OTP for ${to}: ${code}`);
+    if (env.nodeEnv !== 'production') {
+      console.log(`Password reset OTP for ${to}: ${code}`);
+    }
     return;
   }
 

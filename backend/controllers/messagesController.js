@@ -291,6 +291,9 @@ export const getMessages = async (req, res) => {
   const conversationId = req.params.id;
   const since = req.query.since ? new Date(req.query.since) : null;
   const markRead = req.query.markRead !== 'false';
+  const limitParam = Number(req.query.limit);
+  const before = req.query.before ? new Date(req.query.before) : null;
+  const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 500) : 200;
   if (!conversationId) {
     return sendError(res, 400, 'Conversation id is required');
   }
@@ -300,21 +303,28 @@ export const getMessages = async (req, res) => {
     return sendError(res, 404, 'Conversation not found');
   }
 
-  const params = { conversation_id: conversationId };
-  let sinceFilter = '';
+  const params = { conversation_id: conversationId, limit };
+  const filters = [];
   if (since && !Number.isNaN(since.getTime())) {
     params.since = since;
-    sinceFilter = ' AND created_at > :since';
+    filters.push('created_at > :since');
   }
+  if (before && !Number.isNaN(before.getTime())) {
+    params.before = before;
+    filters.push('created_at < :before');
+  }
+  const whereClause = filters.length ? ` AND ${filters.join(' AND ')}` : '';
 
-  const [rows] = await pool.execute(
+  const [rowsRaw] = await pool.execute(
     `SELECT id, body, created_at, sender_id, delivered_at, read_at, is_encrypted, iv, view_once, view_once_viewed_at,
             edited_at, deleted_for_sender_at, deleted_for_recipient_at, deleted_for_all_at
      FROM messages
-     WHERE conversation_id = :conversation_id${sinceFilter}
-     ORDER BY created_at ASC`,
+     WHERE conversation_id = :conversation_id${whereClause}
+     ORDER BY created_at DESC
+     LIMIT :limit`,
     params
   );
+  const rows = rowsRaw.slice().reverse();
 
   const undeliveredIds = rows
     .filter((row) => row.sender_id !== userId && !row.delivered_at)
@@ -781,6 +791,9 @@ export const editMessage = async (req, res) => {
   if (!isNonEmptyString(finalMessage)) {
     return sendError(res, 400, 'Message is required');
   }
+  if (isGroupConversation && !encrypted) {
+    return sendError(res, 400, 'Group messages must be encrypted');
+  }
 
   const isParticipant = await ensureParticipant(userId, conversationId);
   if (!isParticipant) {
@@ -1069,8 +1082,12 @@ const allowedAttachmentKinds = new Set(['media', 'document', 'audio', 'voice']);
 export const uploadAttachment = async (req, res) => {
   const userId = req.user?.id;
   const conversationId = req.params.id;
-  const { fileType, fileName, kind } = req.body || {};
+  const { fileType, fileName, kind, encrypted } = req.body || {};
   const normalizedType = typeof fileType === 'string' ? fileType.toLowerCase() : '';
+  const safeName = typeof fileName === 'string' && fileName.trim().length > 0
+    ? fileName.trim().slice(0, 255)
+    : null;
+  const originalName = (req.file?.originalname || '').slice(0, 255);
 
   if (!conversationId) {
     return sendError(res, 400, 'Conversation id is required');
@@ -1083,6 +1100,15 @@ export const uploadAttachment = async (req, res) => {
 
   if (!req.file) {
     return sendError(res, 400, 'File is required');
+  }
+
+  const groupConversation = await getGroupByConversation(conversationId);
+  if (groupConversation) {
+    const isEncryptedFlag = String(encrypted) === '1';
+    if (!isEncryptedFlag || !originalName.endsWith('.enc')) {
+      safeUnlink(req.file.path);
+      return sendError(res, 400, 'Group attachments must be encrypted');
+    }
   }
 
   if (!normalizedType || !allowedAttachmentMimes.has(normalizedType)) {
@@ -1110,7 +1136,7 @@ export const uploadAttachment = async (req, res) => {
       url: relativePath,
       size: req.file.size || 0,
       file_type: normalizedType || null,
-      file_name: fileName || req.file.originalname || 'attachment',
+      file_name: safeName || originalName || 'attachment',
       kind: kind || 'document'
     }
   );
@@ -1120,7 +1146,7 @@ export const uploadAttachment = async (req, res) => {
     url: relativePath,
     size: req.file.size,
     fileType: normalizedType,
-    fileName: fileName || req.file.originalname || 'attachment',
+    fileName: safeName || originalName || 'attachment',
     kind: kind || 'document'
   });
 };

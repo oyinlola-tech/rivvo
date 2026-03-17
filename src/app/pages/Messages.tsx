@@ -14,6 +14,9 @@ import {
   decryptMessage,
   encryptBytes,
   decryptBytes,
+  generateGroupKey,
+  exportRawKey,
+  importRawKey,
 } from "../lib/crypto";
 import {
   getConversationSync,
@@ -98,6 +101,7 @@ export default function Messages() {
   const pinchStartRef = useRef<{ dist: number; scale: number } | null>(null);
   const dragStartRef = useRef<{ x: number; y: number; originX: number; originY: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const attachmentUrlsRef = useRef<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +114,9 @@ export default function Messages() {
   const [reportReason, setReportReason] = useState("");
   const [reportBlock, setReportBlock] = useState(false);
   const [localStreak, setLocalStreak] = useState(0);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const pageLimit = 200;
   const reportSuggestions = [
     "Spam or scam",
     "Harassment or hate speech",
@@ -376,6 +383,89 @@ export default function Messages() {
     return null;
   };
 
+  const ensureGroupKey = async (groupId: string, isAdmin: boolean) => {
+    const keyPair = await getOrCreateKeyPair();
+    const privateKey = await importPrivateKey(keyPair.privateKey);
+
+    const keyResp = await api.getGroupKey(groupId);
+    if (keyResp.success && keyResp.data?.wrappedKey && keyResp.data?.wrappedKeyIv && keyResp.data?.senderPublicKey) {
+      const senderPublic = await importPublicKey(JSON.parse(keyResp.data.senderPublicKey));
+      const derived = await deriveSharedKey(privateKey, senderPublic);
+      const rawKey = await decryptMessage(keyResp.data.wrappedKey, keyResp.data.wrappedKeyIv, derived);
+      const groupKey = await importRawKey(rawKey);
+      setSharedKey(groupKey);
+      return;
+    }
+
+    if (!isAdmin) {
+      setError("Group encryption keys not available yet. Ask an admin to rotate.");
+      return;
+    }
+
+    const membersResp = await api.getGroupKeyMembers(groupId);
+    if (!membersResp.success || !membersResp.data?.members?.length) {
+      setError(membersResp.error || "Unable to load group members for key rotation");
+      return;
+    }
+    const missingKeys = membersResp.data.members.filter((member) => !member.publicKey);
+    if (missingKeys.length) {
+      setError("Some members are missing encryption keys. Ask them to set up their keys.");
+      return;
+    }
+
+    const groupKey = await generateGroupKey();
+    const rawKey = await exportRawKey(groupKey);
+    const shares = await Promise.all(
+      membersResp.data.members.map(async (member) => {
+        if (!member.publicKey) return null;
+        const memberPublic = await importPublicKey(JSON.parse(member.publicKey));
+        const derived = await deriveSharedKey(privateKey, memberPublic);
+        const wrapped = await encryptMessage(rawKey, derived);
+        return {
+          userId: member.userId,
+          wrappedKey: wrapped.ciphertext,
+          wrappedKeyIv: wrapped.iv,
+          senderPublicKey: JSON.stringify(keyPair.publicKey),
+        };
+      })
+    );
+    const validShares = shares.filter(Boolean) as {
+      userId: string;
+      wrappedKey: string;
+      wrappedKeyIv: string;
+      senderPublicKey: string;
+    }[];
+    const rotateResp = await api.rotateGroupKey(groupId, membersResp.data.version, validShares);
+    if (!rotateResp.success) {
+      setError(rotateResp.error || "Failed to rotate group key");
+      return;
+    }
+    setSharedKey(groupKey);
+  };
+
+  const hydrateMessages = async (incomingRaw: Message[], key: CryptoKey | null) =>
+    Promise.all(
+      incomingRaw.map(async (msg) => {
+        if (msg.viewOnce) {
+          return msg;
+        }
+        if (msg.encrypted && msg.iv && key) {
+          try {
+            const text = await decryptMessage(msg.text, msg.iv, key);
+            const attachment = parseAttachment(text);
+            return attachment ? { ...msg, text, attachment } : { ...msg, text };
+          } catch {
+            return { ...msg, text: "Encrypted message" };
+          }
+        }
+        if (msg.encrypted) {
+          return { ...msg, text: "Encrypted message" };
+        }
+        const attachment = parseAttachment(msg.text);
+        return attachment ? { ...msg, attachment } : msg;
+      })
+    );
+
   const loadMessages = async () => {
     if (!id || !user?.id) return;
     setError("");
@@ -386,6 +476,7 @@ export default function Messages() {
         return attachment ? { ...msg, attachment } : msg;
       });
       setMessages(hydratedCached);
+      setHasMore(cached.length >= pageLimit);
       setLoading(false);
     } else {
       setLoading(true);
@@ -419,6 +510,15 @@ export default function Messages() {
         derivedKey = await deriveSharedKey(privateKey, peerPublic);
       }
       setSharedKey(derivedKey);
+      if (peerData.isGroup) {
+        const groupResp = await api.getGroup(peerData.id);
+        if (groupResp.success && groupResp.data?.membership?.role) {
+          const isAdmin = ["owner", "admin"].includes(groupResp.data.membership.role);
+          await ensureGroupKey(peerData.id, isAdmin);
+        } else {
+          await ensureGroupKey(peerData.id, false);
+        }
+      }
     } else if (!peerResponse.success) {
       setError(peerResponse.error || "Failed to load conversation details");
     }
@@ -426,32 +526,14 @@ export default function Messages() {
     const lastSync = await getConversationSync(user.id, id);
     const response = await api.getMessages(id, {
       since: lastSync || undefined,
+      limit: pageLimit,
       markRead: true,
     });
     const incomingRaw = Array.isArray(response.data)
       ? response.data
       : response.data?.messages;
     if (response.success && incomingRaw) {
-      const incoming = await Promise.all(
-        incomingRaw.map(async (msg: Message) => {
-          if (msg.viewOnce) {
-            return msg;
-          }
-        if (msg.encrypted && msg.iv && derivedKey) {
-          try {
-            const text = await decryptMessage(msg.text, msg.iv, derivedKey);
-            const attachment = parseAttachment(text);
-            return attachment ? { ...msg, text, attachment } : { ...msg, text };
-          } catch {
-            return { ...msg, text: "Encrypted message" };
-          }
-        }
-          if (msg.encrypted) {
-            return { ...msg, text: "Encrypted message" };
-          }
-          return msg;
-        })
-      );
+      const incoming = await hydrateMessages(incomingRaw, derivedKey);
 
       const mergedMap = new Map<string, Message>();
       const mergedSource = cached.map((msg) => {
@@ -464,6 +546,9 @@ export default function Messages() {
       );
 
       setMessages(merged);
+      if (!lastSync) {
+        setHasMore(incomingRaw.length >= pageLimit);
+      }
       await saveMessages(user.id, id, incoming);
       if (response.data?.serverTime) {
         await setConversationSync(user.id, id, response.data.serverTime);
@@ -475,6 +560,49 @@ export default function Messages() {
     setLoading(false);
   };
 
+  const loadOlderMessages = async () => {
+    if (!id || !user?.id || loadingOlder || !hasMore) return;
+    const oldest = messages[0]?.timestamp;
+    if (!oldest) return;
+    setLoadingOlder(true);
+    const container = messagesContainerRef.current;
+    const prevHeight = container?.scrollHeight || 0;
+    const prevScrollTop = container?.scrollTop || 0;
+    const response = await api.getMessages(id, {
+      before: oldest,
+      limit: pageLimit,
+      markRead: false,
+    });
+    const incomingRaw = Array.isArray(response.data)
+      ? response.data
+      : response.data?.messages;
+    if (response.success && incomingRaw) {
+      if (incomingRaw.length === 0) {
+        setHasMore(false);
+      } else {
+        const incoming = await hydrateMessages(incomingRaw, sharedKey);
+        setMessages((prev) => {
+          const mergedMap = new Map<string, Message>();
+          [...incoming, ...prev].forEach((msg) => mergedMap.set(msg.id, msg));
+          return Array.from(mergedMap.values()).sort((a, b) =>
+            a.timestamp.localeCompare(b.timestamp)
+          );
+        });
+        await saveMessages(user.id, id, incoming);
+        setHasMore(incomingRaw.length >= pageLimit);
+      }
+    } else if (!response.success) {
+      setError(response.error || "Failed to load older messages");
+    }
+    requestAnimationFrame(() => {
+      if (container) {
+        const nextHeight = container.scrollHeight;
+        container.scrollTop = nextHeight - prevHeight + prevScrollTop;
+      }
+    });
+    setLoadingOlder(false);
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -482,6 +610,10 @@ export default function Messages() {
   const handleSend = async () => {
     const outgoingText = newMessage.trim();
     if (!outgoingText || !id) return;
+    if (isGroupChat && !sharedKey) {
+      setError("Group messages require encryption keys");
+      return;
+    }
     if (sendingRef.current) return;
     sendingRef.current = true;
     setSending(true);
@@ -504,6 +636,10 @@ export default function Messages() {
 
     let response;
     if (editingMessageId) {
+      if (isGroupChat && !sharedKey) {
+        setError("Group messages require encryption keys");
+        return;
+      }
       if (sharedKey) {
         const encrypted = await encryptMessage(outgoingText, sharedKey);
         response = await api.editMessage(id, editingMessageId, { ...encrypted, encrypted: true });
@@ -762,6 +898,7 @@ export default function Messages() {
       formData.append("fileType", file.type);
       formData.append("fileName", file.name);
       formData.append("kind", kindOverride || inferKind(file.type));
+      formData.append("encrypted", "1");
 
       const upload = await api.uploadAttachment(id, formData);
       if (!upload.success || !upload.data) {
@@ -918,10 +1055,10 @@ export default function Messages() {
   }
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-background md:ml-64">
+    <div className="h-[100dvh] flex flex-col bg-[#f0f2f5] md:ml-64">
       {/* Header */}
-      <div className="bg-background border-b border-border px-4 py-3 flex items-center gap-4 sticky top-0 z-10">
-        <button onClick={() => navigate("/")} className="md:hidden text-[#667781]">
+      <div className="bg-[#1a8c7a] border-b border-[#1a8c7a] px-4 py-3 flex items-center gap-4 sticky top-0 z-10 text-white">
+        <button onClick={() => navigate("/")} className="md:hidden text-white/80">
           <ArrowLeft size={22} />
         </button>
         {contact ? (
@@ -940,7 +1077,7 @@ export default function Messages() {
                 navigate(`/users/${contact.id}`);
               }
             }}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white font-bold overflow-hidden"
+            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold overflow-hidden"
             aria-label={`View ${contact.name} ${contact.isGroup ? "group" : "profile"}`}
             aria-disabled={!canNavigateProfile}
           >
@@ -963,7 +1100,7 @@ export default function Messages() {
           <div className="flex items-center gap-2">
             {contact ? (
               <>
-                <h2 className="font-semibold">
+                <h2 className="font-semibold text-white">
                   <span className="md:hidden">{firstName}</span>
                   <span className="hidden md:inline">{contact.name}</span>
                 </h2>
@@ -985,7 +1122,7 @@ export default function Messages() {
             )}
           </div>
           {contact ? (
-            <p className="text-[11px] text-[#667781]">
+            <p className="text-[11px] text-white/80">
               {isGroupChat
                 ? `${contact.isPrivate ? "Private group" : "Public group"} • ${
                     contact.memberCount ? `${contact.memberCount} members` : "Group chat"
@@ -1007,15 +1144,15 @@ export default function Messages() {
           <div className="flex gap-2">
             <button
               onClick={() => handleStartCall("audio")}
-              className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
+              className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center"
             >
-              <Phone size={18} className="text-[#667781]" />
+              <Phone size={18} className="text-white" />
             </button>
             <button
               onClick={() => handleStartCall("video")}
-              className="w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center"
+              className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center"
             >
-              <Video size={18} className="text-[#667781]" />
+              <Video size={18} className="text-white" />
             </button>
           </div>
         )}
@@ -1023,6 +1160,7 @@ export default function Messages() {
 
       {/* Messages */}
       <div
+        ref={messagesContainerRef}
         className="flex-1 overflow-y-auto px-4 py-5 space-y-3 bg-[#efeae2]"
         onClick={() => setActionMessageId(null)}
       >
@@ -1032,6 +1170,23 @@ export default function Messages() {
           </div>
         ) : (
           <>
+            {hasMore ? (
+              <div className="flex justify-center">
+                <button
+                  onClick={loadOlderMessages}
+                  disabled={loadingOlder}
+                  className="px-4 py-2 rounded-full bg-white/80 text-[#1a8c7a] text-xs font-medium shadow-sm hover:bg-white disabled:opacity-60"
+                >
+                  {loadingOlder ? "Loading..." : "Load older messages"}
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <span className="text-[11px] text-[#667781] bg-white/70 px-3 py-1 rounded-full">
+                  No more messages
+                </span>
+              </div>
+            )}
             {error && (
               <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm">
                 {error}

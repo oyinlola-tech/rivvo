@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import asyncHandler from '../utils/asyncHandler.js';
 import auth from '../middleware/auth.js';
+import { messageRateLimiter, uploadRateLimiter } from '../middleware/rateLimit.js';
 import {
   getConversations,
   getMessages,
@@ -22,12 +23,13 @@ router.get('/conversations', auth, asyncHandler(getConversations));
 router.get('/conversations/:id', auth, asyncHandler(getMessages));
 router.get('/conversations/:id/preview', auth, asyncHandler(getConversationPreview));
 router.post('/conversations/with/:userId', auth, asyncHandler(getOrCreateConversation));
-router.post('/conversations/:id', auth, asyncHandler(sendMessage));
+router.post('/conversations/:id', auth, messageRateLimiter, asyncHandler(sendMessage));
 router.patch('/conversations/:id/messages/:messageId', auth, asyncHandler(editMessage));
 router.delete('/conversations/:id/messages/:messageId', auth, asyncHandler(deleteMessage));
 router.post(
   '/conversations/:id/attachments',
   auth,
+  uploadRateLimiter,
   (req, res, next) => {
     req.uploadFolder = 'uploads/messages';
     next();

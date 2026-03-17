@@ -374,9 +374,21 @@ export const resetPassword = async (req, res) => {
       'UPDATE users SET password_hash = :password_hash WHERE id = :id',
       { password_hash: passwordHash, id: user.id }
     );
+    await connection.execute(
+      `UPDATE users
+       SET token_version = token_version + 1
+       WHERE id = :id`,
+      { id: user.id }
+    );
     await connection.execute('UPDATE otps SET used = 1 WHERE id = :id', {
       id: otpRows[0].id
     });
+    await connection.execute(
+      `UPDATE refresh_tokens
+       SET revoked_at = NOW()
+       WHERE user_id = :user_id AND revoked_at IS NULL`,
+      { user_id: user.id }
+    );
     await connection.commit();
   } catch (error) {
     await connection.rollback();

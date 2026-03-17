@@ -117,7 +117,7 @@ export const createGroup = async (req, res) => {
 export const listGroups = async (req, res) => {
   const userId = req.user?.id;
   const [rows] = await pool.execute(
-    `SELECT g.id, g.name, g.description, g.is_private, g.owner_id, g.avatar, g.banner, g.handle, gm.role
+    `SELECT g.id, g.name, g.description, g.is_private, g.owner_id, g.avatar, g.banner, g.handle, g.key_version, gm.role
      FROM group_members gm
      JOIN groups g ON g.id = gm.group_id
      WHERE gm.user_id = :user_id AND gm.status = 'active'
@@ -134,6 +134,7 @@ export const listGroups = async (req, res) => {
     avatar: row.avatar || null,
     banner: row.banner || null,
     handle: row.handle || null,
+    keyVersion: Number(row.key_version || 1),
     role: row.role
   }));
 
@@ -157,7 +158,7 @@ export const getGroup = async (req, res) => {
   const userId = req.user?.id;
   const { groupId } = req.params;
   const [rows] = await pool.execute(
-    `SELECT id, name, description, is_private, owner_id, conversation_id, avatar, banner, handle
+    `SELECT id, name, description, is_private, owner_id, conversation_id, avatar, banner, handle, key_version
      FROM groups
      WHERE id = :id`,
     { id: groupId }
@@ -173,6 +174,7 @@ export const getGroup = async (req, res) => {
   return res.json({
     ...rows[0],
     isPrivate: Boolean(rows[0].is_private),
+    keyVersion: Number(rows[0].key_version || 1),
     conversationId,
     membership
   });
@@ -500,6 +502,15 @@ export const removeMember = async (req, res) => {
   );
 
   await pool.execute(
+    `UPDATE groups SET key_version = key_version + 1 WHERE id = :id`,
+    { id: groupId }
+  );
+  await pool.execute(
+    `DELETE FROM group_key_shares WHERE group_id = :group_id`,
+    { group_id: groupId }
+  );
+
+  await pool.execute(
     `DELETE FROM conversation_participants
      WHERE conversation_id = (SELECT conversation_id FROM groups WHERE id = :group_id)
        AND user_id = :user_id`,
@@ -526,6 +537,15 @@ export const leaveGroup = async (req, res) => {
   );
 
   await pool.execute(
+    `UPDATE groups SET key_version = key_version + 1 WHERE id = :id`,
+    { id: groupId }
+  );
+  await pool.execute(
+    `DELETE FROM group_key_shares WHERE group_id = :group_id`,
+    { group_id: groupId }
+  );
+
+  await pool.execute(
     `DELETE FROM conversation_participants
      WHERE conversation_id = (SELECT conversation_id FROM groups WHERE id = :group_id)
        AND user_id = :user_id`,
@@ -533,6 +553,22 @@ export const leaveGroup = async (req, res) => {
   );
 
   return res.json({ message: 'Left group' });
+};
+
+export const deleteGroup = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || membership.role !== 'owner') {
+    return sendError(res, 403, 'Only owner can delete group');
+  }
+
+  await pool.execute(
+    `DELETE FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+
+  return res.json({ message: 'Group deleted' });
 };
 
 export const uploadGroupAvatar = async (req, res) => {
@@ -641,6 +677,125 @@ export const getGroupByHandle = async (req, res) => {
 
   return res.json({
     ...group,
-    isPrivate: Boolean(group.is_private)
+    isPrivate: Boolean(group.is_private),
+    keyVersion: Number(group.key_version || 1)
   });
+};
+
+export const getGroupKeyShare = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || membership.status !== 'active') {
+    return sendError(res, 403, 'Group access required');
+  }
+
+  const [[groupRow]] = await pool.execute(
+    `SELECT key_version FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  const version = Number(groupRow?.key_version || 1);
+
+  const [rows] = await pool.execute(
+    `SELECT wrapped_key, wrapped_key_iv, sender_public_key, sender_user_id
+     FROM group_key_shares
+     WHERE group_id = :group_id AND user_id = :user_id AND version = :version
+     LIMIT 1`,
+    { group_id: groupId, user_id: userId, version }
+  );
+
+  if (!rows.length) {
+    return res.json({ version, wrappedKey: null });
+  }
+
+  const share = rows[0];
+  return res.json({
+    version,
+    wrappedKey: share.wrapped_key,
+    wrappedKeyIv: share.wrapped_key_iv,
+    senderPublicKey: share.sender_public_key,
+    senderUserId: share.sender_user_id
+  });
+};
+
+export const listGroupKeyMembers = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+
+  const [[groupRow]] = await pool.execute(
+    `SELECT key_version FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  const version = Number(groupRow?.key_version || 1);
+
+  const [rows] = await pool.execute(
+    `SELECT u.id AS user_id, u.name, uk.public_key
+     FROM group_members gm
+     JOIN users u ON u.id = gm.user_id
+     LEFT JOIN user_keys uk ON uk.user_id = u.id
+     WHERE gm.group_id = :group_id AND gm.status = 'active'`,
+    { group_id: groupId }
+  );
+
+  const members = rows.map((row) => ({
+    userId: row.user_id,
+    name: row.name,
+    publicKey: row.public_key || null
+  }));
+
+  return res.json({ version, members });
+};
+
+export const rotateGroupKey = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const { version, shares } = req.body || {};
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+  if (!Array.isArray(shares) || shares.length === 0) {
+    return sendError(res, 400, 'shares are required');
+  }
+
+  const [[groupRow]] = await pool.execute(
+    `SELECT key_version FROM groups WHERE id = :id`,
+    { id: groupId }
+  );
+  const currentVersion = Number(groupRow?.key_version || 1);
+  if (Number(version) !== currentVersion) {
+    return sendError(res, 409, 'Key version mismatch');
+  }
+
+  await pool.execute(
+    `DELETE FROM group_key_shares WHERE group_id = :group_id`,
+    { group_id: groupId }
+  );
+
+  for (const share of shares) {
+    if (!share?.userId || !share?.wrappedKey || !share?.wrappedKeyIv || !share?.senderPublicKey) {
+      continue;
+    }
+    await pool.execute(
+      `INSERT INTO group_key_shares
+        (group_id, user_id, version, wrapped_key, wrapped_key_iv, sender_public_key, sender_user_id)
+       VALUES
+        (:group_id, :user_id, :version, :wrapped_key, :wrapped_key_iv, :sender_public_key, :sender_user_id)`,
+      {
+        group_id: groupId,
+        user_id: share.userId,
+        version: currentVersion,
+        wrapped_key: share.wrappedKey,
+        wrapped_key_iv: share.wrappedKeyIv,
+        sender_public_key: share.senderPublicKey,
+        sender_user_id: userId
+      }
+    );
+  }
+
+  return res.json({ message: 'Group key rotated', version: currentVersion });
 };

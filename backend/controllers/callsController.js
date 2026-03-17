@@ -91,7 +91,8 @@ export const initiateCall = async (req, res) => {
     }
   );
 
-  const roomUrl = `${env.callRoomBaseUrl}${callId}`;
+  const roomBase = env.callRoomBaseUrl || `${env.clientUrl}/call/room/`;
+  const roomUrl = `${roomBase}${callId}`;
 
   const io = req.app.get('io');
   if (io) {

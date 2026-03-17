@@ -155,11 +155,11 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
-      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
-        <h1 className="text-2xl font-bold text-white">Profile</h1>
+      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4 border-b border-white/10">
+        <h1 className="text-2xl font-semibold text-white">Profile</h1>
       </div>
-      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6 px-6 pb-10">
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="bg-[#f0f2f5] rounded-t-[32px] min-h-[calc(100dvh-100px)] pt-6 px-6 pb-10">
+        <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -169,7 +169,7 @@ export default function UserProfile() {
                   setAvatarPreviewOpen(true);
                 }
               }}
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1a8c7a] to-[#1a8c7a] flex items-center justify-center text-white text-2xl font-bold overflow-hidden"
+              className="w-16 h-16 rounded-full bg-[#25D366]/20 text-[#0b141a] flex items-center justify-center text-2xl font-bold overflow-hidden ring-2 ring-[#25D366]/30"
               aria-label="View profile photo"
             >
               {profile.avatar ? (
@@ -186,7 +186,7 @@ export default function UserProfile() {
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-[#111b21]">{profile.name}</h2>
+                <h2 className="text-xl font-semibold text-[#111b21]">{profile.name}</h2>
                 {(profile.isVerifiedBadge || profile.isModerator || profile.isAdmin) && (
                   <VerificationBadge
                     type={profile.isModerator || profile.isAdmin ? "staff" : "user"}
@@ -199,13 +199,17 @@ export default function UserProfile() {
               )}
             </div>
           </div>
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="mt-4 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/10 px-4 py-3 text-sm text-[#128C7E]">
+              {error}
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap gap-3">
             {profile.contactStatus === "accepted" && (
               <button
                 onClick={handleMessage}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-full bg-[#1a8c7a] px-4 py-2 text-white text-sm font-medium disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 text-white text-sm font-medium disabled:opacity-50"
               >
                 <MessageCircle size={16} />
                 Message
@@ -215,7 +219,7 @@ export default function UserProfile() {
               <button
                 onClick={handleAccept}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-full bg-[#1a8c7a] px-4 py-2 text-white text-sm font-medium disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 text-white text-sm font-medium disabled:opacity-50"
               >
                 <UserPlus size={16} />
                 Accept request
@@ -224,7 +228,7 @@ export default function UserProfile() {
             {profile.contactStatus === "outgoing" && (
               <button
                 disabled
-                className="inline-flex items-center gap-2 rounded-full bg-gray-200 px-4 py-2 text-gray-700 text-sm font-medium"
+                className="inline-flex items-center gap-2 rounded-full bg-[#f0f2f5] px-4 py-2 text-[#667781] text-sm font-medium"
               >
                 Pending request
               </button>
@@ -233,7 +237,7 @@ export default function UserProfile() {
               <button
                 onClick={handleRequest}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-full border border-[#1a8c7a] px-4 py-2 text-[#1a8c7a] text-sm font-medium disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full border border-[#25D366] px-4 py-2 text-[#128C7E] text-sm font-medium disabled:opacity-50"
               >
                 <UserPlus size={16} />
                 Send request
@@ -241,14 +245,14 @@ export default function UserProfile() {
             )}
             <button
               onClick={() => setReportOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-[#EA3736] px-4 py-2 text-[#EA3736] text-sm font-medium"
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2 text-[#111b21] text-sm font-medium"
             >
               <Flag size={16} />
               Report
             </button>
             <button
               onClick={handleBlock}
-              className="inline-flex items-center gap-2 rounded-full bg-[#EA3736] px-4 py-2 text-white text-sm font-medium"
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2 text-[#111b21] text-sm font-medium"
             >
               <Ban size={16} />
               Block
@@ -275,17 +279,17 @@ export default function UserProfile() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               {reportSuggestions.map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setReportReason(item)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                    reportReason === item
-                      ? "bg-[#1a8c7a] text-white"
+                  <button
+                    key={item}
+                    onClick={() => setReportReason(item)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                      reportReason === item
+                      ? "bg-[#25D366] text-white"
                       : "bg-[#f0f2f5] text-[#111b21]"
-                  }`}
-                >
-                  {item}
-                </button>
+                    }`}
+                  >
+                    {item}
+                  </button>
               ))}
             </div>
 
@@ -305,7 +309,7 @@ export default function UserProfile() {
                 type="checkbox"
                 checked={reportBlock}
                 onChange={(e) => setReportBlock(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#1a8c7a] focus:ring-[#1a8c7a]"
+                className="h-4 w-4 rounded border-gray-300 text-[#25D366] focus:ring-[#25D366]"
               />
               Also block this user
             </label>
@@ -320,7 +324,7 @@ export default function UserProfile() {
               <button
                 onClick={handleReportSubmit}
                 disabled={actionLoading}
-                className="flex-1 rounded-xl bg-[#EA3736] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="flex-1 rounded-xl bg-[#25D366] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 Submit report
               </button>

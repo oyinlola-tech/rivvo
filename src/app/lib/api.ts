@@ -470,10 +470,12 @@ class ApiClient {
 
   async getMessages(
     conversationId: string,
-    options?: { since?: string; markRead?: boolean }
+    options?: { since?: string; before?: string; limit?: number; markRead?: boolean }
   ): Promise<ApiResponse<MessagesResponse>> {
     const params = new URLSearchParams();
     if (options?.since) params.set("since", options.since);
+    if (options?.before) params.set("before", options.before);
+    if (options?.limit) params.set("limit", String(options.limit));
     if (options?.markRead === false) params.set("markRead", "false");
     const query = params.toString();
     const suffix = query ? `?${query}` : "";
@@ -727,6 +729,25 @@ class ApiClient {
     return response;
   }
 
+  async getGroupKey(groupId: string): Promise<ApiResponse<{ version: number; wrappedKey?: string | null; wrappedKeyIv?: string; senderPublicKey?: string; senderUserId?: string }>> {
+    return this.request(`/groups/${groupId}/keys`);
+  }
+
+  async getGroupKeyMembers(groupId: string): Promise<ApiResponse<{ version: number; members: { userId: string; name: string; publicKey?: string | null }[] }>> {
+    return this.request(`/groups/${groupId}/keys/members`);
+  }
+
+  async rotateGroupKey(
+    groupId: string,
+    version: number,
+    shares: { userId: string; wrappedKey: string; wrappedKeyIv: string; senderPublicKey: string }[]
+  ): Promise<ApiResponse<{ message: string; version: number }>> {
+    return this.request(`/groups/${groupId}/keys/rotate`, {
+      method: "POST",
+      body: JSON.stringify({ version, shares }),
+    });
+  }
+
   async getGroupByHandle(handle: string): Promise<ApiResponse<any>> {
     const response = await this.request(`/groups/handle/${encodeURIComponent(handle)}`);
     if (response.success && response.data) {
@@ -757,6 +778,10 @@ class ApiClient {
 
   async leaveGroup(groupId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/groups/${groupId}/leave`, { method: "POST" });
+  }
+
+  async deleteGroup(groupId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/groups/${groupId}`, { method: "DELETE" });
   }
 
   async updateGroupHandle(groupId: string, handle: string | null): Promise<ApiResponse<{ message: string; handle: string | null }>> {

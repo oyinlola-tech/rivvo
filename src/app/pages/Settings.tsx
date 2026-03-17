@@ -286,15 +286,15 @@ export default function Settings() {
   ];
 
   return (
-    <div className="min-h-[100dvh] bg-[#111b21] md:ml-64">
+    <div className="min-h-[100dvh] bg-[#f0f2f5] md:ml-64">
       {/* Header */}
-      <div className="bg-[#111b21] sticky top-0 z-10 px-6 py-4">
+      <div className="bg-[#1a8c7a] sticky top-0 z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Settings</h1>
           <button
             onClick={openNotificationsSheet}
             aria-label="Notifications"
-            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+            className="relative w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"
           >
             <Bell size={20} />
             {unreadCount > 0 && (
@@ -307,7 +307,7 @@ export default function Settings() {
       </div>
 
       {/* Settings Content */}
-      <div className="bg-background rounded-t-[40px] min-h-[calc(100dvh-100px)] pt-6">
+      <div className="bg-white rounded-t-[32px] min-h-[calc(100dvh-100px)] pt-6 border border-[#e6e6e6]">
         {/* Profile Section */}
         <div className="px-6 mb-6">
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -458,7 +458,7 @@ export default function Settings() {
         <div className="px-6 mb-6">
           <div className="rounded-2xl border border-gray-100 bg-[#f7f9f9] p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-full bg-[#1DA1F2] flex items-center justify-center">
+              <div className="w-11 h-11 rounded-full bg-[#1a8c7a] flex items-center justify-center">
                 <CheckCircle size={20} className="text-white" />
               </div>
               <div>
@@ -493,7 +493,7 @@ export default function Settings() {
                   <button
                     onClick={handleVerificationCheckout}
                     disabled={checkoutLoading || !pricing?.active || missingVerificationProfile}
-                    className="w-full py-3 rounded-xl font-medium bg-[#1DA1F2] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-3 rounded-xl font-medium bg-[#1a8c7a] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {checkoutLoading ? "Opening checkout..." : "Renew verification"}
                   </button>
@@ -540,7 +540,7 @@ export default function Settings() {
                     missingVerificationProfile ||
                     Boolean(verificationStatus?.latestPending)
                   }
-                  className="w-full py-3 rounded-xl font-medium bg-[#1DA1F2] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 rounded-xl font-medium bg-[#1a8c7a] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {checkoutLoading
                     ? "Opening checkout..."
@@ -615,7 +615,7 @@ export default function Settings() {
             <h4 className="text-sm font-semibold text-[#111b21] mb-2">Checkmark Legend</h4>
             <div className="flex items-center gap-3 text-sm text-[#667781]">
               <span className="inline-flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#1DA1F2]">
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#1a8c7a]">
                   <CheckCircle size={10} className="text-white" />
                 </span>
                 Verified user

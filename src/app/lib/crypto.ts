@@ -106,6 +106,23 @@ export const deriveSharedKey = async (privateKey: CryptoKey, publicKey: CryptoKe
   );
 };
 
+export const generateGroupKey = async () => {
+  return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
+};
+
+export const exportRawKey = async (key: CryptoKey) => {
+  const raw = await crypto.subtle.exportKey("raw", key);
+  return toBase64(raw);
+};
+
+export const importRawKey = async (rawBase64: string) => {
+  const raw = fromBase64(rawBase64);
+  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+};
+
 export const getOrCreateStorageKey = async () => {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {

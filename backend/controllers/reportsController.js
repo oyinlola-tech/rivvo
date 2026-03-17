@@ -63,6 +63,20 @@ export const reportUser = async (req, res) => {
   if (!isNonEmptyString(reason)) {
     return sendError(res, 400, 'Reason is required');
   }
+  if (reason.trim().length > 255) {
+    return sendError(res, 400, 'Reason must be 255 characters or less');
+  }
+  if (reportedUserId === userId) {
+    return sendError(res, 400, 'You cannot report yourself');
+  }
+
+  const [userRows] = await pool.execute(
+    `SELECT id FROM users WHERE id = :id LIMIT 1`,
+    { id: reportedUserId }
+  );
+  if (!userRows.length) {
+    return sendError(res, 404, 'Reported user not found');
+  }
 
   if (conversationId) {
     const isReporterParticipant = await ensureParticipant(userId, conversationId);
@@ -121,6 +135,9 @@ export const reportMessage = async (req, res) => {
   }
   if (!isNonEmptyString(reason)) {
     return sendError(res, 400, 'Reason is required');
+  }
+  if (reason.trim().length > 255) {
+    return sendError(res, 400, 'Reason must be 255 characters or less');
   }
 
   const [rows] = await pool.execute(

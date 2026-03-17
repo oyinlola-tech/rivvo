@@ -31,7 +31,7 @@ export const createCallLink = async (req, res) => {
     }
   );
 
-  const base = env.callRoomBaseUrl || 'http://localhost:5173/call/';
+  const base = env.callJoinBaseUrl || `${env.clientUrl}/call/`;
   return res.status(201).json({
     token,
     roomUrl: `${base}${token}`,
