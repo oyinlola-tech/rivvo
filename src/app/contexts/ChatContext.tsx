@@ -85,9 +85,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const chat = chats.find(c => c.id === chatId);
     if (chat) {
       setActiveChatState(chat);
-      const messagesData = await chatApi.getMessages(chatId);
-      setMessages(messagesData);
-      await markAsRead(chatId);
+      try {
+        const messagesData = await chatApi.getMessages(chatId);
+        setMessages(messagesData);
+        await markAsRead(chatId);
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+        setMessages([]);
+      }
     }
   };
 
