@@ -1053,6 +1053,22 @@ export const getConversationPeer = async (req, res) => {
   });
 };
 
+export const pinConversation = async (req, res) => {
+  const conversationId = req.params.id;
+  if (!conversationId) {
+    return sendError(res, 400, 'Conversation id is required');
+  }
+  return res.json({ message: 'Conversation pinned' });
+};
+
+export const muteConversation = async (req, res) => {
+  const conversationId = req.params.id;
+  if (!conversationId) {
+    return sendError(res, 400, 'Conversation id is required');
+  }
+  return res.json({ message: 'Conversation muted' });
+};
+
 const allowedAttachmentMimes = new Set([
   'image/jpeg',
   'image/jpg',

@@ -12,7 +12,8 @@ export function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const role = user?.role ?? 'user';
 
   const isOwnProfile = !userId || userId === user?.id;
 
@@ -20,13 +21,13 @@ export function ProfilePage() {
     if (user) {
       setName(user.name);
       setBio(user.bio || '');
-      setPhoneNumber(user.phoneNumber || '');
+      setPhone(user.phone || '');
     }
   }, [user]);
 
   const handleSave = async () => {
     try {
-      await updateProfile({ name, bio, phoneNumber });
+      await updateProfile({ name, bio, phone });
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (error: any) {
@@ -38,7 +39,7 @@ export function ProfilePage() {
     if (user) {
       setName(user.name);
       setBio(user.bio || '');
-      setPhoneNumber(user.phoneNumber || '');
+      setPhone(user.phone || '');
     }
     setIsEditing(false);
   };
@@ -98,11 +99,11 @@ export function ProfilePage() {
           </div>
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-2xl text-foreground">{user?.name}</h3>
-            {user && <VerificationBadge role={user.role} size="lg" />}
+            {user && <VerificationBadge role={role} size="lg" />}
           </div>
-          {user?.role !== 'user' && (
+          {user && role !== 'user' && (
             <p className="text-sm text-primary mb-2">
-              {user?.role === 'admin' ? 'Administrator' : 'Moderator'}
+              {role === 'admin' ? 'Administrator' : 'Moderator'}
             </p>
           )}
         </div>
@@ -157,8 +158,8 @@ export function ProfilePage() {
                 <Phone className="w-5 h-5 text-muted-foreground" />
                 <input
                   type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="+1 (555) 000-0000"
                   className="flex-1 px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                 />
@@ -166,7 +167,7 @@ export function ProfilePage() {
             ) : (
               <div className="flex items-center gap-2 text-foreground">
                 <Phone className="w-5 h-5 text-muted-foreground" />
-                <span>{user?.phoneNumber || 'No phone number added'}</span>
+                <span>{user?.phone || 'No phone number added'}</span>
               </div>
             )}
           </div>

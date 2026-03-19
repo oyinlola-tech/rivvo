@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { User, Bell, Lock, Palette, Info, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
+import { User, Bell, Lock, Palette, Info, HelpCircle, LogOut, ChevronRight, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { MobileNav } from '../components/MobileNav';
@@ -10,6 +10,18 @@ export function SettingsPage() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  type SettingsItem = {
+    icon: LucideIcon;
+    label: string;
+    onClick: () => void | Promise<void>;
+    value?: string;
+  };
+
+  type SettingsGroup = {
+    title: string;
+    items: SettingsItem[];
+  };
 
   const handleLogout = async () => {
     try {
@@ -21,7 +33,7 @@ export function SettingsPage() {
     }
   };
 
-  const settingsGroups = [
+  const settingsGroups: SettingsGroup[] = [
     {
       title: 'Account',
       items: [

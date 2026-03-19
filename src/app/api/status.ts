@@ -26,7 +26,34 @@ export interface StatusView {
 
 export const statusApi = {
   async getStatuses(): Promise<Status[]> {
-    return apiRequest<Status[]>('/status');
+    const response = await apiRequest<any>('/status');
+    const groups = [...(response?.unviewed || []), ...(response?.viewed || [])];
+    const statuses: Status[] = [];
+    groups.forEach((group: any) => {
+      const user = group.user || {};
+      (group.statuses || []).forEach((item: any) => {
+        const mediaType = item.mediaType || '';
+        const type: Status['type'] =
+          mediaType.startsWith('image') ? 'image' :
+          mediaType.startsWith('video') ? 'video' :
+          'text';
+        statuses.push({
+          id: item.id,
+          userId: user.id,
+          userName: user.name || 'Unknown',
+          userAvatar: user.avatar || undefined,
+          type,
+          content: item.mediaUrl || item.text || '',
+          backgroundColor: type === 'text' ? '#0f172a' : undefined,
+          caption: item.caption || undefined,
+          viewCount: item.viewCount || 0,
+          createdAt: item.createdAt,
+          expiresAt: item.expiresAt,
+          viewed: Boolean(item.viewedAt),
+        });
+      });
+    });
+    return statuses;
   },
 
   async getMyStatuses(): Promise<Status[]> {
@@ -41,9 +68,7 @@ export const statusApi = {
   },
 
   async deleteStatus(statusId: string): Promise<void> {
-    return apiRequest(`/status/${statusId}`, {
-      method: 'DELETE',
-    });
+    return apiRequest(`/status/${statusId}`, { method: 'DELETE' });
   },
 
   async viewStatus(statusId: string): Promise<void> {

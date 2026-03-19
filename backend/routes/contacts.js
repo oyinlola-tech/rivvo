@@ -8,7 +8,10 @@ import {
   getContactRequestUnreadCount,
   markContactRequestsRead,
   acceptContactRequest,
-  rejectContactRequest
+  rejectContactRequest,
+  toggleFavorite,
+  blockContact,
+  unblockContact
 } from '../controllers/contactsController.js';
 
 const router = Router();
@@ -20,5 +23,8 @@ router.get('/requests/unread-count', auth, asyncHandler(getContactRequestUnreadC
 router.post('/requests/mark-read', auth, asyncHandler(markContactRequestsRead));
 router.post('/requests/:requestId/accept', auth, asyncHandler(acceptContactRequest));
 router.post('/requests/:requestId/reject', auth, asyncHandler(rejectContactRequest));
+router.post('/:userId/favorite', auth, asyncHandler(toggleFavorite));
+router.post('/:userId/block', auth, asyncHandler(blockContact));
+router.post('/:userId/unblock', auth, asyncHandler(unblockContact));
 
 export default router;

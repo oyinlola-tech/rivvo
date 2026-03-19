@@ -251,3 +251,61 @@ export const updateCallStatus = async (req, res) => {
 
   return res.json({ message: 'Call status updated' });
 };
+
+export const answerCall = async (req, res) => {
+  const userId = req.user?.id;
+  const callId = req.params.id;
+  if (!callId) {
+    return sendError(res, 400, 'Call id is required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, status, caller_id, callee_id
+     FROM calls
+     WHERE id = :id
+     LIMIT 1`,
+    { id: callId }
+  );
+  const call = rows[0];
+  if (!call || (call.caller_id !== userId && call.callee_id !== userId)) {
+    return sendError(res, 404, 'Call not found');
+  }
+  if (call.status !== 'ongoing') {
+    return sendError(res, 400, 'Call already ended');
+  }
+
+  return res.json({ message: 'Call answered' });
+};
+
+export const declineCall = async (req, res) => {
+  const userId = req.user?.id;
+  const callId = req.params.id;
+  if (!callId) {
+    return sendError(res, 400, 'Call id is required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, status, caller_id, callee_id
+     FROM calls
+     WHERE id = :id
+     LIMIT 1`,
+    { id: callId }
+  );
+  const call = rows[0];
+  if (!call || (call.caller_id !== userId && call.callee_id !== userId)) {
+    return sendError(res, 404, 'Call not found');
+  }
+  if (call.status !== 'ongoing') {
+    return sendError(res, 400, 'Call already ended');
+  }
+
+  await pool.execute(
+    `UPDATE calls
+     SET status = 'missed',
+         duration = NULL
+     WHERE id = :id`,
+    { id: callId }
+  );
+
+  return res.json({ message: 'Call declined' });
+};

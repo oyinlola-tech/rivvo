@@ -91,7 +91,13 @@ export function AdminUsers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {users.map((user) => (
+                {users.map((user) => {
+                  const role = user.role ?? 'user';
+                  const joinedAt = user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString()
+                    : 'Unknown';
+
+                  return (
                   <tr key={user.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -104,20 +110,20 @@ export function AdminUsers() {
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-foreground">{user.name}</span>
-                          <VerificationBadge role={user.role} size="sm" />
+                          <VerificationBadge role={role} size="sm" />
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{user.email}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs ${
-                        user.role === 'admin'
+                        role === 'admin'
                           ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                          : user.role === 'moderator'
+                          : role === 'moderator'
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                       }`}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -130,7 +136,7 @@ export function AdminUsers() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {joinedAt}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -153,7 +159,8 @@ export function AdminUsers() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>

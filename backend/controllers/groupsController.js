@@ -520,6 +520,44 @@ export const removeMember = async (req, res) => {
   return res.json({ message: 'Member removed' });
 };
 
+export const updateGroup = async (req, res) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+  const { name, description, isPrivate } = req.body || {};
+
+  const membership = await isGroupMember(groupId, userId);
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return sendError(res, 403, 'Admin access required');
+  }
+
+  const fields = [];
+  const params = { id: groupId };
+
+  if (typeof name === 'string' && name.trim()) {
+    fields.push('name = :name');
+    params.name = name.trim();
+  }
+  if (typeof description === 'string') {
+    fields.push('description = :description');
+    params.description = description.trim() || null;
+  }
+  if (typeof isPrivate === 'boolean') {
+    fields.push('is_private = :is_private');
+    params.is_private = isPrivate ? 1 : 0;
+  }
+
+  if (!fields.length) {
+    return res.json({ message: 'No changes applied' });
+  }
+
+  await pool.execute(
+    `UPDATE groups SET ${fields.join(', ')} WHERE id = :id`,
+    params
+  );
+
+  return res.json({ message: 'Group updated' });
+};
+
 export const leaveGroup = async (req, res) => {
   const userId = req.user?.id;
   const { groupId } = req.params;

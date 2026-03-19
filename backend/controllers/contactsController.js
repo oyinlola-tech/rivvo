@@ -28,6 +28,7 @@ export const getContacts = async (req, res) => {
   const userId = req.user?.id;
   const [rows] = await pool.execute(
     `SELECT u.id, u.name, u.email, u.phone, u.avatar, u.verified,
+            c.created_at,
             CASE
               WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at > NOW()
               THEN 1 ELSE 0
@@ -37,9 +38,15 @@ export const getContacts = async (req, res) => {
               WHEN u.is_verified_badge = 1 AND u.verified_badge_expires_at <= NOW() THEN 'expired'
               ELSE 'none'
             END AS badge_status,
-            u.is_moderator, u.is_admin
+            u.is_moderator, u.is_admin,
+            CASE WHEN cf.user_id IS NULL THEN 0 ELSE 1 END AS is_favorite,
+            CASE WHEN b.blocker_id IS NULL THEN 0 ELSE 1 END AS is_blocked
      FROM contacts c
      JOIN users u ON u.id = c.contact_id
+     LEFT JOIN contact_favorites cf
+       ON cf.user_id = :user_id AND cf.contact_id = u.id
+     LEFT JOIN blocks b
+       ON b.blocker_id = :user_id AND b.blocked_id = u.id
      WHERE c.user_id = :user_id
      ORDER BY u.name ASC`,
     { user_id: userId }
@@ -56,7 +63,11 @@ export const getContacts = async (req, res) => {
     isVerifiedBadge: Boolean(row.is_verified_badge_active),
     badgeStatus: row.badge_status,
     isModerator: Boolean(row.is_moderator),
-    isAdmin: Boolean(row.is_admin)
+    isAdmin: Boolean(row.is_admin),
+    role: row.is_admin ? 'admin' : row.is_moderator ? 'moderator' : 'user',
+    isFavorite: Boolean(row.is_favorite),
+    isBlocked: Boolean(row.is_blocked),
+    addedAt: row.created_at ? new Date(row.created_at).toISOString() : null
   }));
 
   return res.json(contacts);
@@ -292,4 +303,67 @@ export const rejectContactRequest = async (req, res) => {
   }
 
   return res.json({ message: 'Contact request rejected' });
+};
+
+export const toggleFavorite = async (req, res) => {
+  const userId = req.user?.id;
+  const { userId: contactId } = req.params;
+  const { isFavorite } = req.body || {};
+
+  if (!contactId) {
+    return sendError(res, 400, 'contactId is required');
+  }
+
+  const alreadyContact = await hasContact(userId, contactId);
+  if (!alreadyContact) {
+    return sendError(res, 404, 'Contact not found');
+  }
+
+  if (isFavorite) {
+    await pool.execute(
+      `INSERT IGNORE INTO contact_favorites (user_id, contact_id)
+       VALUES (:user_id, :contact_id)`,
+      { user_id: userId, contact_id: contactId }
+    );
+  } else {
+    await pool.execute(
+      `DELETE FROM contact_favorites
+       WHERE user_id = :user_id AND contact_id = :contact_id`,
+      { user_id: userId, contact_id: contactId }
+    );
+  }
+
+  return res.json({ message: 'Favorite updated' });
+};
+
+export const blockContact = async (req, res) => {
+  const userId = req.user?.id;
+  const { userId: contactId } = req.params;
+  if (!contactId) {
+    return sendError(res, 400, 'contactId is required');
+  }
+
+  await pool.execute(
+    `INSERT IGNORE INTO blocks (blocker_id, blocked_id)
+     VALUES (:blocker_id, :blocked_id)`,
+    { blocker_id: userId, blocked_id: contactId }
+  );
+
+  return res.json({ message: 'User blocked' });
+};
+
+export const unblockContact = async (req, res) => {
+  const userId = req.user?.id;
+  const { userId: contactId } = req.params;
+  if (!contactId) {
+    return sendError(res, 400, 'contactId is required');
+  }
+
+  await pool.execute(
+    `DELETE FROM blocks
+     WHERE blocker_id = :blocker_id AND blocked_id = :blocked_id`,
+    { blocker_id: userId, blocked_id: contactId }
+  );
+
+  return res.json({ message: 'User unblocked' });
 };

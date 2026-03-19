@@ -20,24 +20,14 @@ export interface ModeratorCreate {
 
 export const adminApi = {
   async getStats(): Promise<AdminStats> {
-    return apiRequest<AdminStats>('/admin/stats');
+    return apiRequest<AdminStats>('/admin/analytics');
   },
 
   async getAllUsers(limit = 50, offset = 0, search?: string): Promise<{ users: User[]; total: number }> {
-    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    const page = Math.floor(offset / limit) + 1;
+    const params = new URLSearchParams({ limit: String(limit), page: String(page) });
     if (search) params.append('search', search);
     return apiRequest<{ users: User[]; total: number }>(`/admin/users?${params}`);
-  },
-
-  async getUserDetails(userId: string): Promise<User> {
-    return apiRequest<User>(`/admin/users/${userId}`);
-  },
-
-  async updateUser(userId: string, data: Partial<User>): Promise<User> {
-    return apiRequest<User>(`/admin/users/${userId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
   },
 
   async deleteUser(userId: string): Promise<void> {
@@ -47,8 +37,9 @@ export const adminApi = {
   },
 
   async verifyUser(userId: string): Promise<User> {
-    return apiRequest<User>(`/admin/users/${userId}/verify`, {
-      method: 'POST',
+    return apiRequest<User>(`/admin/users/${userId}/verification`, {
+      method: 'PUT',
+      body: JSON.stringify({ verified: true }),
     });
   },
 
@@ -69,28 +60,17 @@ export const adminApi = {
     });
   },
 
-  async promoteToModerator(userId: string): Promise<User> {
-    return apiRequest<User>(`/admin/users/${userId}/promote`, {
-      method: 'POST',
+  async updateUserStatus(userId: string, status: 'active' | 'suspended'): Promise<void> {
+    return apiRequest(`/admin/users/${userId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
     });
   },
 
-  async demoteFromModerator(userId: string): Promise<User> {
-    return apiRequest<User>(`/admin/users/${userId}/demote`, {
-      method: 'POST',
-    });
-  },
-
-  async banUser(userId: string, reason?: string): Promise<void> {
-    return apiRequest(`/admin/users/${userId}/ban`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    });
-  },
-
-  async unbanUser(userId: string): Promise<void> {
-    return apiRequest(`/admin/users/${userId}/unban`, {
-      method: 'POST',
+  async updateVerificationBadge(userId: string, active: boolean): Promise<void> {
+    return apiRequest(`/admin/users/${userId}/verification-badge`, {
+      method: 'PUT',
+      body: JSON.stringify({ active }),
     });
   },
 };

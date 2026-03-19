@@ -28,6 +28,7 @@ export interface Chat {
   updatedAt: string;
   streak?: number;
   groupAdmin?: string[];
+  groupId?: string;
 }
 
 interface ChatContextType {
@@ -37,7 +38,7 @@ interface ChatContextType {
   loading: boolean;
   setActiveChat: (chatId: string | null) => void;
   sendMessage: (chatId: string, content: string, type?: Message['type']) => Promise<void>;
-  deleteMessage: (messageId: string) => Promise<void>;
+  deleteMessage: (chatId: string, messageId: string) => Promise<void>;
   markAsRead: (chatId: string) => Promise<void>;
   createGroup: (name: string, participants: string[]) => Promise<Chat>;
   updateGroup: (chatId: string, data: Partial<Chat>) => Promise<void>;
@@ -96,8 +97,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     await loadChats();
   };
 
-  const deleteMessage = async (messageId: string) => {
-    await chatApi.deleteMessage(messageId);
+  const deleteMessage = async (chatId: string, messageId: string) => {
+    await chatApi.deleteMessage(chatId, messageId);
     setMessages(prev => prev.filter(m => m.id !== messageId));
   };
 
@@ -113,7 +114,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateGroup = async (chatId: string, data: Partial<Chat>) => {
-    await chatApi.updateGroup(chatId, data);
+    const chat = chats.find(c => c.id === chatId);
+    await chatApi.updateGroup(chatId, { ...data, groupId: chat?.groupId });
     await loadChats();
   };
 

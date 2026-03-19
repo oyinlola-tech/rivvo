@@ -17,6 +17,7 @@ import {
   demoteAdmin,
   addMember,
   removeMember,
+  updateGroup,
   leaveGroup,
   uploadGroupAvatar,
   uploadGroupBanner,
@@ -39,6 +40,7 @@ router.post('/', asyncHandler(createGroup));
 router.get('/', asyncHandler(listGroups));
 router.get('/handle/:handle', asyncHandler(getGroupByHandle));
 router.get('/:groupId', asyncHandler(getGroup));
+router.patch('/:groupId', asyncHandler(updateGroup));
 router.get('/:groupId/keys', asyncHandler(getGroupKeyShare));
 router.get('/:groupId/keys/members', asyncHandler(listGroupKeyMembers));
 router.post('/:groupId/keys/rotate', asyncHandler(rotateGroupKey));

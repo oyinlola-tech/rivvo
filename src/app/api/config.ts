@@ -1,9 +1,11 @@
 // API Configuration
-// Replace with your actual backend URL
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+// Vite exposes env vars on import.meta.env
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // WebSocket URL for real-time features
-export const WS_BASE_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:3000';
+export const WS_BASE_URL =
+  import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
 
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('rivvo_token');

@@ -43,7 +43,7 @@ export function Sidebar() {
           <div className="hidden lg:block flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <p className="truncate text-foreground">{user?.name}</p>
-              {user && <VerificationBadge role={user.role} size="sm" />}
+              {user && <VerificationBadge role={user.role ?? 'user'} size="sm" />}
             </div>
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>

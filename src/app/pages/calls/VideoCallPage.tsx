@@ -15,13 +15,17 @@ export function VideoCallPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (callStatus === 'ongoing') {
       interval = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [callStatus]);
 
   useEffect(() => {

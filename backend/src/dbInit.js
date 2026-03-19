@@ -288,6 +288,15 @@ export const initDb = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS contact_favorites (
+      user_id CHAR(36) NOT NULL,
+      contact_id CHAR(36) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, contact_id)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS contact_requests (
       id CHAR(36) PRIMARY KEY,
       requester_id CHAR(36) NOT NULL,
@@ -755,6 +764,28 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE contacts
       ADD CONSTRAINT fk_contacts_contact
+      FOREIGN KEY (contact_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE contact_favorites
+      ADD CONSTRAINT fk_contact_favorites_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE contact_favorites
+      ADD CONSTRAINT fk_contact_favorites_contact
       FOREIGN KEY (contact_id) REFERENCES users(id)
       ON DELETE CASCADE
     `);

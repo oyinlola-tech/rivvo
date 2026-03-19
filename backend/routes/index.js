@@ -14,6 +14,7 @@ import callLinkRoutes from './callLinks.js';
 import statusRoutes from './status.js';
 import verificationRoutes from './verification.js';
 import supportRoutes from './support.js';
+import notificationsRoutes from './notifications.js';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use('/messages', messageRoutes);
 router.use('/calls', callRoutes);
 router.use('/contacts', contactRoutes);
 router.use('/status', statusRoutes);
+router.use('/notifications', notificationsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/reports', reportRoutes);
 router.use('/blocks', blockRoutes);

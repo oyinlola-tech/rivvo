@@ -9,6 +9,8 @@ import {
   sendMessage,
   markConversationRead,
   getConversationPeer,
+  pinConversation,
+  muteConversation,
   viewOnceMessage,
   uploadAttachment,
   getOrCreateConversation,
@@ -40,5 +42,7 @@ router.post(
 router.post('/conversations/:id/read', auth, asyncHandler(markConversationRead));
 router.post('/conversations/:id/view-once/:messageId', auth, asyncHandler(viewOnceMessage));
 router.get('/conversations/:id/peer', auth, asyncHandler(getConversationPeer));
+router.post('/conversations/:id/pin', auth, asyncHandler(pinConversation));
+router.post('/conversations/:id/mute', auth, asyncHandler(muteConversation));
 
 export default router;

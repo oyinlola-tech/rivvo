@@ -14,6 +14,9 @@ export const getStatuses = async (req, res) => {
         s.created_at,
         s.expires_at,
         sv.viewed_at,
+        (
+          SELECT COUNT(*) FROM status_views sv2 WHERE sv2.status_id = s.id
+        ) AS view_count,
         u.name,
         u.avatar,
         u.verified,
@@ -68,7 +71,8 @@ export const getStatuses = async (req, res) => {
       mediaType: row.media_type,
       createdAt: new Date(row.created_at).toISOString(),
       expiresAt: new Date(row.expires_at).toISOString(),
-      viewedAt: row.viewed_at ? new Date(row.viewed_at).toISOString() : null
+      viewedAt: row.viewed_at ? new Date(row.viewed_at).toISOString() : null,
+      viewCount: Number(row.view_count || 0)
     });
   });
 
@@ -105,16 +109,31 @@ export const getStatuses = async (req, res) => {
 
 export const createStatus = async (req, res) => {
   const userId = req.user?.id;
-  const { text } = req.body || {};
+  const { text, type, content, caption, backgroundColor } = req.body || {};
   const file = req.file;
 
-  if (!text && !file) {
+  const normalizedType = typeof type === 'string' ? type.toLowerCase() : null;
+  const isTextStatus = normalizedType === 'text';
+  const contentValue = typeof content === 'string' ? content.trim() : '';
+
+  if (!text && !file && !contentValue) {
     return res.status(400).json({ error: 'Bad Request', message: 'Text or media is required' });
   }
 
   const statusId = uuid();
-  const mediaUrl = file ? `/uploads/status/${file.filename}` : null;
-  const mediaType = file ? file.mimetype : null;
+  const mediaUrl = file
+    ? `/uploads/status/${file.filename}`
+    : !isTextStatus && contentValue
+      ? contentValue
+      : null;
+  const mediaType = file
+    ? file.mimetype
+    : !isTextStatus && contentValue
+      ? normalizedType === 'video'
+        ? 'video/mp4'
+        : 'image/jpeg'
+      : null;
+  const textValue = isTextStatus ? contentValue : text;
 
   await pool.execute(
     `INSERT INTO statuses (id, user_id, text, media_url, media_type, expires_at)
@@ -122,7 +141,7 @@ export const createStatus = async (req, res) => {
     {
       id: statusId,
       user_id: userId,
-      text: text || null,
+      text: textValue || null,
       media_url: mediaUrl,
       media_type: mediaType
     }
@@ -130,12 +149,106 @@ export const createStatus = async (req, res) => {
 
   return res.status(201).json({
     id: statusId,
-    text: text || null,
+    text: textValue || null,
     mediaUrl,
     mediaType,
+    caption: caption || null,
+    backgroundColor: backgroundColor || null,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   });
+};
+
+export const getMyStatuses = async (req, res) => {
+  const userId = req.user?.id;
+  const [rows] = await pool.execute(
+    `SELECT s.id, s.text, s.media_url, s.media_type, s.created_at, s.expires_at,
+            COUNT(sv.id) AS view_count,
+            u.name, u.avatar
+     FROM statuses s
+     JOIN users u ON u.id = s.user_id
+     LEFT JOIN status_views sv ON sv.status_id = s.id
+     WHERE s.user_id = :user_id AND s.expires_at > NOW()
+     GROUP BY s.id
+     ORDER BY s.created_at DESC`,
+    { user_id: userId }
+  );
+
+  const statuses = rows.map((row) => ({
+    id: row.id,
+    userId,
+    userName: row.name,
+    userAvatar: row.avatar || null,
+    type: row.media_type
+      ? row.media_type.startsWith('video')
+        ? 'video'
+        : 'image'
+      : 'text',
+    content: row.media_url || row.text || '',
+    backgroundColor: row.media_type ? null : '#0f172a',
+    caption: null,
+    viewCount: Number(row.view_count || 0),
+    createdAt: new Date(row.created_at).toISOString(),
+    expiresAt: new Date(row.expires_at).toISOString(),
+    viewed: true
+  }));
+
+  return res.json(statuses);
+};
+
+export const deleteStatus = async (req, res) => {
+  const userId = req.user?.id;
+  const { statusId } = req.params;
+  if (!statusId) {
+    return sendError(res, 400, 'statusId is required');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id FROM statuses WHERE id = :id AND user_id = :user_id LIMIT 1`,
+    { id: statusId, user_id: userId }
+  );
+  if (!rows.length) {
+    return sendError(res, 404, 'Status not found');
+  }
+
+  await pool.execute(`DELETE FROM statuses WHERE id = :id`, { id: statusId });
+  return res.json({ message: 'Status deleted' });
+};
+
+export const getStatusViews = async (req, res) => {
+  const userId = req.user?.id;
+  const { statusId } = req.params;
+  if (!statusId) {
+    return sendError(res, 400, 'statusId is required');
+  }
+
+  const [owns] = await pool.execute(
+    `SELECT id FROM statuses WHERE id = :id AND user_id = :user_id LIMIT 1`,
+    { id: statusId, user_id: userId }
+  );
+  if (!owns.length) {
+    return sendError(res, 404, 'Status not found');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT sv.id, sv.viewer_id, sv.viewed_at, u.name, u.avatar
+     FROM status_views sv
+     JOIN users u ON u.id = sv.viewer_id
+     WHERE sv.status_id = :status_id
+     ORDER BY sv.viewed_at DESC`,
+    { status_id: statusId }
+  );
+
+  const views = rows.map((row) => ({
+    id: row.id,
+    statusId,
+    viewerId: row.viewer_id,
+    viewerName: row.name,
+    viewerAvatar: row.avatar || null,
+    viewedAt: row.viewed_at ? new Date(row.viewed_at).toISOString() : null
+  }));
+
+  return res.json(views);
 };
 
 export const markStatusViewed = async (req, res) => {
