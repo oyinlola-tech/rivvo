@@ -64,6 +64,21 @@ const env = {
     email: process.env.ADMIN_EMAIL,
     password: process.env.ADMIN_PASSWORD,
     name: process.env.ADMIN_NAME || 'Main Admin'
+  },
+  cors: {
+    publicUrls: (process.env.CORS_PUBLIC_URLS || process.env.CLIENT_URLS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+    adminUrls: (process.env.CORS_ADMIN_URLS || process.env.CLIENT_URLS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  },
+  socket: {
+    membershipCacheTtlMs: toNumber(process.env.SOCKET_MEMBERSHIP_CACHE_TTL_MS, 30000),
+    rateLimitWindowMs: toNumber(process.env.SOCKET_RATE_LIMIT_WINDOW_MS, 10000),
+    rateLimitMax: toNumber(process.env.SOCKET_RATE_LIMIT_MAX, 30)
   }
 };
 

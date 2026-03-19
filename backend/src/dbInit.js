@@ -555,6 +555,20 @@ export const initDb = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS refresh_token_audit (
+      id CHAR(36) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      refresh_token_id CHAR(36) NULL,
+      event VARCHAR(40) NOT NULL,
+      ip_address VARCHAR(64) NULL,
+      user_agent VARCHAR(255) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_refresh_audit_user (user_id),
+      INDEX idx_refresh_audit_event (event)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS admin_audit_logs (
       id CHAR(36) PRIMARY KEY,
       admin_id CHAR(36) NOT NULL,
@@ -1057,6 +1071,17 @@ export const initDb = async () => {
     await pool.query(`
       ALTER TABLE refresh_tokens
       ADD CONSTRAINT fk_refresh_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+    `);
+  } catch (error) {
+    // Constraint likely exists already.
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE refresh_token_audit
+      ADD CONSTRAINT fk_refresh_audit_user
       FOREIGN KEY (user_id) REFERENCES users(id)
       ON DELETE CASCADE
     `);

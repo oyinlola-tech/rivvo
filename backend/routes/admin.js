@@ -18,7 +18,8 @@ import {
   setVerificationPricing,
   getVerificationPayments,
   reviewVerificationPayment,
-  updateVerificationBadge
+  updateVerificationBadge,
+  getRefreshTokenAudit
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -41,5 +42,6 @@ router.put('/verification/pricing', asyncHandler(setVerificationPricing));
 router.get('/verification/payments', asyncHandler(getVerificationPayments));
 router.post('/verification/payments/:paymentId/review', asyncHandler(reviewVerificationPayment));
 router.put('/users/:userId/verification-badge', asyncHandler(updateVerificationBadge));
+router.get('/refresh-tokens/audit', asyncHandler(getRefreshTokenAudit));
 
 export default router;

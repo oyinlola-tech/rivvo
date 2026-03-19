@@ -571,6 +571,68 @@ export const updateVerificationBadge = async (req, res) => {
   await logAdminAction(req.user?.id, 'update_verification_badge', userId, { active });
   return res.json({ message: 'Verification badge updated' });
 };
+
+export const getRefreshTokenAudit = async (req, res) => {
+  const page = Number(req.query.page || 1);
+  const limit = Math.min(Number(req.query.limit || 50), 200);
+  const offset = (page - 1) * limit;
+  const event = typeof req.query.event === 'string' ? req.query.event : null;
+  const userId = typeof req.query.userId === 'string' ? req.query.userId : null;
+
+  const whereParts = [];
+  const params = { limit, offset };
+  if (event) {
+    whereParts.push('rta.event = :event');
+    params.event = event;
+  }
+  if (userId) {
+    whereParts.push('rta.user_id = :user_id');
+    params.user_id = userId;
+  }
+  const whereClause = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+
+  const countParams = {};
+  if (event) countParams.event = event;
+  if (userId) countParams.user_id = userId;
+  const [[countRow]] = await pool.execute(
+    `SELECT COUNT(*) AS total FROM refresh_token_audit rta ${whereClause}`,
+    countParams
+  );
+
+  const [rows] = await pool.execute(
+    `SELECT
+        rta.id,
+        rta.user_id,
+        rta.refresh_token_id,
+        rta.event,
+        rta.ip_address,
+        rta.user_agent,
+        rta.created_at,
+        u.email AS user_email
+     FROM refresh_token_audit rta
+     LEFT JOIN users u ON u.id = rta.user_id
+     ${whereClause}
+     ORDER BY rta.created_at DESC
+     LIMIT :limit OFFSET :offset`,
+    params
+  );
+
+  const total = countRow.total || 0;
+  const totalPages = Math.ceil(total / limit);
+
+  const logs = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    userEmail: row.user_email || null,
+    refreshTokenId: row.refresh_token_id,
+    event: row.event,
+    ipAddress: row.ip_address,
+    userAgent: row.user_agent,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
+  }));
+
+  return res.json({ logs, total, page, totalPages });
+};
 export const getVerificationPricing = async (req, res) => {
   const [rows] = await pool.execute(
     `SELECT amount, currency, active, updated_at

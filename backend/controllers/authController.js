@@ -104,6 +104,24 @@ const issueAuthTokens = async (user, req) => {
   return { accessToken, refreshToken };
 };
 
+const logRefreshTokenEvent = async (userId, refreshTokenId, req, event) => {
+  if (!userId || !event) return;
+  await pool.execute(
+    `INSERT INTO refresh_token_audit
+      (id, user_id, refresh_token_id, event, ip_address, user_agent)
+     VALUES
+      (:id, :user_id, :refresh_token_id, :event, :ip_address, :user_agent)`,
+    {
+      id: uuid(),
+      user_id: userId,
+      refresh_token_id: refreshTokenId || null,
+      event,
+      ip_address: req.ip || null,
+      user_agent: req.get('user-agent') || null
+    }
+  );
+};
+
 export const login = async (req, res) => {
   const { email, password, identifier } = req.body || {};
   const loginValue = typeof identifier === 'string' ? identifier : email;
@@ -425,6 +443,7 @@ export const refresh = async (req, res) => {
        WHERE user_id = :user_id AND revoked_at IS NULL`,
       { user_id: stored.user_id }
     );
+    await logRefreshTokenEvent(stored.user_id, stored.id, req, 'reuse_detected');
     return sendError(res, 401, 'Refresh token reuse detected');
   }
 
@@ -441,6 +460,7 @@ export const refresh = async (req, res) => {
   );
 
   const { accessToken, refreshToken: nextRefreshToken } = await issueAuthTokens(user, req);
+  await logRefreshTokenEvent(stored.user_id, stored.id, req, 'rotated');
   return res.json({ token: accessToken, refreshToken: nextRefreshToken, user: buildUserPayload(user) });
 };
 

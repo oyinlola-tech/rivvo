@@ -5,6 +5,7 @@ import app from './app.js';
 import env from '../config/env.js';
 import { initDb } from './dbInit.js';
 import { setUserOnline, setUserOffline } from '../services/presenceService.js';
+import pool from '../config/db.js';
 
 const server = http.createServer(app);
 
@@ -40,43 +41,108 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   const userId = socket.user?.id;
 
+  const membershipCache = new Map();
+  const membershipCacheTtlMs = Number(env.socket?.membershipCacheTtlMs || 30000);
+
+  const rateLimitWindowMs = Number(env.socket?.rateLimitWindowMs || 10000);
+  const rateLimitMax = Number(env.socket?.rateLimitMax || 30);
+  const rateLimitStore = new Map();
+
+  const getRateKey = (eventName) => `${userId || socket.id}:${eventName}`;
+  const isRateLimited = (eventName) => {
+    const key = getRateKey(eventName);
+    const now = Date.now();
+    const state = rateLimitStore.get(key) || { count: 0, resetAt: now + rateLimitWindowMs };
+    if (now > state.resetAt) {
+      state.count = 0;
+      state.resetAt = now + rateLimitWindowMs;
+    }
+    state.count += 1;
+    rateLimitStore.set(key, state);
+    return state.count > rateLimitMax;
+  };
+
+  const isConversationParticipant = async (conversationId) => {
+    if (!conversationId || !userId) return false;
+    const cached = membershipCache.get(conversationId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.allowed;
+    }
+    const [rows] = await pool.execute(
+      `SELECT 1
+       FROM conversation_participants
+       WHERE conversation_id = :conversation_id AND user_id = :user_id
+       LIMIT 1`,
+      { conversation_id: conversationId, user_id: userId }
+    );
+    const allowed = rows.length > 0;
+    membershipCache.set(conversationId, {
+      allowed,
+      expiresAt: Date.now() + membershipCacheTtlMs
+    });
+    return allowed;
+  };
+
   if (userId) {
     setUserOnline(userId);
     socket.join(`user:${userId}`);
     io.emit('user_online', { userId });
   }
 
-  socket.on('join_conversation', ({ conversationId }) => {
+  socket.on('join_conversation', async ({ conversationId }) => {
     if (!socket.user?.id) {
       socket.emit('error', { message: 'Unauthorized' });
       return;
     }
-    if (conversationId) {
-      socket.join(`conversation:${conversationId}`);
+    if (isRateLimited('join_conversation')) {
+      socket.emit('error', { message: 'Rate limit exceeded' });
+      return;
     }
+    if (!conversationId) return;
+    const allowed = await isConversationParticipant(conversationId);
+    if (!allowed) {
+      socket.emit('error', { message: 'Forbidden' });
+      return;
+    }
+    socket.join(`conversation:${conversationId}`);
   });
 
-  socket.on('leave_conversation', ({ conversationId }) => {
+  socket.on('leave_conversation', async ({ conversationId }) => {
     if (!socket.user?.id) {
       socket.emit('error', { message: 'Unauthorized' });
       return;
     }
-    if (conversationId) {
-      socket.leave(`conversation:${conversationId}`);
+    if (isRateLimited('leave_conversation')) {
+      socket.emit('error', { message: 'Rate limit exceeded' });
+      return;
     }
+    if (!conversationId) return;
+    const allowed = await isConversationParticipant(conversationId);
+    if (!allowed) {
+      socket.emit('error', { message: 'Forbidden' });
+      return;
+    }
+    socket.leave(`conversation:${conversationId}`);
   });
 
-  socket.on('typing', ({ conversationId, userId: typingUserId }) => {
+  socket.on('typing', async ({ conversationId, userId: typingUserId }) => {
     if (!socket.user?.id) {
       socket.emit('error', { message: 'Unauthorized' });
       return;
     }
-    if (conversationId) {
-      socket.to(`conversation:${conversationId}`).emit('typing', {
-        conversationId,
-        userId: typingUserId || userId
-      });
+    if (isRateLimited('typing')) {
+      return;
     }
+    if (!conversationId) return;
+    const allowed = await isConversationParticipant(conversationId);
+    if (!allowed) {
+      socket.emit('error', { message: 'Forbidden' });
+      return;
+    }
+    socket.to(`conversation:${conversationId}`).emit('typing', {
+      conversationId,
+      userId: typingUserId || userId
+    });
   });
 
   socket.on('disconnect', () => {

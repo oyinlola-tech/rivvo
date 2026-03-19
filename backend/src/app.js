@@ -23,18 +23,35 @@ app.use(
     crossOriginEmbedderPolicy: false
   })
 );
+const resolveCorsOrigins = (path) => {
+  const safePath = path || '';
+  if (safePath.startsWith('/api/admin')) {
+    return env.cors.adminUrls.length ? env.cors.adminUrls : env.clientUrls;
+  }
+  if (safePath.startsWith('/api')) {
+    return env.cors.publicUrls.length ? env.cors.publicUrls : env.clientUrls;
+  }
+  return env.clientUrls;
+};
+
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
+  cors((req, callback) => {
+    const allowlist = resolveCorsOrigins(req.path);
+    const origin = req.headers.origin;
+    if (!origin) {
+      if (env.nodeEnv === 'production') {
+        return callback(new Error('Not allowed by CORS'));
       }
-      if (env.clientUrls.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true
+      return callback(null, { origin: true });
+    }
+    const allowed = allowlist.includes(origin);
+    return callback(null, {
+      origin: allowed,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true,
+      maxAge: 86400
+    });
   })
 );
 app.use(
@@ -60,7 +77,7 @@ app.use(
   })
 );
 
-app.use('/api', apiRateLimiter, routes);
+app.use('/api', routes);
 
 // Rate-limit static file access and SPA fallback to avoid filesystem DoS.
 app.use(apiRateLimiter);
