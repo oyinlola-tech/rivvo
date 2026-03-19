@@ -2,7 +2,12 @@ import fs from 'fs/promises';
 import path from 'path';
 
 const readHeader = async (filePath, length = 32) => {
-  const handle = await fs.open(filePath, 'r');
+  const resolved = path.resolve(filePath);
+  const realTarget = await fs.realpath(resolved).catch(() => null);
+  if (!realTarget || !realTarget.startsWith(uploadsRoot)) {
+    throw new Error('Invalid file path');
+  }
+  const handle = await fs.open(realTarget, 'r');
   try {
     const buffer = Buffer.alloc(length);
     await handle.read(buffer, 0, length, 0);
