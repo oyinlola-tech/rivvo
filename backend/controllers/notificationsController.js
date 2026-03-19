@@ -81,7 +81,22 @@ export const getPreferences = async (req, res) => {
 export const updatePreferences = async (req, res) => {
   const userId = req.user?.id;
   const existing = getUserPrefs(userId);
-  const next = { ...existing, ...req.body };
+  const allowed = [
+    'pushEnabled',
+    'messages',
+    'calls',
+    'status',
+    'system',
+    'marketing',
+    'quietHours'
+  ];
+  const updates = {};
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, key)) {
+      updates[key] = req.body[key];
+    }
+  }
+  const next = { ...existing, ...updates };
   preferencesStore.set(userId, next);
   return res.json(next);
 };

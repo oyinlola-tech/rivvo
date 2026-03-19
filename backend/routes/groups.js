@@ -29,6 +29,7 @@ import {
   rotateGroupKey
 } from '../controllers/groupsController.js';
 import { upload } from '../utils/upload.js';
+import { validateFileSignature, safeUnlink } from '../utils/fileSignature.js';
 import { uploadRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
@@ -66,6 +67,16 @@ router.post(
     next();
   },
   upload.single('avatar'),
+  asyncHandler(async (req, res, next) => {
+    if (req.file) {
+      const result = await validateFileSignature(req.file.path, 'image');
+      if (!result.ok) {
+        await safeUnlink(req.file.path);
+        return res.status(400).json({ message: 'Invalid image file' });
+      }
+    }
+    return next();
+  }),
   asyncHandler(uploadGroupAvatar)
 );
 router.post(
@@ -76,6 +87,16 @@ router.post(
     next();
   },
   upload.single('banner'),
+  asyncHandler(async (req, res, next) => {
+    if (req.file) {
+      const result = await validateFileSignature(req.file.path, 'image');
+      if (!result.ok) {
+        await safeUnlink(req.file.path);
+        return res.status(400).json({ message: 'Invalid image file' });
+      }
+    }
+    return next();
+  }),
   asyncHandler(uploadGroupBanner)
 );
 

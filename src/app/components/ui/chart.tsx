@@ -69,37 +69,45 @@ function ChartContainer({
   );
 }
 
+const isSafeToken = (value: string) => /^[a-zA-Z0-9_-]+$/.test(value);
+const isSafeColor = (value: string) =>
+  /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ||
+  /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i.test(value) ||
+  /^hsla?\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i.test(value);
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+  const safeId = isSafeToken(id) ? id : "";
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color,
   );
 
-  if (!colorConfig.length) {
+  if (!colorConfig.length || !safeId) {
     return null;
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
-      }}
-    />
-  );
+  const cssText = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const lines = colorConfig
+        .map(([key, itemConfig]) => {
+          if (!isSafeToken(key)) return null;
+          const rawColor =
+            itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+            itemConfig.color;
+          if (!rawColor || !isSafeColor(rawColor)) return null;
+          return `  --color-${key}: ${rawColor};`;
+        })
+        .filter(Boolean)
+        .join("\n");
+
+      if (!lines) return null;
+      return `${prefix} [data-chart=${safeId}] {\n${lines}\n}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  if (!cssText) return null;
+
+  return <style>{cssText}</style>;
 };
 
 const ChartTooltip = RechartsPrimitive.Tooltip;

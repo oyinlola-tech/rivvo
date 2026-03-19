@@ -23,7 +23,12 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const folder = req.uploadFolder || 'uploads';
     const normalizedFolder = folder.replace(/^uploads[\\/]/, '');
-    const dest = path.join(uploadsRoot, normalizedFolder);
+    const safeRelative = path.normalize(normalizedFolder).replace(/^([\\/]+|(\.\.[\\/])+)/, '');
+    const dest = path.resolve(uploadsRoot, safeRelative);
+    const resolvedRoot = path.resolve(uploadsRoot);
+    if (!dest.startsWith(resolvedRoot)) {
+      return cb(new Error('Invalid upload destination'));
+    }
     ensureDir(dest);
     cb(null, dest);
   },

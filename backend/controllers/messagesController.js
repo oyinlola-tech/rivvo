@@ -791,13 +791,16 @@ export const editMessage = async (req, res) => {
   if (!isNonEmptyString(finalMessage)) {
     return sendError(res, 400, 'Message is required');
   }
-  if (isGroupConversation && !encrypted) {
-    return sendError(res, 400, 'Group messages must be encrypted');
-  }
 
   const isParticipant = await ensureParticipant(userId, conversationId);
   if (!isParticipant) {
     return sendError(res, 404, 'Conversation not found');
+  }
+
+  const groupConversation = await getGroupByConversation(conversationId);
+  const isGroupConversation = Boolean(groupConversation);
+  if (isGroupConversation && !encrypted) {
+    return sendError(res, 400, 'Group messages must be encrypted');
   }
 
   const [rows] = await pool.execute(

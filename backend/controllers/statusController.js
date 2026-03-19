@@ -115,9 +115,20 @@ export const createStatus = async (req, res) => {
   const normalizedType = typeof type === 'string' ? type.toLowerCase() : null;
   const isTextStatus = normalizedType === 'text';
   const contentValue = typeof content === 'string' ? content.trim() : '';
+  const isAllowedUrl = (value) =>
+    value.startsWith('/uploads/') ||
+    value.startsWith('https://') ||
+    value.startsWith('http://');
+  const isValidColor = (value) =>
+    /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ||
+    /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i.test(value) ||
+    /^hsla?\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i.test(value);
 
   if (!text && !file && !contentValue) {
     return res.status(400).json({ error: 'Bad Request', message: 'Text or media is required' });
+  }
+  if (!file && !isTextStatus && contentValue && !isAllowedUrl(contentValue)) {
+    return res.status(400).json({ error: 'Bad Request', message: 'Invalid media URL' });
   }
 
   const statusId = uuid();
@@ -147,13 +158,17 @@ export const createStatus = async (req, res) => {
     }
   );
 
+  const safeBackground = typeof backgroundColor === 'string' && isValidColor(backgroundColor)
+    ? backgroundColor
+    : null;
+
   return res.status(201).json({
     id: statusId,
     text: textValue || null,
     mediaUrl,
     mediaType,
     caption: caption || null,
-    backgroundColor: backgroundColor || null,
+    backgroundColor: safeBackground,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   });
