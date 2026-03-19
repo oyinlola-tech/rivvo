@@ -1,4 +1,4 @@
-import { apiRequest } from './config';
+import { apiRequest, resolveAssetUrl } from './config';
 
 export interface Status {
   id: string;
@@ -41,9 +41,9 @@ export const statusApi = {
           id: item.id,
           userId: user.id,
           userName: user.name || 'Unknown',
-          userAvatar: user.avatar || undefined,
+          userAvatar: resolveAssetUrl(user.avatar) || undefined,
           type,
-          content: item.mediaUrl || item.text || '',
+          content: resolveAssetUrl(item.mediaUrl) || item.text || '',
           backgroundColor: type === 'text' ? '#0f172a' : undefined,
           caption: item.caption || undefined,
           viewCount: item.viewCount || 0,
@@ -57,7 +57,24 @@ export const statusApi = {
   },
 
   async getMyStatuses(): Promise<Status[]> {
-    return apiRequest<Status[]>('/status/me');
+    const data = await apiRequest<any[]>('/status/me');
+    return data.map((item) => {
+      const type: Status['type'] = item?.type || 'text';
+      return {
+        id: item.id,
+        userId: item.userId,
+        userName: item.userName || 'You',
+        userAvatar: resolveAssetUrl(item.userAvatar) || undefined,
+        type,
+        content: resolveAssetUrl(item.mediaUrl) || item.text || item.content || '',
+        backgroundColor: item.backgroundColor || (type === 'text' ? '#0f172a' : undefined),
+        caption: item.caption || undefined,
+        viewCount: item.viewCount || 0,
+        createdAt: item.createdAt,
+        expiresAt: item.expiresAt,
+        viewed: Boolean(item.viewedAt),
+      };
+    });
   },
 
   async createStatus(type: Status['type'], content: string, caption?: string, backgroundColor?: string): Promise<Status> {

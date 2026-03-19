@@ -15,6 +15,13 @@ export function CallsPage() {
     loadCalls();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadCalls();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
   const loadCalls = async () => {
     try {
       setLoading(true);

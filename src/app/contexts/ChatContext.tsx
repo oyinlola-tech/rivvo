@@ -8,6 +8,9 @@ export interface Message {
   senderId: string;
   content: string;
   type: 'text' | 'image' | 'video' | 'audio' | 'file';
+  mediaUrl?: string;
+  fileName?: string;
+  fileType?: string;
   timestamp: string;
   status: 'sending' | 'sent' | 'delivered' | 'read';
   replyTo?: string;
@@ -61,6 +64,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     if (isAuthenticated) {
       loadChats();
     }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
+      loadChats();
+    }, 8000);
+    return () => clearInterval(interval);
   }, [isAuthenticated]);
 
   const loadChats = async () => {

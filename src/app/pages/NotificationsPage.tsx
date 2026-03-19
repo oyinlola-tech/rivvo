@@ -94,8 +94,10 @@ export function NotificationsPage() {
     };
 
     load();
+    const interval = setInterval(load, 8000);
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
   }, []);
 

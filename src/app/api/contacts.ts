@@ -1,4 +1,4 @@
-import { apiRequest } from './config';
+import { apiRequest, resolveAssetUrl } from './config';
 import type { User } from '../contexts/AuthContext';
 
 export interface Contact extends User {
@@ -9,7 +9,11 @@ export interface Contact extends User {
 
 export const contactsApi = {
   async getContacts(): Promise<Contact[]> {
-    return apiRequest<Contact[]>('/contacts');
+    const data = await apiRequest<Contact[]>('/contacts');
+    return data.map((contact) => ({
+      ...contact,
+      avatar: resolveAssetUrl(contact.avatar) || undefined,
+    }));
   },
 
   async addContact(userId: string): Promise<Contact> {
@@ -45,6 +49,10 @@ export const contactsApi = {
   },
 
   async searchUsers(query: string): Promise<User[]> {
-    return apiRequest<User[]>(`/users/search?q=${encodeURIComponent(query)}`);
+    const data = await apiRequest<User[]>(`/users/search?q=${encodeURIComponent(query)}`);
+    return data.map((user) => ({
+      ...user,
+      avatar: resolveAssetUrl(user.avatar) || undefined,
+    }));
   },
 };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../api/auth';
+import { resolveAssetUrl } from '../api/config';
 
 export interface User {
   id: string;
@@ -49,9 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('rivvo_token');
       if (token) {
         const userData = await authApi.getCurrentUser();
-        setUser(userData);
-        localStorage.setItem('rivvo_user_id', userData.id);
-        localStorage.setItem('rivvo_user', JSON.stringify(userData));
+        const normalized = { ...userData, avatar: resolveAssetUrl(userData.avatar) };
+        setUser(normalized);
+        localStorage.setItem('rivvo_user_id', normalized.id);
+        localStorage.setItem('rivvo_user', JSON.stringify(normalized));
       }
     } catch (error) {
       localStorage.removeItem('rivvo_token');
@@ -66,9 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: userData, token, refreshToken } = await authApi.login(email, password);
     localStorage.setItem('rivvo_token', token);
     localStorage.setItem('rivvo_refresh_token', refreshToken);
-    localStorage.setItem('rivvo_user_id', userData.id);
-    localStorage.setItem('rivvo_user', JSON.stringify(userData));
-    setUser(userData);
+    const normalized = { ...userData, avatar: resolveAssetUrl(userData.avatar) };
+    localStorage.setItem('rivvo_user_id', normalized.id);
+    localStorage.setItem('rivvo_user', JSON.stringify(normalized));
+    setUser(normalized);
   };
 
   const register = async (email: string, password: string, name: string) => {
@@ -79,9 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: userData, token, refreshToken } = await authApi.verifyOTP(email, otp);
     localStorage.setItem('rivvo_token', token);
     localStorage.setItem('rivvo_refresh_token', refreshToken);
-    localStorage.setItem('rivvo_user_id', userData.id);
-    localStorage.setItem('rivvo_user', JSON.stringify(userData));
-    setUser(userData);
+    const normalized = { ...userData, avatar: resolveAssetUrl(userData.avatar) };
+    localStorage.setItem('rivvo_user_id', normalized.id);
+    localStorage.setItem('rivvo_user', JSON.stringify(normalized));
+    setUser(normalized);
   };
 
   const logout = async () => {
@@ -98,9 +102,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = async (data: Partial<User>) => {
     const updatedUser = await authApi.updateProfile(data);
-    setUser(updatedUser);
-    localStorage.setItem('rivvo_user_id', updatedUser.id);
-    localStorage.setItem('rivvo_user', JSON.stringify(updatedUser));
+    const normalized = { ...updatedUser, avatar: resolveAssetUrl(updatedUser.avatar) };
+    setUser(normalized);
+    localStorage.setItem('rivvo_user_id', normalized.id);
+    localStorage.setItem('rivvo_user', JSON.stringify(normalized));
   };
 
   return (

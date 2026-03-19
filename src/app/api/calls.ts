@@ -1,4 +1,4 @@
-import { apiRequest } from './config';
+import { apiRequest, resolveAssetUrl } from './config';
 
 export interface Call {
   id: string;
@@ -45,10 +45,10 @@ const toCall = (item: any): Call => {
     type,
     callerId: isIncoming ? otherUser.id : currentUserId || 'me',
     callerName: isIncoming ? otherUser.name : 'You',
-    callerAvatar: isIncoming ? otherUser.avatar : undefined,
+    callerAvatar: isIncoming ? resolveAssetUrl(otherUser.avatar) : undefined,
     receiverId: isIncoming ? currentUserId || 'me' : otherUser.id,
     receiverName: isIncoming ? 'You' : otherUser.name,
-    receiverAvatar: isIncoming ? undefined : otherUser.avatar,
+    receiverAvatar: isIncoming ? undefined : resolveAssetUrl(otherUser.avatar),
     status,
     startedAt: item?.timestamp,
     endedAt: item?.duration ? item?.timestamp : undefined,

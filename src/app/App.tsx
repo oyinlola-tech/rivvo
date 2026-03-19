@@ -1,12 +1,24 @@
 import { RouterProvider } from 'react-router';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { router } from './routes';
 import { AuthProvider } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'sonner';
+import { prefetchAppChunks } from './prefetch';
 
 export default function App() {
+  useEffect(() => {
+    const schedule = (cb: () => void) => {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(cb);
+      } else {
+        setTimeout(cb, 500);
+      }
+    };
+    schedule(prefetchAppChunks);
+  }, []);
+
   return (
     <ThemeProvider>
       <AuthProvider>

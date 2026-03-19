@@ -15,6 +15,16 @@ export const getAuthHeaders = () => {
   };
 };
 
+export const resolveAssetUrl = (value?: string | null) => {
+  if (!value) return undefined;
+  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+  if (value.startsWith('/')) {
+    const base = API_BASE_URL.replace(/\/api$/, '');
+    return `${base}${value}`;
+  }
+  return value;
+};
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}

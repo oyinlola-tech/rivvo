@@ -16,6 +16,13 @@ export function ContactsPage() {
     loadContacts();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadContacts();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
   const loadContacts = async () => {
     try {
       setLoading(true);

@@ -1,4 +1,4 @@
-import { apiRequest } from './config';
+import { apiRequest, resolveAssetUrl } from './config';
 
 export type NotificationType = 'message' | 'call' | 'status' | 'system' | 'marketing';
 
@@ -48,7 +48,13 @@ export const notificationsApi = {
       offset: String(offset),
       unreadOnly: String(unreadOnly),
     });
-    return apiRequest<NotificationItem[]>(`/notifications?${params}`);
+    const items = await apiRequest<NotificationItem[]>(`/notifications?${params}`);
+    return items.map((item) => ({
+      ...item,
+      sender: item.sender
+        ? { ...item.sender, avatar: resolveAssetUrl(item.sender.avatar) || undefined }
+        : undefined,
+    }));
   },
 
   async markAsRead(notificationId: string): Promise<void> {

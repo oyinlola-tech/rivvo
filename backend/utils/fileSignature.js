@@ -1,18 +1,19 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+const uploadsRoot = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.resolve(process.cwd(), 'uploads');
 
 const resolveUploadsPath = async (filePath) => {
   if (!filePath || typeof filePath !== 'string') return null;
-  // Only allow a simple filename (no path separators).
-  if (filePath.includes('/') || filePath.includes('\\')) return null;
-  const safeName = path.basename(filePath);
-  if (!safeName || safeName !== filePath) return null;
-  const resolved = path.join(uploadsRoot, safeName);
+  const resolved = path.isAbsolute(filePath)
+    ? path.resolve(filePath)
+    : path.resolve(uploadsRoot, filePath);
   const realTarget = await fs.realpath(resolved).catch(() => null);
   if (!realTarget) return null;
-  if (!realTarget.startsWith(uploadsRoot)) return null;
+  const normalizedRoot = uploadsRoot.endsWith(path.sep) ? uploadsRoot : `${uploadsRoot}${path.sep}`;
+  if (realTarget !== uploadsRoot && !realTarget.startsWith(normalizedRoot)) return null;
   return realTarget;
 };
 

@@ -21,7 +21,7 @@ const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', apiRateLimiter, userRoutes);
-router.use('/messages', messageRateLimiter, messageRoutes);
+router.use('/messages', apiRateLimiter, messageRoutes);
 router.use('/calls', apiRateLimiter, callRoutes);
 router.use('/contacts', apiRateLimiter, contactRoutes);
 router.use('/status', apiRateLimiter, statusRoutes);

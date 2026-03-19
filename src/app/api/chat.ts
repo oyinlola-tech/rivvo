@@ -1,4 +1,4 @@
-import { apiRequest } from './config';
+import { apiRequest, resolveAssetUrl } from './config';
 import type { Chat, Message } from '../contexts/ChatContext';
 
 const getCurrentUserId = () => {
@@ -12,24 +12,82 @@ const getCurrentUserId = () => {
   }
 };
 
+const parseAttachmentPayload = (rawText: string | null) => {
+  if (!rawText || typeof rawText !== 'string') return null;
+  try {
+    const parsed = JSON.parse(rawText);
+    if (parsed?.type !== 'attachment') return null;
+    const kind = parsed.kind || '';
+    const fileType = parsed.fileType || parsed.mime || '';
+    const url = parsed.url || parsed.mediaUrl || parsed.path || null;
+    const fileName = parsed.fileName || parsed.name || 'Attachment';
+    let type: Message['type'] = 'file';
+    if (kind === 'voice' || kind === 'audio' || fileType.startsWith('audio/')) {
+      type = 'audio';
+    } else if (fileType.startsWith('image/')) {
+      type = 'image';
+    } else if (fileType.startsWith('video/')) {
+      type = 'video';
+    }
+    return {
+      type,
+      url: resolveAssetUrl(url),
+      fileType,
+      fileName
+    };
+  } catch {
+    return null;
+  }
+};
+
 const toMessage = (chatId: string, item: any): Message => {
-  const content = typeof item?.text === 'string' ? item.text : '';
+  const rawText = typeof item?.text === 'string' ? item.text : '';
+  const attachment = parseAttachmentPayload(rawText);
   const status = item?.readAt
     ? 'read'
     : item?.deliveredAt
       ? 'delivered'
       : 'sent';
 
+  let content = rawText;
+  let type: Message['type'] = 'text';
+  let mediaUrl: string | undefined;
+  let fileName: string | undefined;
+  let fileType: string | undefined;
+
+  if (item?.deletedForAllAt) {
+    content = 'Message deleted';
+  } else if (item?.encrypted) {
+    content = 'Encrypted message';
+  } else if (attachment) {
+    type = attachment.type;
+    mediaUrl = attachment.url || undefined;
+    fileName = attachment.fileName || undefined;
+    fileType = attachment.fileType || undefined;
+    if (type === 'audio') {
+      content = 'Voice note';
+    } else if (type === 'image') {
+      content = fileName || 'Photo';
+    } else if (type === 'video') {
+      content = fileName || 'Video';
+    } else {
+      content = fileName || 'Attachment';
+    }
+  }
+
   return {
     id: item?.id,
     chatId,
     senderId: item?.senderId,
     content,
-    type: 'text',
+    type,
     timestamp: item?.timestamp,
     status,
     replyTo: undefined,
     isDeleted: Boolean(item?.deletedForAllAt),
+    mediaUrl,
+    fileName,
+    fileType,
   };
 };
 
@@ -41,23 +99,36 @@ const toChat = (item: any): Chat => {
     ? Array.from({ length: memberCount }).map(() => '')
     : [currentUserId, item?.user?.id].filter(Boolean) as string[];
 
-  const lastMessage = item?.lastMessage
-    ? {
-        id: `${item.id}-last`,
-        chatId: item.id,
-        senderId: item?.user?.id,
-        content: item.lastMessage.text || '',
-        type: 'text',
-        timestamp: item.lastMessage.timestamp || new Date().toISOString(),
-        status: 'sent',
-      }
-    : undefined;
+  let lastMessage: Chat['lastMessage'] | undefined;
+  if (item?.lastMessage) {
+    const attachment = parseAttachmentPayload(item.lastMessage.text || '');
+    const type = attachment?.type || 'text';
+    let content = item.lastMessage.text || '';
+    if (attachment) {
+      if (type === 'audio') content = 'Voice note';
+      else if (type === 'image') content = attachment.fileName || 'Photo';
+      else if (type === 'video') content = attachment.fileName || 'Video';
+      else content = attachment.fileName || 'Attachment';
+    }
+    lastMessage = {
+      id: `${item.id}-last`,
+      chatId: item.id,
+      senderId: item?.user?.id,
+      content,
+      type,
+      timestamp: item.lastMessage.timestamp || new Date().toISOString(),
+      status: 'sent',
+      mediaUrl: attachment?.url || undefined,
+      fileName: attachment?.fileName || undefined,
+      fileType: attachment?.fileType || undefined,
+    };
+  }
 
   return {
     id: item?.id,
     type: isGroup ? 'group' : 'private',
     name: item?.user?.name || 'Unknown',
-    avatar: item?.user?.avatar || undefined,
+    avatar: resolveAssetUrl(item?.user?.avatar) || undefined,
     participants,
     lastMessage,
     unreadCount: Number(item?.lastMessage?.unreadCount || 0),
