@@ -42,7 +42,9 @@ interface ChatContextType {
   setActiveChat: (chatId: string | null) => void;
   sendMessage: (chatId: string, content: string, type?: Message['type']) => Promise<void>;
   sendVoiceNote: (chatId: string, file: Blob, fileName: string) => Promise<void>;
-  deleteMessage: (chatId: string, messageId: string) => Promise<void>;
+  deleteMessage: (chatId: string, messageId: string, scope?: 'self' | 'all') => Promise<void>;
+  editMessage: (chatId: string, messageId: string, content: string) => Promise<void>;
+  forwardMessage: (targetChatId: string, message: Message) => Promise<Message>;
   markAsRead: (chatId: string) => Promise<void>;
   createGroup: (name: string, participants: string[]) => Promise<Chat>;
   updateGroup: (chatId: string, data: Partial<Chat>) => Promise<void>;
@@ -120,9 +122,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     await loadChats();
   };
 
-  const deleteMessage = async (chatId: string, messageId: string) => {
-    await chatApi.deleteMessage(chatId, messageId);
-    setMessages(prev => prev.filter(m => m.id !== messageId));
+  const deleteMessage = async (chatId: string, messageId: string, scope: 'self' | 'all' = 'self') => {
+    await chatApi.deleteMessageScoped(chatId, messageId, scope);
+    if (scope === 'self') {
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+    } else {
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === messageId ? { ...m, content: 'Message deleted', isDeleted: true } : m
+        )
+      );
+    }
+  };
+
+  const editMessage = async (chatId: string, messageId: string, content: string) => {
+    const updated = await chatApi.editMessage(chatId, messageId, content);
+    setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, ...updated } : m)));
+    await loadChats();
+  };
+
+  const forwardMessage = async (targetChatId: string, message: Message) => {
+    const forwarded = await chatApi.forwardMessage(targetChatId, message);
+    await loadChats();
+    return forwarded;
   };
 
   const markAsRead = async (chatId: string) => {
@@ -174,6 +196,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         sendMessage,
         sendVoiceNote,
         deleteMessage,
+        editMessage,
+        forwardMessage,
         markAsRead,
         createGroup,
         updateGroup,

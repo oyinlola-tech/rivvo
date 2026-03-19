@@ -146,7 +146,8 @@ const uploadAttachment = async (
   chatId: string,
   file: Blob,
   fileName: string,
-  kind: 'voice' | 'audio' | 'media' | 'document' = 'voice'
+  kind: 'voice' | 'audio' | 'media' | 'document' = 'voice',
+  encrypted = false
 ) => {
   const formData = new FormData();
   formData.append('file', file, fileName);
@@ -154,6 +155,9 @@ const uploadAttachment = async (
   const safeType = (file.type || 'audio/webm').split(';')[0];
   formData.append('fileType', safeType);
   formData.append('fileName', fileName);
+  if (encrypted) {
+    formData.append('encrypted', '1');
+  }
 
   const token = localStorage.getItem('rivvo_token');
   const response = await fetch(`${API_BASE_URL}/messages/conversations/${chatId}/attachments`, {
@@ -168,6 +172,17 @@ const uploadAttachment = async (
   }
 
   return response.json();
+};
+
+const fetchBlobWithAuth = async (url: string) => {
+  const token = localStorage.getItem('rivvo_token');
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch media (${response.status})`);
+  }
+  return response.blob();
 };
 
 export const chatApi = {
@@ -229,10 +244,56 @@ export const chatApi = {
     return chatApi.sendMessage(chatId, JSON.stringify(payload), 'audio');
   },
 
+  async forwardMessage(targetChatId: string, message: Message): Promise<Message> {
+    if (message.type === 'text' || !message.mediaUrl) {
+      return chatApi.sendMessage(targetChatId, `↪ Forwarded\n${message.content || ''}`, 'text');
+    }
+
+    const resolvedUrl = resolveAssetUrl(message.mediaUrl) || message.mediaUrl;
+    const blob = await fetchBlobWithAuth(resolvedUrl);
+    const kind =
+      message.type === 'audio'
+        ? 'voice'
+        : message.type === 'image' || message.type === 'video'
+          ? 'media'
+          : 'document';
+    const fileName =
+      message.fileName ||
+      `forwarded-${Date.now()}.${message.type === 'image' ? 'jpg' : message.type === 'video' ? 'mp4' : 'bin'}`;
+
+    const attachment = await uploadAttachment(targetChatId, blob, fileName, kind);
+    const payload = {
+      type: 'attachment',
+      kind,
+      id: attachment.id,
+      url: attachment.url,
+      fileType: attachment.fileType || blob.type || message.fileType || '',
+      fileName: attachment.fileName || fileName,
+      size: attachment.size || blob.size || 0,
+    };
+
+    return chatApi.sendMessage(targetChatId, JSON.stringify(payload), message.type);
+  },
+
   async deleteMessage(chatId: string, messageId: string): Promise<void> {
     return apiRequest(`/messages/conversations/${chatId}/messages/${messageId}`, {
       method: 'DELETE',
     });
+  },
+
+  async deleteMessageScoped(chatId: string, messageId: string, scope: 'self' | 'all'): Promise<void> {
+    const query = scope === 'all' ? '?scope=all' : '';
+    return apiRequest(`/messages/conversations/${chatId}/messages/${messageId}${query}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async editMessage(chatId: string, messageId: string, content: string): Promise<Message> {
+    const response = await apiRequest<any>(`/messages/conversations/${chatId}/messages/${messageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ message: content }),
+    });
+    return toMessage(chatId, response);
   },
 
   async markAsRead(chatId: string): Promise<void> {

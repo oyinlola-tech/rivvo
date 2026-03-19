@@ -81,7 +81,8 @@ const env = {
     membershipCacheTtlMs: toNumber(process.env.SOCKET_MEMBERSHIP_CACHE_TTL_MS, 30000),
     rateLimitWindowMs: toNumber(process.env.SOCKET_RATE_LIMIT_WINDOW_MS, 10000),
     rateLimitMax: toNumber(process.env.SOCKET_RATE_LIMIT_MAX, 30)
-  }
+  },
+  allowGroupPlainAttachments: String(process.env.ALLOW_GROUP_PLAINTEXT_ATTACHMENTS || '').toLowerCase() === 'true'
 };
 
 if (!env.jwt.secret) {

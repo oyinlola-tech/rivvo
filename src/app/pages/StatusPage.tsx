@@ -12,6 +12,7 @@ export function StatusPage() {
   const [viewingStatuses, setViewingStatuses] = useState<Status[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [statusColor, setStatusColor] = useState('#0f172a');
@@ -99,27 +100,29 @@ export function StatusPage() {
       return;
     }
     const durationMs = 6000;
-    const start = Date.now();
-    let timerId: ReturnType<typeof setTimeout>;
-
-    const tick = () => {
-      const elapsed = Date.now() - start;
+    let elapsed = 0;
+    let lastTick = Date.now();
+    const timerId = setInterval(() => {
+      if (isPaused) {
+        lastTick = Date.now();
+        return;
+      }
+      const now = Date.now();
+      elapsed += now - lastTick;
+      lastTick = now;
       const nextProgress = Math.min((elapsed / durationMs) * 100, 100);
       setProgress(nextProgress);
       if (elapsed >= durationMs) {
+        clearInterval(timerId);
         handleNext();
-        return;
       }
-      timerId = setTimeout(tick, 100);
-    };
+    }, 100);
 
     setProgress(0);
-    timerId = setTimeout(tick, 100);
-
     return () => {
-      clearTimeout(timerId);
+      clearInterval(timerId);
     };
-  }, [currentStatus?.id]);
+  }, [currentStatus?.id, isPaused]);
 
   const handleNext = () => {
     if (currentIndex < viewingStatuses.length - 1) {
@@ -225,7 +228,12 @@ export function StatusPage() {
 
       {/* Status Viewer */}
       {currentStatus && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <div
+          className="fixed inset-0 bg-black z-50 flex flex-col"
+          onPointerDown={() => setIsPaused(true)}
+          onPointerUp={() => setIsPaused(false)}
+          onPointerLeave={() => setIsPaused(false)}
+        >
           <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent z-10">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">

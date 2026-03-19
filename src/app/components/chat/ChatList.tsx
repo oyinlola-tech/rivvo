@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,7 +9,10 @@ import { formatDistanceToNow } from 'date-fns';
 
 export function ChatList() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { chats, searchChats } = useChat();
+  const [menuChat, setMenuChat] = useState<any | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { chats, searchChats, pinChat, muteChat, markAsRead } = useChat();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -21,9 +24,38 @@ export function ChatList() {
     const isGroup = chat.type === 'group';
     const otherParticipant = isGroup ? null : chat.participants.find((p: string) => p !== user?.id);
 
+    const openMenu = () => {
+      setMenuChat(chat);
+      setMenuOpen(true);
+    };
+
+    const startLongPress = (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.pointerType !== 'touch') return;
+      if (longPressRef.current) {
+        clearTimeout(longPressRef.current);
+      }
+      longPressRef.current = setTimeout(() => {
+        openMenu();
+      }, 500);
+    };
+
+    const cancelLongPress = () => {
+      if (longPressRef.current) {
+        clearTimeout(longPressRef.current);
+        longPressRef.current = null;
+      }
+    };
+
     return (
       <div
         onClick={() => navigate(`/chats/${chat.id}`)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          openMenu();
+        }}
+        onPointerDown={startLongPress}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
         className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors border-b border-border"
       >
         <div className="relative shrink-0">
@@ -118,6 +150,61 @@ export function ChatList() {
           </div>
         )}
       </div>
+
+      {menuOpen && menuChat && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50">
+          <div className="w-full md:max-w-sm bg-card border border-border rounded-t-xl md:rounded-xl p-4">
+            <div className="mb-3">
+              <p className="text-foreground font-medium">{menuChat.name || 'Conversation'}</p>
+              <p className="text-xs text-muted-foreground">Conversation actions</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  navigate(`/chats/${menuChat.id}`);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-foreground"
+              >
+                Open
+              </button>
+              <button
+                onClick={async () => {
+                  await pinChat(menuChat.id, !menuChat.isPinned);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-foreground"
+              >
+                {menuChat.isPinned ? 'Unpin' : 'Pin'}
+              </button>
+              <button
+                onClick={async () => {
+                  await muteChat(menuChat.id, !menuChat.isMuted);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-foreground"
+              >
+                {menuChat.isMuted ? 'Unmute' : 'Mute'}
+              </button>
+              <button
+                onClick={async () => {
+                  await markAsRead(menuChat.id);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-foreground"
+              >
+                Mark as read
+              </button>
+            </div>
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="mt-4 w-full px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

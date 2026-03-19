@@ -5,6 +5,7 @@ import { sendError, isNonEmptyString } from '../utils/validation.js';
 import fs from 'fs';
 import path from 'path';
 import { validateFileSignature } from '../utils/fileSignature.js';
+import env from '../config/env.js';
 
 const uploadsRoot = path.resolve(process.cwd(), 'uploads');
 const safeUnlink = (targetPath) => {
@@ -1125,9 +1126,13 @@ export const uploadAttachment = async (req, res) => {
   const isEncryptedFlag = String(encrypted) === '1';
   const groupConversation = await getGroupByConversation(conversationId);
   if (groupConversation) {
-    if (!isEncryptedFlag || !originalName.endsWith('.enc')) {
+    if (!isEncryptedFlag && !env.allowGroupPlainAttachments) {
       safeUnlink(req.file.path);
       return sendError(res, 400, 'Group attachments must be encrypted');
+    }
+    if (isEncryptedFlag && !originalName.endsWith('.enc')) {
+      safeUnlink(req.file.path);
+      return sendError(res, 400, 'Encrypted group attachments must end with .enc');
     }
   }
 
