@@ -1,161 +1,230 @@
-# Rivvo - Cross-Platform Secure Messaging
+# Rivvo - WhatsApp-like Chat Application
 
-Rivvo is a cross-platform messaging application that uses an internet connection (Wi-Fi or data) to send messages, make voice/video calls, and share media securely. It includes end-to-end encryption (E2E) for message content, per-device key support, view-once messaging, 24-hour status updates, profile picture uploads, and encrypted local caching for fast offline access.
+A comprehensive chat application built with React, TypeScript, and Tailwind CSS, featuring all the core functionality of WhatsApp.
 
-## Ownership
-- Owner: Oluwayemi Oyinlola Michael
-- Portfolio: oyinlola.site
-- Tech Firm: telente.site
+## Features
 
-## Product Goals
-- Privacy by default through E2E encryption.
-- Fast, reliable delivery with real-time updates.
-- Secure multi-device experience.
-- Simple UX for calls, status, and media sharing.
+### Authentication
+- Email and password login
+- User registration with email verification
+- OTP verification system
+- Secure token-based authentication
 
-## Core Features
-- Encrypted messages with read receipts and typing indicators.
-- Audio/video call initiation and history.
-- 24-hour status updates (text, image, video) with story-style viewer.
-- Profile picture upload and management.
-- Encrypted local cache (IndexedDB) for offline access.
-- Per-device key verification with QR support.
-- Verification badge system with admin review.
-- Contact request notifications with global sheet + unread badge.
-- Password reset via OTP (email verification required).
-- Help Center with contact support, privacy, and terms.
-- Storage & data usage dashboard.
-- Invite links for sharing Rivvo.
+### Chat Features
+- One-on-one messaging
+- Group chats with admin controls
+- Message status indicators (sent, delivered, read)
+- Chat pinning and muting
+- Chat search functionality
+- Chat streak system with fire emoji indicator
 
-## Verification Badges
-- Paid monthly.
-- Only available after 3 months on the platform.
-- Requires both username and phone number.
-- Admin reviews all payments and can approve or reject with a reason.
-- Renewals are allowed within 7 days of expiry.
-- Normal users get a blue badge; moderators/admins get a black badge.
+### Status/Stories
+- Create and view image, video, and text statuses
+- 24-hour expiration
+- View count tracking
+- Status viewer with progress indicators
 
-## Authentication and Identity
-- Users can log in with email, phone number, or username.
-- Phone number is optional at signup.
-- Username is optional and can be created after signup in Settings.
-- Username can be changed once every 15 days.
-- Password reset requires OTP verification before update.
+### Voice & Video Calls
+- Voice call interface with mute and speaker controls
+- Video call interface with camera and fullscreen controls
+- Call history tracking
+- Incoming and outgoing call indicators
 
-## Status (Stories)
-- 24-hour lifecycle for posts.
-- Text, image, and video supported.
-- Story viewer with tap/click navigation and keyboard controls.
-- Mute/unmute controls for quick management.
+### User Management
+- User profiles with avatars and bios
+- Verification badges (Blue for verified users, Black for admins/mods)
+- Contact management with favorites
+- Block/unblock functionality
 
-## Architecture Overview
-- Frontend: React + Vite + TypeScript + Tailwind.
-- Backend: Express + MySQL + Socket.IO.
-- Crypto: Web Crypto API (ECDH + AES-GCM).
-- Media: Stored under backend /uploads and served statically.
+### Admin Dashboard
+- User management (view, verify, delete users)
+- Moderator creation and management
+- Analytics dashboard with charts
+- Platform settings configuration
+- Real-time statistics
 
-## Data Model Summary
-- Users, conversations, messages, calls, contacts.
-- Status updates with 24-hour expiry.
-- Device keys and verification state.
-- Verification payments + admin audit logs.
-- Message attachments tracked for storage usage.
-- OTPs scoped by purpose (email verification, password reset).
-- Contact requests include read state for notifications.
+### Theme System
+- Light mode: White and blue color scheme
+- Dark mode: Black and blue color scheme
+- Seamless theme switching
 
-## Environment Variables
-### Frontend
+### Responsive Design
+- Desktop layout with sidebar navigation
+- Tablet-optimized interface
+- Mobile layout with bottom navigation
+- Adaptive components for all screen sizes
+
+## Project Structure
+
 ```
-VITE_API_URL=http://localhost:3000/api
-```
+src/
+├── app/
+│   ├── api/               # API service layer
+│   │   ├── config.ts      # API configuration
+│   │   ├── auth.ts        # Authentication APIs
+│   │   ├── chat.ts        # Chat APIs
+│   │   ├── status.ts      # Status APIs
+│   │   ├── calls.ts       # Call APIs
+│   │   ├── contacts.ts    # Contact APIs
+│   │   └── admin.ts       # Admin APIs
+│   ├── components/        # Reusable components
+│   │   ├── chat/          # Chat-specific components
+│   │   ├── ui/            # UI components (shadcn/ui)
+│   │   ├── Sidebar.tsx
+│   │   ├── MobileNav.tsx
+│   │   ├── VerificationBadge.tsx
+│   │   └── ChatStreak.tsx
+│   ├── contexts/          # React contexts
+│   │   ├── AuthContext.tsx
+│   │   ├── ChatContext.tsx
+│   │   └── ThemeContext.tsx
+│   ├── layouts/           # Layout components
+│   │   ├── AuthLayout.tsx
+│   │   └── MainLayout.tsx
+│   ├── pages/             # Page components
+│   │   ├── auth/          # Authentication pages
+│   │   ├── calls/         # Call pages
+│   │   ├── admin/         # Admin dashboard pages
+│   │   ├── ChatsPage.tsx
+│   │   ├── StatusPage.tsx
+│   │   ├── CallsPage.tsx
+│   │   ├── ContactsPage.tsx
+│   │   ├── SettingsPage.tsx
+│   │   ├── ProfilePage.tsx
+│   │   ├── GroupSettingsPage.tsx
+│   │   └── NotFoundPage.tsx
+│   ├── routes.tsx         # Route configuration
+│   └── App.tsx            # Root component
+└── styles/
+    └── theme.css          # Theme configuration
 
-### Backend
-See `backend/.env.example` for the full list. Common keys:
-```
-PORT=3000
-CLIENT_URLS=http://localhost:5173
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=rivvo
-JWT_SECRET=change_this_secret
-JWT_EXPIRES_IN=1h
-REFRESH_TOKEN_EXPIRES_DAYS=30
-CALL_ROOM_BASE_URL=http://localhost:5173/call/
-ADMIN_EMAIL=admin@rivvo.com
-ADMIN_PASSWORD=change_this_admin_password
-ADMIN_NAME=Rivvo Admin
-```
-SMTP is required to deliver OTPs, welcome emails, and password reset emails.
+## Backend Integration
 
-Flutterwave (verification payments):
-```
-FLW_BASE_URL=https://api.flutterwave.com
-FLW_PUBLIC_KEY=
-FLW_SECRET_KEY=
-FLW_WEBHOOK_SECRET=
-FLW_REDIRECT_URL=http://localhost:5173/verification/complete
-```
+All API calls are ready to connect to your Node.js backend. Update the API base URL in:
+- `src/app/api/config.ts`
 
-## Local Development
-### Install
-```
-npm install
-cd backend
-npm install
-```
+Set the following environment variables:
+- `REACT_APP_API_URL` - Your backend API URL
+- `REACT_APP_WS_URL` - Your WebSocket server URL
 
-### Run (Frontend + Backend)
+## API Endpoints Expected
+
+### Authentication
+- POST `/api/auth/login` - User login
+- POST `/api/auth/register` - User registration
+- POST `/api/auth/verify-otp` - OTP verification
+- POST `/api/auth/resend-otp` - Resend OTP
+- GET `/api/auth/me` - Get current user
+- PATCH `/api/auth/profile` - Update profile
+- POST `/api/auth/logout` - Logout
+- POST `/api/auth/change-password` - Change password
+
+### Chats
+- GET `/api/chats` - Get all chats
+- GET `/api/chats/:id` - Get chat details
+- GET `/api/chats/:id/messages` - Get messages
+- POST `/api/chats/:id/messages` - Send message
+- DELETE `/api/messages/:id` - Delete message
+- POST `/api/chats/:id/read` - Mark as read
+- POST `/api/chats/private` - Create private chat
+- POST `/api/chats/group` - Create group
+- PATCH `/api/chats/:id` - Update chat
+- POST `/api/chats/:id/members` - Add members
+- DELETE `/api/chats/:id/members/:userId` - Remove member
+- POST `/api/chats/:id/leave` - Leave group
+- POST `/api/chats/:id/pin` - Pin/unpin chat
+- POST `/api/chats/:id/mute` - Mute/unmute chat
+
+### Status
+- GET `/api/status` - Get all statuses
+- GET `/api/status/me` - Get my statuses
+- POST `/api/status` - Create status
+- DELETE `/api/status/:id` - Delete status
+- POST `/api/status/:id/view` - View status
+- GET `/api/status/:id/views` - Get status views
+
+### Calls
+- GET `/api/calls` - Get call history
+- POST `/api/calls/initiate` - Initiate call
+- POST `/api/calls/:id/answer` - Answer call
+- POST `/api/calls/:id/decline` - Decline call
+- POST `/api/calls/:id/end` - End call
+- GET `/api/calls/:id` - Get call details
+
+### Contacts
+- GET `/api/contacts` - Get contacts
+- POST `/api/contacts` - Add contact
+- DELETE `/api/contacts/:id` - Remove contact
+- POST `/api/contacts/:id/favorite` - Toggle favorite
+- POST `/api/contacts/:id/block` - Block contact
+- POST `/api/contacts/:id/unblock` - Unblock contact
+- GET `/api/users/search` - Search users
+
+### Admin
+- GET `/api/admin/stats` - Get platform statistics
+- GET `/api/admin/users` - Get all users
+- GET `/api/admin/users/:id` - Get user details
+- PATCH `/api/admin/users/:id` - Update user
+- DELETE `/api/admin/users/:id` - Delete user
+- POST `/api/admin/users/:id/verify` - Verify user
+- GET `/api/admin/moderators` - Get moderators
+- POST `/api/admin/moderators` - Create moderator
+- DELETE `/api/admin/moderators/:id` - Remove moderator
+- POST `/api/admin/users/:id/promote` - Promote to moderator
+- POST `/api/admin/users/:id/demote` - Demote from moderator
+- POST `/api/admin/users/:id/ban` - Ban user
+- POST `/api/admin/users/:id/unban` - Unban user
+
+## Getting Started
+
+1. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+
+2. Set up environment variables (create `.env` file):
+   ```
+   REACT_APP_API_URL=http://localhost:3000/api
+   REACT_APP_WS_URL=ws://localhost:3000
+   ```
+
+3. Run development server:
+   ```bash
+   pnpm dev
+   ```
+
+4. Build for production:
+   ```bash
+   pnpm build
+   ```
+
+## Technologies Used
+
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **React Router 7** - Routing
+- **Tailwind CSS v4** - Styling
+- **Lucide React** - Icons
+- **Recharts** - Charts and analytics
+- **date-fns** - Date formatting
+- **Sonner** - Toast notifications
+- **Radix UI** - Accessible components
+
+## User Roles
+
+1. **User** - Regular users with blue verification badge (optional)
+2. **Moderator** - Can manage users and content, black verification badge
+3. **Admin** - Full access to admin panel, black verification badge
+
+## Notes
+
+- The logo supports both light and dark mode automatically
+- All responsive breakpoints are handled by Tailwind's default breakpoints (sm, md, lg, xl)
+- WebSocket integration for real-time messaging should be added to the backend
+- File uploads (images, videos, documents) need to be implemented in the backend
+- Push notifications can be added using service workers
+
+## License
+
+Proprietary - All rights reserved
 ```
-npm run dev
-```
-- This starts both servers.
-- The backend will create the database automatically if it does not exist.
-- A main admin account will be created if `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set.
-
-## Testing
-### Frontend
-```
-npm test
-npm run test:coverage
-```
-
-### Backend
-```
-cd backend
-npm test
-npm run test:coverage
-```
-
-## Lint and Build
-```
-npm run lint
-npm run typecheck
-npm run build
-```
-
-## Security Model (Short)
-1. Client generates key pair per device.
-2. Peer public key used to derive shared secret.
-3. Messages encrypted before sending.
-4. Server stores encrypted payloads only.
-5. Client decrypts locally.
-
-## Usage and Licensing
-This code is proprietary and not free to use. See `LICENSE`.
-
-## Contribution Policy
-Contributions require explicit written permission. See `CONTRIBUTING.md`.
-
-## Code of Conduct
-See `CODE_OF_CONDUCT.md`.
-
-## Security Disclosure
-See `SECURITY.md`.
-
-## Operational Notes
-- Database migrations should be reviewed before deployment.
-- Ensure DB init runs after new tables/columns (message_attachments, otps.purpose, contact_requests.read_at).
-- Always rotate secrets on environment changes.
-- Monitor rate-limit errors for abuse detection.

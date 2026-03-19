@@ -1,254 +1,93 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
-import { api } from "../lib/api";
-import { toast } from "sonner";
-import { getDeviceId, getOrCreateDeviceKeyPair, getOrCreateKeyPair } from "../lib/crypto";
-import { getSocket, disconnectSocket } from "../lib/socket";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authApi } from '../api/auth';
 
-interface User {
+export interface User {
   id: string;
   email: string;
-  phone?: string | null;
   name: string;
-  username?: string | null;
-  usernameUpdatedAt?: string | null;
-  verified: boolean;
-  isVerifiedBadge: boolean;
-  verifiedBadgeExpiresAt?: string | null;
-  badgeStatus?: "none" | "active" | "expired";
-  isModerator: boolean;
-  isAdmin: boolean;
-  avatar?: string | null;
+  avatar?: string;
+  bio?: string;
+  phoneNumber?: string;
+  role: 'user' | 'admin' | 'moderator';
+  isVerified: boolean;
+  createdAt: string;
+  lastSeen?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  signup: (
-    email: string,
-    password: string,
-    name: string,
-    phone?: string
-  ) => Promise<{ success: boolean; message?: string }>;
-  logout: () => void;
-  verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
-  refreshProfile: () => Promise<void>;
-  verificationPending: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  verifyOTP: (email: string, otp: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const logoutOnExitRef = useRef(false);
-  const [verificationPending, setVerificationPending] = useState(false);
 
   useEffect(() => {
-    api.setAuthErrorHandler(() => {
-      api.setToken(null);
-      api.setRefreshToken(null);
-      setUser(null);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("refreshToken");
-      window.location.assign("/auth/login");
-    });
-    return () => api.setAuthErrorHandler(null);
-  }, []);
-
-  useEffect(() => {
-    const handler = () => {
-      if (logoutOnExitRef.current) return;
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) return;
-      logoutOnExitRef.current = true;
-      api.logoutOnExit(refreshToken);
-    };
-
-    window.addEventListener("beforeunload", handler);
-    window.addEventListener("pagehide", handler);
-    return () => {
-      window.removeEventListener("beforeunload", handler);
-      window.removeEventListener("pagehide", handler);
-    };
-  }, []);
-
-  useEffect(() => {
-    const checkVerification = async () => {
-      if (!user?.id) return;
-      const response = await api.getVerificationStatus();
-      if (response.success && response.data?.latestPending) {
-        setVerificationPending(true);
-        const shownKey = "rivvo_verification_pending_toast";
-        if (!sessionStorage.getItem(shownKey)) {
-          toast("Verification pending review", {
-            description: "Payment received. Admin review in progress.",
-          });
-          sessionStorage.setItem(shownKey, "1");
-        }
-      } else if (response.success) {
-        setVerificationPending(false);
-        const decision = response.data?.latestDecision;
-        if (decision?.reviewStatus === "approved") {
-          const key = "rivvo_verification_approved_toast";
-          if (!sessionStorage.getItem(key)) {
-            toast("Verification approved", {
-              description: "Your verification badge is now active.",
-            });
-            sessionStorage.setItem(key, "1");
-          }
-        }
-        if (decision?.reviewStatus === "rejected") {
-          const key = "rivvo_verification_rejected_toast";
-          if (!sessionStorage.getItem(key)) {
-            toast("Verification rejected", {
-              description: decision.rejectionReason || "Please review your submission and try again.",
-            });
-            sessionStorage.setItem(key, "1");
-          }
-        }
-      }
-    };
-    checkVerification();
-  }, [user?.id]);
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkAuth = async () => {
-      const token = localStorage.getItem("authToken");
-      if (token) {
-        const response = await api.getProfile();
-        if (response.success && response.data) {
-          setUser(response.data);
-          const keyPair = await getOrCreateKeyPair();
-          await api.setPublicKey(JSON.stringify(keyPair.publicKey));
-          const deviceKeyPair = await getOrCreateDeviceKeyPair();
-          await api.registerDeviceKey({
-            deviceId: getDeviceId(),
-            publicKey: JSON.stringify(deviceKeyPair.publicKey),
-            deviceName: navigator.userAgent,
-          });
-        } else {
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("refreshToken");
-        }
-      }
-      setLoading(false);
-    };
-
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    if (!user?.id) {
-      disconnectSocket();
-      return;
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem('rivvo_token');
+      if (token) {
+        const userData = await authApi.getCurrentUser();
+        setUser(userData);
+      }
+    } catch (error) {
+      localStorage.removeItem('rivvo_token');
+    } finally {
+      setLoading(false);
     }
-    const token = localStorage.getItem("authToken");
-    const socket = getSocket(token);
-
-    const handleContactRequest = (payload: any) => {
-      const name = payload?.from?.name || "Someone";
-      toast("New contact request", {
-        description: `${name} sent you a contact request.`,
-      });
-      window.dispatchEvent(new CustomEvent("contact_requests_updated"));
-    };
-
-    const handleContactAccepted = (payload: any) => {
-      const name = payload?.by?.name || "Someone";
-      toast("Request accepted", {
-        description: `${name} accepted your contact request.`,
-      });
-      window.dispatchEvent(new CustomEvent("contact_requests_updated"));
-    };
-
-    const handleContactRejected = () => {
-      toast("Request declined", {
-        description: "Your contact request was declined.",
-      });
-      window.dispatchEvent(new CustomEvent("contact_requests_updated"));
-    };
-
-    socket.on("contact_request", handleContactRequest);
-    socket.on("contact_request_accepted", handleContactAccepted);
-    socket.on("contact_request_rejected", handleContactRejected);
-
-    return () => {
-      socket.off("contact_request", handleContactRequest);
-      socket.off("contact_request_accepted", handleContactAccepted);
-      socket.off("contact_request_rejected", handleContactRejected);
-    };
-  }, [user?.id]);
-
-  const login = async (identifier: string, password: string) => {
-    const response = await api.login(identifier, password);
-    if (response.success && response.data) {
-      api.setToken(response.data.token);
-      api.setRefreshToken(response.data.refreshToken ?? null);
-      setUser(response.data.user);
-      const keyPair = await getOrCreateKeyPair();
-      await api.setPublicKey(JSON.stringify(keyPair.publicKey));
-      const deviceKeyPair = await getOrCreateDeviceKeyPair();
-      await api.registerDeviceKey({
-        deviceId: getDeviceId(),
-        publicKey: JSON.stringify(deviceKeyPair.publicKey),
-        deviceName: navigator.userAgent,
-      });
-      return { success: true };
-    }
-    return { success: false, message: response.error || "Login failed" };
   };
 
-  const signup = async (email: string, password: string, name: string, phone: string) => {
-    const response = await api.signup(email, password, name, phone);
-    if (response.success) {
-      return { success: true };
-    }
-    return { success: false, message: response.error || "Signup failed" };
+  const login = async (email: string, password: string) => {
+    const { user: userData, token } = await authApi.login(email, password);
+    localStorage.setItem('rivvo_token', token);
+    setUser(userData);
+  };
+
+  const register = async (email: string, password: string, name: string) => {
+    await authApi.register(email, password, name);
   };
 
   const verifyOTP = async (email: string, otp: string) => {
-    const response = await api.verifyOTP(email, otp);
-    if (response.success && response.data) {
-      api.setToken(response.data.token);
-      api.setRefreshToken(response.data.refreshToken ?? null);
-      setUser(response.data.user);
-      const keyPair = await getOrCreateKeyPair();
-      await api.setPublicKey(JSON.stringify(keyPair.publicKey));
-      const deviceKeyPair = await getOrCreateDeviceKeyPair();
-      await api.registerDeviceKey({
-        deviceId: getDeviceId(),
-        publicKey: JSON.stringify(deviceKeyPair.publicKey),
-        deviceName: navigator.userAgent,
-      });
-      return { success: true };
-    }
-    return { success: false, message: response.error || "OTP verification failed" };
+    const { user: userData, token } = await authApi.verifyOTP(email, otp);
+    localStorage.setItem('rivvo_token', token);
+    setUser(userData);
   };
 
-  const logout = () => {
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (refreshToken) {
-      api.logout(refreshToken);
-    }
-    api.setToken(null);
-    api.setRefreshToken(null);
+  const logout = async () => {
+    await authApi.logout();
+    localStorage.removeItem('rivvo_token');
     setUser(null);
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("refreshToken");
   };
 
-  const refreshProfile = async () => {
-    const response = await api.getProfile();
-    if (response.success && response.data) {
-      setUser(response.data);
-    }
+  const updateProfile = async (data: Partial<User>) => {
+    const updatedUser = await authApi.updateProfile(data);
+    setUser(updatedUser);
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, signup, logout, verifyOTP, refreshProfile, verificationPending }}
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        verifyOTP,
+        logout,
+        updateProfile,
+        isAuthenticated: !!user,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -258,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

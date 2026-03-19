@@ -1,40 +1,19 @@
-import { RouterProvider } from "react-router";
-import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "./contexts/AuthContext";
-import { NotificationsProvider } from "./contexts/NotificationsContext";
-import { router } from "./routes";
-import { useEffect, useState } from "react";
-import { Toaster } from "./components/ui/sonner";
+import { RouterProvider } from 'react-router';
+import { router } from './routes';
+import { AuthProvider } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { Toaster } from 'sonner';
 
-function App() {
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setShowSplash(false), 700);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  if (showSplash) {
-    return (
-      <div className="splash-screen">
-        <div className="splash-content">
-          <img src="/rivvo.png" alt="Rivvo logo" className="splash-logo" />
-          <div className="splash-title">RIVVO</div>
-        </div>
-      </div>
-    );
-  }
-
+export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider>
       <AuthProvider>
-        <NotificationsProvider>
+        <ChatProvider>
           <RouterProvider router={router} />
-          <Toaster />
-        </NotificationsProvider>
+          <Toaster position="top-center" richColors />
+        </ChatProvider>
       </AuthProvider>
     </ThemeProvider>
   );
 }
-
-export default App;

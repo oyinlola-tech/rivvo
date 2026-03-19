@@ -1,32 +1,27 @@
-import { Check } from "lucide-react";
+import { CheckCircle2 } from 'lucide-react';
 
 interface VerificationBadgeProps {
-  type: "user" | "staff";
-  size?: "sm" | "md" | "lg";
-  className?: string;
+  role: 'user' | 'admin' | 'moderator';
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function VerificationBadge({ type, size = "md", className = "" }: VerificationBadgeProps) {
-  const bgColor = type === "user" ? "bg-[#1DA1F2]" : "bg-black";
-  
+export function VerificationBadge({ role, size = 'md' }: VerificationBadgeProps) {
+  if (role === 'user') {
+    return null;
+  }
+
   const sizeClasses = {
-    sm: "w-3 h-3",
-    md: "w-4 h-4",
-    lg: "w-5 h-5",
-  };
-  
-  const iconSize = {
-    sm: 8,
-    md: 10,
-    lg: 12,
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-6 h-6',
   };
 
+  const color = role === 'admin' ? 'text-foreground' : 'text-muted-foreground';
+
   return (
-    <div
-      className={`inline-flex items-center justify-center rounded-full ${bgColor} ${sizeClasses[size]} ${className}`}
-      title={type === "user" ? "Verified User" : "Staff"}
-    >
-      <Check className="text-white" size={iconSize[size]} strokeWidth={3} />
-    </div>
+    <CheckCircle2
+      className={`${sizeClasses[size]} ${color} fill-current`}
+      aria-label={role === 'admin' ? 'Admin' : 'Moderator'}
+    />
   );
 }
