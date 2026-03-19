@@ -53,13 +53,15 @@ const env = {
     messageMax: toNumber(process.env.RATE_LIMIT_MESSAGES_MAX || process.env.RATE_LIMIT_API_MAX, 300),
     uploadsMax: toNumber(process.env.RATE_LIMIT_UPLOADS_MAX || process.env.RATE_LIMIT_API_MAX, 300)
   },
-  flutterwave: {
-    baseUrl: process.env.FLW_BASE_URL || 'https://api.flutterwave.com',
-    publicKey: process.env.FLW_PUBLIC_KEY,
-    secretKey: process.env.FLW_SECRET_KEY,
-    webhookSecret: process.env.FLW_WEBHOOK_SECRET,
-    redirectUrl: process.env.FLW_REDIRECT_URL
-  },
+  flutterwave: process.env.FLW_SECRET_KEY
+    ? {
+        baseUrl: process.env.FLW_BASE_URL || 'https://api.flutterwave.com',
+        publicKey: process.env.FLW_PUBLIC_KEY,
+        secretKey: process.env.FLW_SECRET_KEY,
+        webhookSecret: process.env.FLW_WEBHOOK_SECRET,
+        redirectUrl: process.env.FLW_REDIRECT_URL
+      }
+    : null,
   admin: {
     email: process.env.ADMIN_EMAIL,
     password: process.env.ADMIN_PASSWORD,

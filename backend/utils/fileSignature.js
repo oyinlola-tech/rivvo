@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import path from 'path';
 
 const readHeader = async (filePath, length = 32) => {
   const handle = await fs.open(filePath, 'r');
@@ -59,10 +60,16 @@ export const validateFileSignature = async (filePath, allowedCategory) => {
   return { ok: true, mime: match.mime };
 };
 
+const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+
 export const safeUnlink = async (filePath) => {
-  if (!filePath) return;
+  if (!filePath || typeof filePath !== 'string') return;
   try {
-    await fs.unlink(filePath);
+    const resolved = path.resolve(filePath);
+    const realTarget = await fs.realpath(resolved).catch(() => null);
+    if (!realTarget) return;
+    if (!realTarget.startsWith(uploadsRoot)) return;
+    await fs.unlink(realTarget);
   } catch {
     // Best-effort only.
   }

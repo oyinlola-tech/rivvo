@@ -123,6 +123,11 @@ const sanitizeVerificationResponse = (payload) => {
 };
 
 const flutterwaveRequest = async (path, options = {}) => {
+  if (!env.flutterwave?.secretKey) {
+    const error = new Error('Payment provider is not configured');
+    error.status = 503;
+    throw error;
+  }
   const baseUrl = env.flutterwave.baseUrl || 'https://api.flutterwave.com';
   const url = `${baseUrl}${path}`;
 
@@ -159,7 +164,7 @@ const verifyFlutterwaveTransaction = async (transactionId) => {
 
 const isValidWebhookSignature = (req) => {
   const signature = req.get('flutterwave-signature');
-  const secret = env.flutterwave.webhookSecret;
+  const secret = env.flutterwave?.webhookSecret;
   if (!signature || !secret || !req.rawBody) {
     return false;
   }
@@ -277,12 +282,12 @@ export const createVerificationCheckout = async (req, res) => {
     return sendError(res, 400, 'Verification pricing is not available');
   }
 
-  if (!env.flutterwave.secretKey) {
+  if (!env.flutterwave?.secretKey) {
     return sendError(res, 500, 'Payment provider is not configured');
   }
 
   const txRef = `verify_${uuid()}`;
-  const redirectUrl = env.flutterwave.redirectUrl || env.clientUrl;
+  const redirectUrl = env.flutterwave?.redirectUrl || env.clientUrl;
 
   const payload = {
     tx_ref: txRef,
@@ -352,7 +357,7 @@ export const confirmVerificationPayment = async (req, res) => {
     return sendError(res, 400, 'transactionId is required');
   }
 
-  if (!env.flutterwave.secretKey) {
+  if (!env.flutterwave?.secretKey) {
     return sendError(res, 500, 'Payment provider is not configured');
   }
 
@@ -444,7 +449,7 @@ export const handleVerificationWebhook = async (req, res) => {
     return res.status(200).json({ received: true });
   }
 
-  if (!env.flutterwave.secretKey) {
+  if (!env.flutterwave?.secretKey) {
     return res.status(500).json({ error: 'Server Error', message: 'Payment provider is not configured' });
   }
 
