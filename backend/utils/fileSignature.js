@@ -58,6 +58,19 @@ const signatures = [
     match: (buf) => buf.toString('ascii', 4, 8) === 'ftyp'
   },
   {
+    mime: 'audio/mpeg',
+    match: (buf) =>
+      buf.toString('ascii', 0, 3) === 'ID3' || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0)
+  },
+  {
+    mime: 'audio/ogg',
+    match: (buf) => buf.toString('ascii', 0, 4) === 'OggS'
+  },
+  {
+    mime: 'audio/wav',
+    match: (buf) => buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE'
+  },
+  {
     mime: 'video/webm',
     match: (buf) => buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3
   }
@@ -75,6 +88,12 @@ export const validateFileSignature = async (filePath, allowedCategory) => {
     return { ok: false, mime: match.mime };
   }
   if (allowedCategory === 'imageOrVideo' && !match.mime.startsWith('image/') && !match.mime.startsWith('video/')) {
+    return { ok: false, mime: match.mime };
+  }
+  if (allowedCategory === 'audio' && !match.mime.startsWith('audio/')) {
+    if (match.mime === 'video/mp4' || match.mime === 'video/webm') {
+      return { ok: true, mime: match.mime };
+    }
     return { ok: false, mime: match.mime };
   }
   return { ok: true, mime: match.mime };

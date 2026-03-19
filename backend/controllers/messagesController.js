@@ -4,6 +4,7 @@ import { isUserOnline } from '../services/presenceService.js';
 import { sendError, isNonEmptyString } from '../utils/validation.js';
 import fs from 'fs';
 import path from 'path';
+import { validateFileSignature } from '../utils/fileSignature.js';
 
 const uploadsRoot = path.resolve(process.cwd(), 'uploads');
 const safeUnlink = (targetPath) => {
@@ -1121,9 +1122,9 @@ export const uploadAttachment = async (req, res) => {
     return sendError(res, 400, 'File is required');
   }
 
+  const isEncryptedFlag = String(encrypted) === '1';
   const groupConversation = await getGroupByConversation(conversationId);
   if (groupConversation) {
-    const isEncryptedFlag = String(encrypted) === '1';
     if (!isEncryptedFlag || !originalName.endsWith('.enc')) {
       safeUnlink(req.file.path);
       return sendError(res, 400, 'Group attachments must be encrypted');
@@ -1138,6 +1139,20 @@ export const uploadAttachment = async (req, res) => {
   if (kind && !allowedAttachmentKinds.has(kind)) {
     safeUnlink(req.file.path);
     return sendError(res, 400, 'Unsupported attachment kind');
+  }
+
+  if (!isEncryptedFlag) {
+    let category = null;
+    if (normalizedType.startsWith('image/')) category = 'image';
+    else if (normalizedType.startsWith('video/')) category = 'video';
+    else if (normalizedType.startsWith('audio/')) category = 'audio';
+    if (category) {
+      const signature = await validateFileSignature(req.file.path, category);
+      if (!signature.ok) {
+        safeUnlink(req.file.path);
+        return sendError(res, 400, 'Invalid file signature');
+      }
+    }
   }
 
   const relativePath = `/uploads/messages/${path.basename(req.file.path)}`;

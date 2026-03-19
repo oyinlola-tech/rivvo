@@ -41,6 +41,7 @@ interface ChatContextType {
   loading: boolean;
   setActiveChat: (chatId: string | null) => void;
   sendMessage: (chatId: string, content: string, type?: Message['type']) => Promise<void>;
+  sendVoiceNote: (chatId: string, file: Blob, fileName: string) => Promise<void>;
   deleteMessage: (chatId: string, messageId: string) => Promise<void>;
   markAsRead: (chatId: string) => Promise<void>;
   createGroup: (name: string, participants: string[]) => Promise<Chat>;
@@ -113,6 +114,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     await loadChats();
   };
 
+  const sendVoiceNote = async (chatId: string, file: Blob, fileName: string) => {
+    const message = await chatApi.sendVoiceNote(chatId, file, fileName);
+    setMessages(prev => [...prev, message]);
+    await loadChats();
+  };
+
   const deleteMessage = async (chatId: string, messageId: string) => {
     await chatApi.deleteMessage(chatId, messageId);
     setMessages(prev => prev.filter(m => m.id !== messageId));
@@ -165,6 +172,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         loading,
         setActiveChat,
         sendMessage,
+        sendVoiceNote,
         deleteMessage,
         markAsRead,
         createGroup,

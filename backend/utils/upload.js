@@ -60,6 +60,9 @@ const attachmentFilter = (req, file, cb) => {
   if (file.mimetype === 'application/octet-stream') {
     return cb(null, true);
   }
+  if (file.mimetype?.startsWith('audio/')) {
+    return cb(null, true);
+  }
   return cb(new Error('Encrypted payload required'), false);
 };
 

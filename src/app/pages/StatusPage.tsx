@@ -11,6 +11,7 @@ export function StatusPage() {
   const [loading, setLoading] = useState(true);
   const [viewingStatuses, setViewingStatuses] = useState<Status[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [statusColor, setStatusColor] = useState('#0f172a');
@@ -90,6 +91,34 @@ export function StatusPage() {
         status.id === currentStatus.id ? { ...status, viewed: true } : status
       )
     );
+  }, [currentStatus?.id]);
+
+  useEffect(() => {
+    if (!currentStatus) {
+      setProgress(0);
+      return;
+    }
+    const durationMs = 6000;
+    const start = Date.now();
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const nextProgress = Math.min((elapsed / durationMs) * 100, 100);
+      setProgress(nextProgress);
+      if (elapsed >= durationMs) {
+        handleNext();
+        return;
+      }
+      timerId = setTimeout(tick, 100);
+    };
+
+    setProgress(0);
+    timerId = setTimeout(tick, 100);
+
+    return () => {
+      clearTimeout(timerId);
+    };
   }, [currentStatus?.id]);
 
   const handleNext = () => {
@@ -218,10 +247,14 @@ export function StatusPage() {
             </div>
             <div className="flex gap-1">
               {viewingStatuses.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`flex-1 h-0.5 rounded ${idx === currentIndex ? 'bg-white' : 'bg-white/30'}`}
-                />
+                <div key={idx} className="flex-1 h-0.5 rounded bg-white/30 overflow-hidden">
+                  <div
+                    className="h-0.5 rounded bg-white"
+                    style={{
+                      width: `${idx < currentIndex ? 100 : idx === currentIndex ? progress : 0}%`,
+                    }}
+                  />
+                </div>
               ))}
             </div>
           </div>

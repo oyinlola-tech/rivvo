@@ -1,4 +1,4 @@
-import { apiRequest, resolveAssetUrl } from './config';
+import { API_BASE_URL, apiRequest, resolveAssetUrl } from './config';
 import type { Chat, Message } from '../contexts/ChatContext';
 
 const getCurrentUserId = () => {
@@ -142,6 +142,34 @@ const toChat = (item: any): Chat => {
   };
 };
 
+const uploadAttachment = async (
+  chatId: string,
+  file: Blob,
+  fileName: string,
+  kind: 'voice' | 'audio' | 'media' | 'document' = 'voice'
+) => {
+  const formData = new FormData();
+  formData.append('file', file, fileName);
+  formData.append('kind', kind);
+  const safeType = (file.type || 'audio/webm').split(';')[0];
+  formData.append('fileType', safeType);
+  formData.append('fileName', fileName);
+
+  const token = localStorage.getItem('rivvo_token');
+  const response = await fetch(`${API_BASE_URL}/messages/conversations/${chatId}/attachments`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+};
+
 export const chatApi = {
   async getChats(): Promise<Chat[]> {
     const data = await apiRequest<any[]>('/messages/conversations');
@@ -184,6 +212,21 @@ export const chatApi = {
       body: JSON.stringify({ message: content, type }),
     });
     return toMessage(chatId, response);
+  },
+
+  async sendVoiceNote(chatId: string, file: Blob, fileName: string): Promise<Message> {
+    const attachment = await uploadAttachment(chatId, file, fileName, 'voice');
+    const safeType = (file.type || 'audio/webm').split(';')[0];
+    const payload = {
+      type: 'attachment',
+      kind: 'voice',
+      id: attachment.id,
+      url: attachment.url,
+      fileType: attachment.fileType || safeType,
+      fileName: attachment.fileName || fileName,
+      size: attachment.size || file.size || 0,
+    };
+    return chatApi.sendMessage(chatId, JSON.stringify(payload), 'audio');
   },
 
   async deleteMessage(chatId: string, messageId: string): Promise<void> {

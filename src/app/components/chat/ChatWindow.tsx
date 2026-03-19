@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { ArrowLeft, Phone, Video, MoreVertical, Search, Send, Paperclip, Smile, Mic, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, Search, Send, Paperclip, Smile, Mic, Play, Pause, Square } from 'lucide-react';
 import { VerificationBadge } from '../VerificationBadge';
 import { ChatStreak } from '../ChatStreak';
 import { formatDistanceToNow } from 'date-fns';
@@ -100,20 +100,112 @@ function AudioMessage({ message, isSent }: { message: Message; isSent: boolean }
 export function ChatWindow({ onBack }: ChatWindowProps) {
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { activeChat, messages, sendMessage } = useChat();
+  const { activeChat, messages, sendMessage, sendVoiceNote } = useChat();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const cancelRecordingRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== 'inactive') {
+        recorder.stop();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeChat && isRecording) {
+      cancelRecording();
+    }
+  }, [activeChat]);
 
   const handleSend = async () => {
     if (!messageText.trim() || !activeChat) return;
 
     await sendMessage(activeChat.id, messageText.trim());
     setMessageText('');
+  };
+
+  const startRecording = async () => {
+    if (!activeChat || isRecording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const preferredTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+      ];
+      const supportedType = preferredTypes.find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, supportedType ? { mimeType: supportedType } : undefined);
+      chunksRef.current = [];
+      cancelRecordingRef.current = false;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setIsRecording(false);
+        const shouldCancel = cancelRecordingRef.current;
+        cancelRecordingRef.current = false;
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        chunksRef.current = [];
+        if (!shouldCancel && blob.size > 0 && activeChat) {
+          const extension = recorder.mimeType.includes('ogg') ? 'ogg' : 'webm';
+          const fileName = `voice-note-${Date.now()}.${extension}`;
+          try {
+            await sendVoiceNote(activeChat.id, blob, fileName);
+          } catch (error) {
+            console.error('Failed to send voice note:', error);
+          }
+        }
+        setRecordSeconds(0);
+      };
+
+      recorder.start();
+      recorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordSeconds(0);
+      timerRef.current = setInterval(() => {
+        setRecordSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error('Microphone permission denied:', error);
+    }
+  };
+
+  const stopRecording = () => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+    recorder.stop();
+  };
+
+  const cancelRecording = () => {
+    cancelRecordingRef.current = true;
+    stopRecording();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -256,37 +348,64 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
 
       {/* Input */}
       <div className="p-4 border-t border-border bg-card">
-        <div className="flex items-end gap-2">
-          <button className="p-2 hover:bg-muted rounded-lg transition-colors shrink-0">
-            <Smile className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <button className="p-2 hover:bg-muted rounded-lg transition-colors shrink-0">
-            <Paperclip className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <div className="flex-1 relative">
-            <textarea
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              rows={1}
-              className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none text-foreground max-h-32"
-              style={{ minHeight: '40px' }}
-            />
-          </div>
-          {messageText.trim() ? (
+        {isRecording ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-foreground">
+              <span className="inline-flex h-2 w-2 rounded-full bg-red-500" />
+              <span className="text-sm">Recording {formatDuration(recordSeconds)}</span>
+            </div>
+            <div className="flex-1" />
             <button
-              onClick={handleSend}
-              className="p-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity shrink-0"
+              onClick={cancelRecording}
+              className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              <Send className="w-5 h-5" />
+              Cancel
             </button>
-          ) : (
+            <button
+              onClick={stopRecording}
+              className="p-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+              aria-label="Send voice note"
+            >
+              <Square className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-end gap-2">
             <button className="p-2 hover:bg-muted rounded-lg transition-colors shrink-0">
-              <Mic className="w-5 h-5 text-muted-foreground" />
+              <Smile className="w-5 h-5 text-muted-foreground" />
             </button>
-          )}
-        </div>
+            <button className="p-2 hover:bg-muted rounded-lg transition-colors shrink-0">
+              <Paperclip className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <div className="flex-1 relative">
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                rows={1}
+                className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none text-foreground max-h-32"
+                style={{ minHeight: '40px' }}
+              />
+            </div>
+            {messageText.trim() ? (
+              <button
+                onClick={handleSend}
+                className="p-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity shrink-0"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            ) : (
+              <button
+                onClick={startRecording}
+                className="p-2 hover:bg-muted rounded-lg transition-colors shrink-0"
+                aria-label="Record voice note"
+              >
+                <Mic className="w-5 h-5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
