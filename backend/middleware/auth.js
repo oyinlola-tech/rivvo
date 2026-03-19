@@ -11,7 +11,10 @@ const auth = async (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, env.jwt.secret);
+    const payload = jwt.verify(token, env.jwt.secret, {
+      issuer: env.jwt.issuer,
+      audience: env.jwt.audience
+    });
     const [rows] = await pool.execute(
       `SELECT token_version, status FROM users WHERE id = :id LIMIT 1`,
       { id: payload.id }

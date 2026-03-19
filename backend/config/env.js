@@ -11,39 +11,47 @@ if (!clientUrls.length) {
   clientUrls.push('https://rivvo.telente.site', 'https://www.rivvo.telente.site');
 }
 
+const required = (value, fallback) => (value === undefined || value === null || value === '' ? fallback : value);
+const toNumber = (value, fallback) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
 const env = {
-  nodeEnv: process.env.NODE_ENV ,
-  port: Number(process.env.PORT),
+  nodeEnv: required(process.env.NODE_ENV, 'production'),
+  port: toNumber(process.env.PORT, 3000),
   clientUrl: clientUrls[0],
   clientUrls,
   db: {
     host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT ),
-    user: process.env.DB_USER ,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    port: toNumber(process.env.DB_PORT, 3306),
+    user: required(process.env.DB_USER, ''),
+    password: required(process.env.DB_PASSWORD, ''),
+    database: required(process.env.DB_NAME, '')
   },
   jwt: {
-    secret: process.env.JWT_SECRET ,
-    expiresIn: process.env.JWT_EXPIRES_IN
+    secret: required(process.env.JWT_SECRET, ''),
+    expiresIn: required(process.env.JWT_EXPIRES_IN, '1h'),
+    issuer: required(process.env.JWT_ISSUER, 'rivvo'),
+    audience: required(process.env.JWT_AUDIENCE, 'rivvo-client')
   },
-  refreshTokenExpiresDays: Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS),
-  otpExpiresMinutes: Number(process.env.OTP_EXPIRES_MINUTES),
+  refreshTokenExpiresDays: toNumber(process.env.REFRESH_TOKEN_EXPIRES_DAYS, 7),
+  otpExpiresMinutes: toNumber(process.env.OTP_EXPIRES_MINUTES, 10),
   smtp: {
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ),
-    user: process.env.SMTP_USER ,
-    pass: process.env.SMTP_PASS ,
-    from: process.env.SMTP_FROM 
+    port: toNumber(process.env.SMTP_PORT, 587),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    from: process.env.SMTP_FROM
   },
   callRoomBaseUrl: process.env.CALL_ROOM_BASE_URL,
   callJoinBaseUrl: process.env.CALL_JOIN_BASE_URL,
   rateLimit: {
-    windowMinutes: Number(process.env.RATE_LIMIT_WINDOW_MINUTES ),
-    authMax: Number(process.env.RATE_LIMIT_AUTH_MAX),
-    apiMax: Number(process.env.RATE_LIMIT_API_MAX),
-    messageMax: Number(process.env.RATE_LIMIT_MESSAGES_MAX || process.env.RATE_LIMIT_API_MAX),
-    uploadsMax: Number(process.env.RATE_LIMIT_UPLOADS_MAX || process.env.RATE_LIMIT_API_MAX)
+    windowMinutes: toNumber(process.env.RATE_LIMIT_WINDOW_MINUTES, 15),
+    authMax: toNumber(process.env.RATE_LIMIT_AUTH_MAX, 10),
+    apiMax: toNumber(process.env.RATE_LIMIT_API_MAX, 300),
+    messageMax: toNumber(process.env.RATE_LIMIT_MESSAGES_MAX || process.env.RATE_LIMIT_API_MAX, 300),
+    uploadsMax: toNumber(process.env.RATE_LIMIT_UPLOADS_MAX || process.env.RATE_LIMIT_API_MAX, 300)
   },
   flutterwave: {
     baseUrl: process.env.FLW_BASE_URL || 'https://api.flutterwave.com',
@@ -58,5 +66,12 @@ const env = {
     name: process.env.ADMIN_NAME || 'Main Admin'
   }
 };
+
+if (!env.jwt.secret) {
+  throw new Error('JWT_SECRET is required');
+}
+if (!env.db.host || !env.db.user || !env.db.database) {
+  throw new Error('Database configuration is incomplete');
+}
 
 export default env;

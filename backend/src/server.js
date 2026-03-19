@@ -25,7 +25,10 @@ io.use((socket, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, env.jwt.secret);
+    const payload = jwt.verify(token, env.jwt.secret, {
+      issuer: env.jwt.issuer,
+      audience: env.jwt.audience
+    });
     socket.user = payload;
   } catch (error) {
     return next(new Error('Unauthorized'));
@@ -44,18 +47,30 @@ io.on('connection', (socket) => {
   }
 
   socket.on('join_conversation', ({ conversationId }) => {
+    if (!socket.user?.id) {
+      socket.emit('error', { message: 'Unauthorized' });
+      return;
+    }
     if (conversationId) {
       socket.join(`conversation:${conversationId}`);
     }
   });
 
   socket.on('leave_conversation', ({ conversationId }) => {
+    if (!socket.user?.id) {
+      socket.emit('error', { message: 'Unauthorized' });
+      return;
+    }
     if (conversationId) {
       socket.leave(`conversation:${conversationId}`);
     }
   });
 
   socket.on('typing', ({ conversationId, userId: typingUserId }) => {
+    if (!socket.user?.id) {
+      socket.emit('error', { message: 'Unauthorized' });
+      return;
+    }
     if (conversationId) {
       socket.to(`conversation:${conversationId}`).emit('typing', {
         conversationId,

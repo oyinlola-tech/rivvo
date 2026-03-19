@@ -24,5 +24,9 @@ export const createToken = (user) =>
       tokenVersion: Number(user.token_version ?? user.tokenVersion ?? 0)
     },
     env.jwt.secret,
-    { expiresIn: env.jwt.expiresIn }
+    {
+      expiresIn: env.jwt.expiresIn,
+      issuer: env.jwt.issuer,
+      audience: env.jwt.audience
+    }
   );

@@ -230,8 +230,17 @@ export const updateProfile = async (req, res) => {
     const nextAllowed = new Date(last);
     nextAllowed.setDate(nextAllowed.getDate() + 15);
     if (nextAllowed > new Date()) {
-      return sendError(res, 400, `Username can be changed after ${nextAllowed.toISOString()}`);
+      const remainingDays = Math.ceil((nextAllowed.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+      return sendError(res, 400, `Username can be changed in ${remainingDays} day${remainingDays === 1 ? '' : 's'}`);
     }
+  }
+
+  const isValidAvatar = (value) =>
+    value.startsWith('/uploads/') ||
+    value.startsWith('https://') ||
+    value.startsWith('http://');
+  if (avatar !== undefined && avatar !== null && avatar !== '' && !isValidAvatar(String(avatar))) {
+    return sendError(res, 400, 'Avatar URL is invalid');
   }
 
   await pool.execute(

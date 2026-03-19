@@ -418,6 +418,15 @@ export const refresh = async (req, res) => {
   if (!stored || stored.revoked_at || new Date(stored.expires_at) <= new Date()) {
     return sendError(res, 401, 'Refresh token invalid or expired');
   }
+  if (stored.last_used_at) {
+    await pool.execute(
+      `UPDATE refresh_tokens
+       SET revoked_at = NOW()
+       WHERE user_id = :user_id AND revoked_at IS NULL`,
+      { user_id: stored.user_id }
+    );
+    return sendError(res, 401, 'Refresh token reuse detected');
+  }
 
   const user = await getUserById(stored.user_id);
   if (!user || user.status === 'suspended') {
