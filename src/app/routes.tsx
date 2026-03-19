@@ -6,6 +6,8 @@ const AuthLayout = lazy(() => import("./layouts/AuthLayout").then((m) => ({ defa
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
 const OTPVerificationPage = lazy(() => import("./pages/auth/OTPVerificationPage").then((m) => ({ default: m.OTPVerificationPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 const ChatsPage = lazy(() => import("./pages/ChatsPage").then((m) => ({ default: m.ChatsPage })));
 const StatusPage = lazy(() => import("./pages/StatusPage").then((m) => ({ default: m.StatusPage })));
 const CallsPage = lazy(() => import("./pages/CallsPage").then((m) => ({ default: m.CallsPage })));
@@ -31,6 +33,8 @@ export const router = createBrowserRouter([
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
       { path: "verify-otp", Component: OTPVerificationPage },
+      { path: "forgot", Component: ForgotPasswordPage },
+      { path: "reset", Component: ResetPasswordPage },
     ],
   },
   {

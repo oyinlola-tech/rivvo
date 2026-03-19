@@ -40,6 +40,20 @@ export const authApi = {
     });
   },
 
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    return apiRequest('/auth/password/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(email: string, otp: string, password: string): Promise<{ message: string }> {
+    return apiRequest('/auth/password/reset', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, password }),
+    });
+  },
+
   async getCurrentUser(): Promise<User> {
     return apiRequest<User>('/users/profile');
   },

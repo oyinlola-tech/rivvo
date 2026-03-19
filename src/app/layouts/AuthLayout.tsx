@@ -1,6 +1,6 @@
 import { Outlet, Navigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
-const rivvoLogo = '/89b224cd869a6897e590192ddf55cb45540dca68.png';
+const rivvoLogo = `${import.meta.env.BASE_URL}89b224cd869a6897e590192ddf55cb45540dca68.png`;
 
 
 export function AuthLayout() {
