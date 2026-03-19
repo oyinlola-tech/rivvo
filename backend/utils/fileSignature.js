@@ -1,10 +1,24 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-const readHeader = async (filePath, length = 32) => {
-  const resolved = path.resolve(filePath);
+const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+
+const resolveUploadsPath = async (filePath) => {
+  if (!filePath || typeof filePath !== 'string') return null;
+  // Only allow a simple filename (no path separators).
+  if (filePath.includes('/') || filePath.includes('\\')) return null;
+  const safeName = path.basename(filePath);
+  if (!safeName || safeName !== filePath) return null;
+  const resolved = path.join(uploadsRoot, safeName);
   const realTarget = await fs.realpath(resolved).catch(() => null);
-  if (!realTarget || !realTarget.startsWith(uploadsRoot)) {
+  if (!realTarget) return null;
+  if (!realTarget.startsWith(uploadsRoot)) return null;
+  return realTarget;
+};
+
+const readHeader = async (filePath, length = 32) => {
+  const realTarget = await resolveUploadsPath(filePath);
+  if (!realTarget) {
     throw new Error('Invalid file path');
   }
   const handle = await fs.open(realTarget, 'r');
@@ -65,15 +79,10 @@ export const validateFileSignature = async (filePath, allowedCategory) => {
   return { ok: true, mime: match.mime };
 };
 
-const uploadsRoot = path.resolve(process.cwd(), 'uploads');
-
 export const safeUnlink = async (filePath) => {
-  if (!filePath || typeof filePath !== 'string') return;
   try {
-    const resolved = path.resolve(filePath);
-    const realTarget = await fs.realpath(resolved).catch(() => null);
+    const realTarget = await resolveUploadsPath(filePath);
     if (!realTarget) return;
-    if (!realTarget.startsWith(uploadsRoot)) return;
     await fs.unlink(realTarget);
   } catch {
     // Best-effort only.
