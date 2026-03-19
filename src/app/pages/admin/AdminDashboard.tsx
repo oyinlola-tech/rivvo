@@ -2,7 +2,7 @@ import { Outlet, NavLink, Navigate } from 'react-router';
 import { Users, Shield, BarChart3, Settings, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router';
-import rivvoLogo from 'figma:asset/89b224cd869a6897e590192ddf55cb45540dca68.png';
+const rivvoLogo = '/89b224cd869a6897e590192ddf55cb45540dca68.png';
 
 
 export function AdminDashboard() {

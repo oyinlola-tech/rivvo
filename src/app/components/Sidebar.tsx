@@ -2,7 +2,7 @@ import { NavLink } from 'react-router';
 import { MessageCircle, Phone, Users, Settings, Sun, Moon, LogOut, User, Video } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import rivvoLogo from 'figma:asset/89b224cd869a6897e590192ddf55cb45540dca68.png';
+const rivvoLogo = '/89b224cd869a6897e590192ddf55cb45540dca68.png';
 import { VerificationBadge } from './VerificationBadge';
 
 export function Sidebar() {
