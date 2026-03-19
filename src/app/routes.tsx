@@ -1,25 +1,27 @@
 import { createBrowserRouter } from "react-router";
-import { MainLayout } from "./layouts/MainLayout";
-import { AuthLayout } from "./layouts/AuthLayout";
-import { LoginPage } from "./pages/auth/LoginPage";
-import { RegisterPage } from "./pages/auth/RegisterPage";
-import { OTPVerificationPage } from "./pages/auth/OTPVerificationPage";
-import { ChatsPage } from "./pages/ChatsPage";
-import { StatusPage } from "./pages/StatusPage";
-import { CallsPage } from "./pages/CallsPage";
-import { ContactsPage } from "./pages/ContactsPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { NotificationsPage } from "./pages/NotificationsPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { VoiceCallPage } from "./pages/calls/VoiceCallPage";
-import { VideoCallPage } from "./pages/calls/VideoCallPage";
-import { GroupSettingsPage } from "./pages/GroupSettingsPage";
-import { AdminDashboard } from "./pages/admin/AdminDashboard";
-import { AdminUsers } from "./pages/admin/AdminUsers";
-import { AdminModerators } from "./pages/admin/AdminModerators";
-import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
-import { AdminSettings } from "./pages/admin/AdminSettings";
-import { NotFoundPage } from "./pages/NotFoundPage";
+import { lazy } from "react";
+
+const MainLayout = lazy(() => import("./layouts/MainLayout").then((m) => ({ default: m.MainLayout })));
+const AuthLayout = lazy(() => import("./layouts/AuthLayout").then((m) => ({ default: m.AuthLayout })));
+const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
+const OTPVerificationPage = lazy(() => import("./pages/auth/OTPVerificationPage").then((m) => ({ default: m.OTPVerificationPage })));
+const ChatsPage = lazy(() => import("./pages/ChatsPage").then((m) => ({ default: m.ChatsPage })));
+const StatusPage = lazy(() => import("./pages/StatusPage").then((m) => ({ default: m.StatusPage })));
+const CallsPage = lazy(() => import("./pages/CallsPage").then((m) => ({ default: m.CallsPage })));
+const ContactsPage = lazy(() => import("./pages/ContactsPage").then((m) => ({ default: m.ContactsPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage").then((m) => ({ default: m.NotificationsPage })));
+const ProfilePage = lazy(() => import("./pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const VoiceCallPage = lazy(() => import("./pages/calls/VoiceCallPage").then((m) => ({ default: m.VoiceCallPage })));
+const VideoCallPage = lazy(() => import("./pages/calls/VideoCallPage").then((m) => ({ default: m.VideoCallPage })));
+const GroupSettingsPage = lazy(() => import("./pages/GroupSettingsPage").then((m) => ({ default: m.GroupSettingsPage })));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers").then((m) => ({ default: m.AdminUsers })));
+const AdminModerators = lazy(() => import("./pages/admin/AdminModerators").then((m) => ({ default: m.AdminModerators })));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics").then((m) => ({ default: m.AdminAnalytics })));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings").then((m) => ({ default: m.AdminSettings })));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
 export const router = createBrowserRouter([
   {
