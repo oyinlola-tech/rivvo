@@ -5,11 +5,19 @@ const uploadsRoot = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.resolve(process.cwd(), 'uploads');
 
+const isSafeRelativePath = (value) => {
+  if (!value || typeof value !== 'string') return false;
+  if (value.includes('\0')) return false;
+  if (path.isAbsolute(value)) return false;
+  const normalized = path.normalize(value);
+  if (normalized === '.' || normalized === path.sep) return false;
+  if (normalized === '..' || normalized.startsWith(`..${path.sep}`)) return false;
+  return true;
+};
+
 const resolveUploadsPath = async (filePath) => {
-  if (!filePath || typeof filePath !== 'string') return null;
-  const resolved = path.isAbsolute(filePath)
-    ? path.resolve(filePath)
-    : path.resolve(uploadsRoot, filePath);
+  if (!isSafeRelativePath(filePath)) return null;
+  const resolved = path.resolve(uploadsRoot, filePath);
   const realTarget = await fs.realpath(resolved).catch(() => null);
   if (!realTarget) return null;
   const normalizedRoot = uploadsRoot.endsWith(path.sep) ? uploadsRoot : `${uploadsRoot}${path.sep}`;
