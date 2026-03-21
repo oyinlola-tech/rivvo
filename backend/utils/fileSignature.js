@@ -5,19 +5,52 @@ const uploadsRoot = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.resolve(process.cwd(), 'uploads');
 
-const isSafeRelativePath = (value) => {
-  if (!value || typeof value !== 'string') return false;
-  if (value.includes('\0')) return false;
-  if (path.isAbsolute(value)) return false;
-  const normalized = path.normalize(value);
-  if (normalized === '.' || normalized === path.sep) return false;
-  if (normalized === '..' || normalized.startsWith(`..${path.sep}`)) return false;
-  return true;
+const allowedUploadRoots = new Set([
+  'avatars',
+  'status',
+  'messages',
+  'groups/avatars',
+  'groups/banners'
+]);
+
+const isSafeFileName = (value) => /^[a-zA-Z0-9._-]{1,255}$/.test(value);
+
+const toSafeUploadsRelativePath = (inputPath) => {
+  if (!inputPath || typeof inputPath !== 'string') return null;
+  if (inputPath.includes('\0')) return null;
+
+  // Normalize slashes for consistent parsing across platforms.
+  const raw = inputPath.replace(/\\/g, '/');
+  let relative = raw;
+
+  if (path.isAbsolute(inputPath)) {
+    relative = path.relative(uploadsRoot, inputPath).replace(/\\/g, '/');
+  } else if (raw.startsWith('/uploads/')) {
+    relative = raw.replace(/^\/uploads\//, '');
+  } else if (raw.startsWith('uploads/')) {
+    relative = raw.replace(/^uploads\//, '');
+  }
+
+  relative = relative.replace(/^\/+/, '');
+  const normalized = path.posix.normalize(relative);
+  if (normalized === '.' || normalized === '..') return null;
+  if (normalized.startsWith('../')) return null;
+
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+  const fileName = parts.pop();
+  const folder = parts.join('/');
+
+  if (!allowedUploadRoots.has(folder)) return null;
+  if (!isSafeFileName(fileName)) return null;
+
+  return { folder, fileName };
 };
 
 const resolveUploadsPath = async (filePath) => {
-  if (!isSafeRelativePath(filePath)) return null;
-  const resolved = path.resolve(uploadsRoot, filePath);
+  const safeParts = toSafeUploadsRelativePath(filePath);
+  if (!safeParts) return null;
+  const resolved = path.join(uploadsRoot, safeParts.folder, safeParts.fileName);
   const realTarget = await fs.realpath(resolved).catch(() => null);
   if (!realTarget) return null;
   const normalizedRoot = uploadsRoot.endsWith(path.sep) ? uploadsRoot : `${uploadsRoot}${path.sep}`;
