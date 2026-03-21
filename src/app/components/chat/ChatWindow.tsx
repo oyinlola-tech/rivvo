@@ -159,6 +159,8 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
   const [forwardOpen, setForwardOpen] = useState(false);
   const [forwardSearch, setForwardSearch] = useState('');
   const [starredOpen, setStarredOpen] = useState(false);
+  const [starredScope, setStarredScope] = useState<'chat' | 'all'>('chat');
+  const [forwardingProgress, setForwardingProgress] = useState<{ total: number; sent: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { activeChat, messages, sendMessage, sendVoiceNote, deleteMessage, editMessage, chats, forwardMessage } = useChat();
   const { user } = useAuth();
@@ -433,14 +435,19 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
   const handleForwardToChat = async (targetChatId: string) => {
     if (!activeChat) return;
     const ids = Array.from(selectedMessages);
+    setForwardingProgress({ total: ids.length, sent: 0 });
     for (const id of ids) {
       const message = messages.find((m) => m.id === id);
       if (!message) continue;
       await forwardMessage(targetChatId, message);
+      setForwardingProgress((prev) =>
+        prev ? { total: prev.total, sent: Math.min(prev.sent + 1, prev.total) } : prev
+      );
     }
     setForwardOpen(false);
     setForwardSearch('');
     clearSelection();
+    setForwardingProgress(null);
   };
 
   const handleActionForward = () => {
@@ -461,12 +468,43 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
       set.add(actionMessage.id);
     }
     localStorage.setItem(key, JSON.stringify(Array.from(set)));
+    const globalKey = 'rivvo_starred_global';
+    const globalStored = JSON.parse(localStorage.getItem(globalKey) || '[]') as Array<{
+      id: string;
+      chatId: string;
+      chatName: string;
+      content: string;
+      timestamp: string;
+    }>;
+    const filtered = globalStored.filter(
+      (item) => !(item.id === actionMessage.id && item.chatId === activeChat?.id)
+    );
+    if (set.has(actionMessage.id) && activeChat) {
+      filtered.push({
+        id: actionMessage.id,
+        chatId: activeChat.id,
+        chatName: activeChat.name || 'Conversation',
+        content: actionMessage.content || 'Message',
+        timestamp: actionMessage.timestamp,
+      });
+    }
+    localStorage.setItem(globalKey, JSON.stringify(filtered));
     setActionMessage(null);
   };
 
   const starredKey = activeChat ? `rivvo_starred_${activeChat.id}` : '';
   const starredIds = starredKey ? (JSON.parse(localStorage.getItem(starredKey) || '[]') as string[]) : [];
   const starredMessages = messages.filter((message) => starredIds.includes(message.id));
+  const allStarred = useMemo(() => {
+    const globalKey = 'rivvo_starred_global';
+    return JSON.parse(localStorage.getItem(globalKey) || '[]') as Array<{
+      id: string;
+      chatId: string;
+      chatName: string;
+      content: string;
+      timestamp: string;
+    }>;
+  }, [starredOpen]);
 
   const handleActionDelete = async (scope: 'self' | 'all') => {
     if (!actionMessage || !activeChat) return;
@@ -657,12 +695,13 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
                         <p className="text-xs text-primary mb-1">Sender Name</p>
                       )}
                       {(parsed.forwarded || parsed.reply) && (
-                        <div className="mb-2 rounded-lg px-3 py-2 bg-white/10 text-xs">
-                          {parsed.forwarded && <p className="text-blue-100">Forwarded</p>}
+                        <div className="mb-2 rounded-md px-3 py-2 bg-white/10 text-xs border-l-2 border-white/50">
+                          {parsed.forwarded && <p className="text-blue-100 font-medium">Forwarded</p>}
                           {parsed.reply && (
-                            <p className="text-blue-100">
-                              {parsed.reply.sender}: {parsed.reply.preview}
-                            </p>
+                            <div>
+                              <p className="text-blue-100 font-medium">{parsed.reply.sender}</p>
+                              <p className="text-blue-100/90">{parsed.reply.preview}</p>
+                            </div>
                           )}
                         </div>
                       )}
@@ -694,8 +733,9 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
                         <p className={`text-xs mb-1 ${isSent ? 'text-blue-100' : 'text-muted-foreground'}`}>Forwarded</p>
                       )}
                       {parsed.reply && (
-                        <div className={`mb-2 rounded-lg px-2 py-1 text-xs ${isSent ? 'bg-white/15 text-blue-100' : 'bg-muted text-muted-foreground'}`}>
-                          {parsed.reply.sender}: {parsed.reply.preview}
+                        <div className={`mb-2 rounded-md px-2 py-1 text-xs border-l-2 ${isSent ? 'bg-white/15 text-blue-100 border-white/50' : 'bg-muted text-muted-foreground border-primary/50'}`}>
+                          <p className="font-medium">{parsed.reply.sender}</p>
+                          <p className="opacity-90">{parsed.reply.preview}</p>
                         </div>
                       )}
                       {message.type === 'image' && message.mediaUrl ? (
@@ -973,8 +1013,22 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
               <p className="text-foreground font-medium">Starred messages</p>
               <p className="text-xs text-muted-foreground">Saved in this chat</p>
             </div>
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={() => setStarredScope('chat')}
+                className={`px-3 py-1.5 rounded-full text-xs ${starredScope === 'chat' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+              >
+                This chat
+              </button>
+              <button
+                onClick={() => setStarredScope('all')}
+                className={`px-3 py-1.5 rounded-full text-xs ${starredScope === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+              >
+                All chats
+              </button>
+            </div>
             <div className="max-h-64 overflow-y-auto space-y-2">
-              {starredMessages.map((message) => (
+              {starredScope === 'chat' && starredMessages.map((message) => (
                 <button
                   key={message.id}
                   onClick={() => {
@@ -989,7 +1043,32 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
                   </p>
                 </button>
               ))}
-              {starredMessages.length === 0 && (
+              {starredScope === 'all' && allStarred.map((item) => (
+                <button
+                  key={`${item.chatId}-${item.id}`}
+                  onClick={() => {
+                    navigate(`/chats/${item.chatId}`);
+                    setReplyToMessage({
+                      id: item.id,
+                      chatId: item.chatId,
+                      senderId: '',
+                      content: item.content,
+                      type: 'text',
+                      timestamp: item.timestamp,
+                      status: 'sent',
+                    });
+                    setStarredOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-foreground"
+                >
+                  <p className="text-xs text-muted-foreground mb-1">{item.chatName}</p>
+                  <p className="text-sm line-clamp-2">{item.content || 'Message'}</p>
+                </button>
+              ))}
+              {starredScope === 'chat' && starredMessages.length === 0 && (
+                <p className="text-sm text-muted-foreground">No starred messages yet</p>
+              )}
+              {starredScope === 'all' && allStarred.length === 0 && (
                 <p className="text-sm text-muted-foreground">No starred messages yet</p>
               )}
             </div>
@@ -999,6 +1078,23 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {forwardingProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card border border-border rounded-xl p-5 w-full max-w-sm">
+            <p className="text-foreground font-medium mb-2">Forwarding messages</p>
+            <div className="h-2 rounded-full bg-muted overflow-hidden mb-2">
+              <div
+                className="h-2 bg-primary"
+                style={{ width: `${Math.min((forwardingProgress.sent / forwardingProgress.total) * 100, 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {forwardingProgress.sent} of {forwardingProgress.total} sent
+            </p>
           </div>
         </div>
       )}
